@@ -18,3 +18,8 @@ pub fn setup_syslogger(syslogger: BasicLogger) -> Result<(), SetLoggerError> {
     log::set_boxed_logger(Box::new(syslogger))
         .map(|()| log::set_max_level(LevelFilter::Trace)) //  Necessary for messages to show in log
 }
+
+pub fn log_panic(message: &str) {
+    error!("{}", message);
+    panic!("{}", message);
+}
