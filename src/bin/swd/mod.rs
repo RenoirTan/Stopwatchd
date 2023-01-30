@@ -20,26 +20,31 @@ mod cleanup;
 mod pidfile;
 
 fn main() {
-    let logging_process_name = format!("swd_{}", process::id());
-    let logger = create_syslogger(&logging_process_name).unwrap();
-    setup_syslogger(logger).unwrap();
-    set_panic_hook();
+    { // Logging
+        let logging_process_name = format!("swd_{}", process::id());
+        let logger = create_syslogger(&logging_process_name).unwrap();
+        setup_syslogger(logger).unwrap();
+        set_panic_hook();
+    }
     info!("logging started");
 
+    // Filesystem
     debug!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
     create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
 
-    debug!("setting up pidfile");
-    let mut pidfile = open_pidfile().unwrap();
-    if pidfile_is_empty(&mut pidfile).unwrap() {
-        write_pidfile(&mut pidfile).unwrap();
-    } else {
-        panic!("{} exists. Please delete it if no other swd is running", DEFAULT_PIDFILE_PATH)
+    { // PID File
+        debug!("setting up pidfile");
+        let mut pidfile = open_pidfile().unwrap();
+        if pidfile_is_empty(&mut pidfile).unwrap() {
+            write_pidfile(&mut pidfile).unwrap();
+        } else {
+            panic!("{} exists. Please delete it if no other swd is running", DEFAULT_PIDFILE_PATH)
+        }
     }
-    drop(pidfile);
 
     press_enter_to_continue().unwrap();
 
+    // Clean up
     info!("cleaning up swd");
     Cleanup {remove_pidfile: true}.cleanup().unwrap();
     info!("going under!");
