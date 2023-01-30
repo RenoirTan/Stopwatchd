@@ -1,6 +1,15 @@
-use std::fs::create_dir_all;
+use std::{
+    fs::create_dir_all,
+    process
+};
 
-use stopwatchd::runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH};
+#[macro_use]
+extern crate log;
+use stopwatchd::{
+    runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH},
+    logging::{create_syslogger, setup_syslogger},
+    util::press_enter_to_continue
+};
 
 use crate::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
@@ -12,6 +21,16 @@ mod pidfile;
 
 fn main() {
     println!("starting swd");
+    println!("setting up logging");
+    let logging_process_name = format!("swd_{}", process::id());
+    let logger = create_syslogger(&logging_process_name).unwrap();
+    setup_syslogger(logger).unwrap();
+    trace!("swd says trace");
+    debug!("swd says debug");
+    info!("swd says hi!!!");
+    warn!("swd says warn");
+    error!("swd says error");
+
     println!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
     create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
 
@@ -24,6 +43,8 @@ fn main() {
     }
     drop(pidfile);
 
+    press_enter_to_continue().unwrap();
+
     println!("cleaning up swd");
-    Cleanup {remove_pidfile: false}.cleanup().unwrap();
+    Cleanup {remove_pidfile: true}.cleanup().unwrap();
 }
