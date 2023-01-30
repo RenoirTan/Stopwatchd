@@ -6,17 +6,17 @@ use std::{
 #[macro_use]
 extern crate log;
 use stopwatchd::{
+    pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socker_path},
     logging::{create_syslogger, setup_syslogger, set_panic_hook}
 };
 
 use crate::{
-    pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
-    cleanup::Cleanup, socket::{clear_socket, create_socket, listen_to_socket}
+    cleanup::Cleanup,
+    socket::{clear_socket, create_socket, listen_to_socket}
 };
 
 mod cleanup;
-mod pidfile;
 mod socket;
 
 fn main() {
@@ -35,7 +35,7 @@ fn main() {
 
     { // PID File
         debug!("setting up pidfile");
-        let mut pidfile = open_pidfile().unwrap();
+        let mut pidfile = open_pidfile(true).unwrap();
         if pidfile_is_empty(&mut pidfile).unwrap() {
             write_pidfile(&mut pidfile).unwrap();
         } else {

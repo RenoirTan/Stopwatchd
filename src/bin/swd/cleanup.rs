@@ -1,6 +1,6 @@
 use std::io::Result;
 
-use crate::pidfile::remove_pidfile;
+use stopwatchd::pidfile::remove_pidfile;
 
 pub struct Cleanup {
     pub remove_pidfile: bool

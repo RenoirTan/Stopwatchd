@@ -18,6 +18,10 @@ crate-type = ["lib"]
 name = "swd"
 path = "src/bin/swd/mod.rs"
 
+[[bin]]
+name = "sw-start"
+path = "src/bin/sw-start/mod.rs"
+
 [dependencies]
 log = "0.4.17"
 syslog = "6.0.1"

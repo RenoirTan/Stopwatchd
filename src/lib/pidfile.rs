@@ -1,17 +1,23 @@
 use std::{
     fs::{File, OpenOptions, remove_file},
-    io::{Result, Read, Write},
+    io::{Result, Read, Write, Error, ErrorKind},
     process
 };
 
-use stopwatchd::runtime::DEFAULT_PIDFILE_PATH;
+use crate::runtime::DEFAULT_PIDFILE_PATH;
 
-pub fn open_pidfile() -> Result<File> {
+pub fn open_pidfile(is_daemon: bool) -> Result<File> {
     OpenOptions::new()
-        .create(true)
+        .create(is_daemon)
         .read(true)
-        .write(true)
+        .write(is_daemon)
         .open(DEFAULT_PIDFILE_PATH)
+}
+
+pub fn get_swd_pid(pidfile: &mut File) -> Result<u32> {
+    let mut pidfile_content = String::new();
+    pidfile.read_to_string(&mut pidfile_content)?;
+    pidfile_content.parse::<u32>().map_err(|pie| Error::new(ErrorKind::InvalidData, pie))
 }
 
 pub fn pidfile_is_empty(pidfile: &mut File) -> Result<bool> {
