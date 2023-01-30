@@ -7,7 +7,7 @@ use std::{
 extern crate log;
 use stopwatchd::{
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH},
-    logging::{create_syslogger, setup_syslogger, log_panic},
+    logging::{create_syslogger, setup_syslogger, set_panic_hook},
     util::press_enter_to_continue
 };
 
@@ -23,6 +23,7 @@ fn main() {
     let logging_process_name = format!("swd_{}", process::id());
     let logger = create_syslogger(&logging_process_name).unwrap();
     setup_syslogger(logger).unwrap();
+    set_panic_hook();
     info!("logging started");
 
     debug!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
@@ -33,9 +34,7 @@ fn main() {
     if pidfile_is_empty(&mut pidfile).unwrap() {
         write_pidfile(&mut pidfile).unwrap();
     } else {
-        log_panic(
-            &format!("{} exists. Please delete it if no other swd is running", DEFAULT_PIDFILE_PATH)
-        );
+        panic!("{} exists. Please delete it if no other swd is running", DEFAULT_PIDFILE_PATH)
     }
     drop(pidfile);
 

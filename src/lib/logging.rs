@@ -1,4 +1,4 @@
-use std::process;
+use std::{process, panic, backtrace::Backtrace};
 
 use log::{SetLoggerError, LevelFilter};
 use syslog::{Formatter3164, Facility, BasicLogger};
@@ -19,7 +19,11 @@ pub fn setup_syslogger(syslogger: BasicLogger) -> Result<(), SetLoggerError> {
         .map(|()| log::set_max_level(LevelFilter::Trace)) //  Necessary for messages to show in log
 }
 
-pub fn log_panic(message: &str) {
-    error!("{}", message);
-    panic!("{}", message);
+pub fn set_panic_hook() {
+    panic::set_hook(Box::new(|panic_info| {
+        let backtrace = Backtrace::capture();
+        println!("{}", panic_info);
+        println!("stack backtrace:\n{}", backtrace);
+        error!("{}", panic_info);
+    }));
 }
