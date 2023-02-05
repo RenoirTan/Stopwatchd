@@ -39,7 +39,7 @@ pub fn create_socket<P: AsRef<Path>>(path: &P) -> io::Result<UnixListener> {
 fn handle_client(client: &mut UnixStream) {
     debug!("handle_client");
     let mut braw = vec![0; 256];
-    client.set_read_timeout(Some(Duration::new(5, 0))).unwrap();
+    client.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
     match client.read(&mut braw) {
         Ok(bytes_read) => {
             let raw = String::from_utf8(braw).unwrap();

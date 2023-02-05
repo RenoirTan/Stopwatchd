@@ -1,7 +1,8 @@
 use std::{
     process,
     os::unix::net::UnixStream,
-    io::{Write, Read}, time::Duration
+    io::{Write, Read},
+    time::Duration
 };
 
 #[macro_use]
@@ -34,15 +35,14 @@ fn main() {
     }
     info!("creating stream");
     let mut stream = UnixStream::connect(&ssock_path).unwrap();
-    // stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
-    stream.set_write_timeout(Some(Duration::new(2, 0))).unwrap();
+    stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
+    stream.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
 
     info!("writing message to server");
     stream.write_all(b"hi").unwrap();
     stream.flush().unwrap();
 
     info!("waiting for response from server");
-    stream.set_read_timeout(Some(Duration::new(5, 0))).unwrap();
     let mut braw = vec![0; 256];
     info!("reading response from server");
     stream.read(&mut braw).unwrap();
