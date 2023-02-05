@@ -1,7 +1,7 @@
 use std::{
     process,
     os::unix::net::{UnixStream, UnixListener},
-    io::{Write, Read}
+    io::{Write, Read}, time::Duration
 };
 
 #[macro_use]
@@ -9,7 +9,7 @@ extern crate log;
 use stopwatchd::{
     logging::{create_syslogger, setup_syslogger, set_panic_hook},
     pidfile::{open_pidfile, get_swd_pid},
-    runtime::server_socker_path
+    runtime::server_socket_path
 };
 
 fn main() {
@@ -28,13 +28,19 @@ fn main() {
     };
     info!("swd_pid is {}", swd_pid);
 
+
     info!("creating client socket");
     let csock_path = format!("/tmp/stopwatchd/sw-start_{}", pid);
     let listener = UnixListener::bind(&csock_path).unwrap();
 
-    let ssock_path = server_socker_path(Some(swd_pid));
+    let ssock_path = server_socket_path(Some(swd_pid));
+    if ssock_path.exists() {
+        println!("{:?} exists", ssock_path);
+    }
     info!("creating stream");
     let mut stream = UnixStream::connect(&ssock_path).unwrap();
+    // stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
+    stream.set_write_timeout(Some(Duration::new(2, 0))).unwrap();
 
     info!("writing message to server");
     stream.write_all(format!("{}//hi", csock_path).as_bytes()).unwrap();
@@ -42,8 +48,10 @@ fn main() {
 
     info!("waiting for response from server");
     let (mut response_stream, _response_saddr) = listener.accept().unwrap();
-    let mut response = String::new();
+    response_stream.set_read_timeout(Some(Duration::new(5, 0))).unwrap();
+    let mut braw = vec![0; 256];
     info!("reading response from server");
-    response_stream.read_to_string(&mut response).unwrap();
+    response_stream.read_to_end(&mut braw).unwrap();
+    let response = String::from_utf8(braw).unwrap();
     println!("{}", response);
 }

@@ -7,7 +7,7 @@ use std::{
 extern crate log;
 use stopwatchd::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
-    runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socker_path},
+    runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
     logging::{create_syslogger, setup_syslogger, set_panic_hook}
 };
 
@@ -44,7 +44,7 @@ fn main() {
     }
 
     { // Handle sockets
-        let ssock_path = server_socker_path(Some(pid));
+        let ssock_path = server_socket_path(Some(pid));
         clear_socket(&ssock_path).unwrap();
         let socket = create_socket(&ssock_path).unwrap();
         listen_to_socket(&socket);
