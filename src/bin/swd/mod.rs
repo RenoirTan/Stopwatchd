@@ -1,6 +1,6 @@
 use std::{
     fs::create_dir_all,
-    process
+    process, sync::{Arc, atomic::AtomicBool}, time::Duration
 };
 
 #[macro_use]
@@ -28,6 +28,10 @@ fn main() {
     debug!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
     create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
 
+    // Setup interrupt handling
+    let terminate = Arc::new(AtomicBool::new(false));
+    signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&terminate)).unwrap();
+
     { // PID File
         debug!("setting up pidfile");
         let mut pidfile = open_pidfile(true).unwrap();
@@ -42,7 +46,8 @@ fn main() {
         let ssock_path = server_socket_path(Some(pid));
         clear_socket(&ssock_path).unwrap();
         let socket = create_socket(&ssock_path).unwrap();
-        listen_to_socket(&socket);
+        socket.set_nonblocking(true).unwrap();
+        listen_to_socket(&socket, terminate.clone(), Duration::from_millis(10));
     }
 
     // Clean up

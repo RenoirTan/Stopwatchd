@@ -2,7 +2,7 @@ use std::{
     path::{Path, PathBuf},
     os::unix::net::{UnixListener, UnixStream},
     io::{self, Read, Write},
-    fs::remove_file, thread, time::Duration
+    fs::remove_file, thread, time::{Duration, Instant}, sync::{Arc, atomic::{AtomicBool, self}}
 };
 
 #[derive(Clone, Debug)]
@@ -62,12 +62,28 @@ fn handle_client(client: &mut UnixStream) {
     };
 }
 
-pub fn listen_to_socket(listener: &UnixListener) {
+pub fn listen_to_socket(listener: &UnixListener, terminate: Arc<AtomicBool>, interval: Duration) {
     debug!("listening to socket");
+    let mut start = Instant::now();
     for incoming in listener.incoming() {
-        debug!("received incoming");
+        if terminate.load(atomic::Ordering::Relaxed) {
+            info!("terminate requested, exiting loop");
+            break;
+        }
         match incoming {
-            Ok(mut client) => {thread::spawn(move || handle_client(&mut client));},
+            Ok(mut client) => {
+                debug!("received incoming");
+                thread::spawn(move || handle_client(&mut client));
+            },
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                // this is way too sus for me i'm sorry
+                let elapsed = start.elapsed();
+                if elapsed < interval {
+                    thread::sleep(interval - elapsed);
+                }
+                start = Instant::now();
+                continue;
+            },
             Err(e) => error!("could not receive message from client: {}", e)
         }
     }

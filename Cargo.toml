@@ -24,4 +24,5 @@ path = "src/bin/sw-start/mod.rs"
 
 [dependencies]
 log = "0.4.17"
+signal-hook = "0.3.14"
 syslog = "6.0.1"
