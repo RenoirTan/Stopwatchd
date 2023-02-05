@@ -37,7 +37,7 @@ pub fn create_socket<P: AsRef<Path>>(path: &P) -> io::Result<UnixListener> {
 }
 
 fn handle_client(client: &mut UnixStream) {
-    debug!("handle_client");
+    trace!("handle_client");
     let mut braw = vec![0; 256];
     client.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
     match client.read(&mut braw) {
@@ -47,11 +47,11 @@ fn handle_client(client: &mut UnixStream) {
             println!("{}", message);
             info!("{}", message);
             match client.write_all(b"thank you") {
-                Ok(_) => info!("message sent back to client"),
+                Ok(_) => trace!("message sent back to client"),
                 Err(e) => error!("could not write to client: {}", e)
             };
             match client.flush() {
-                Ok(_) => info!("message flushed to client"),
+                Ok(_) => trace!("message flushed to client"),
                 Err(e) => error!("could not flush to client: {}", e)
             }
         },

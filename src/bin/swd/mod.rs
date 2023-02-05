@@ -8,7 +8,7 @@ extern crate log;
 use stopwatchd::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
-    logging::{create_syslogger, setup_syslogger, set_panic_hook}
+    logging
 };
 
 use crate::{
@@ -21,12 +21,7 @@ mod socket;
 
 fn main() {
     let pid = process::id();
-    { // Logging
-        let logging_process_name = format!("swd_{}", pid);
-        let logger = create_syslogger(&logging_process_name).unwrap();
-        setup_syslogger(logger).unwrap();
-        set_panic_hook();
-    }
+    logging::setup(&format!("swd.{}", pid), None).unwrap();
     info!("logging started");
 
     // Filesystem

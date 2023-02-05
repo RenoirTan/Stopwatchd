@@ -8,35 +8,33 @@ use std::{
 #[macro_use]
 extern crate log;
 use stopwatchd::{
-    logging::{create_syslogger, setup_syslogger, set_panic_hook},
     pidfile::{open_pidfile, get_swd_pid},
-    runtime::server_socket_path
+    runtime::server_socket_path,
+    logging
 };
 
 fn main() {
     let pid = process::id();
-    { // Logging
-        let logging_process_name = format!("sw-start_{}", pid);
-        let logger = create_syslogger(&logging_process_name).unwrap();
-        setup_syslogger(logger).unwrap();
-        set_panic_hook();
-    }
+    logging::setup(&format!("sw-start.{}", pid), None).unwrap();
     info!("logging started");
 
     let swd_pid = {
         let mut pidfile = open_pidfile(false).unwrap();
         get_swd_pid(&mut pidfile).unwrap()
     };
-    info!("swd_pid is {}", swd_pid);
+    debug!("swd_pid is {}", swd_pid);
 
     let ssock_path = server_socket_path(Some(swd_pid));
     if ssock_path.exists() {
-        println!("{:?} exists", ssock_path);
+        debug!("{:?} exists", ssock_path);
+    } else {
+        debug!("{:?} does not exist", ssock_path);
     }
-    info!("creating stream");
+    trace!("connecting to {:?}", ssock_path);
     let mut stream = UnixStream::connect(&ssock_path).unwrap();
     stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
     stream.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
+    trace!("connected to {:?}", ssock_path);
 
     info!("writing message to server");
     stream.write_all(b"hi").unwrap();
@@ -48,4 +46,6 @@ fn main() {
     stream.read(&mut braw).unwrap();
     let response = String::from_utf8(braw).unwrap();
     println!("{}", response);
+
+    info!("exiting");
 }
