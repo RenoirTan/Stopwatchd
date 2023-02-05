@@ -11,6 +11,7 @@ pub struct ClientInfo {
     pub message: String
 }
 
+#[allow(dead_code)]
 impl ClientInfo {
     pub fn from_client_raw<S: AsRef<str>>(raw: S) -> io::Result<Self> {
         let raw = raw.as_ref();
@@ -45,25 +46,11 @@ fn handle_client(client: &mut UnixStream) {
             let message = format!("client sent {} bytes: {}", bytes_read, raw);
             println!("{}", message);
             info!("{}", message);
-            let client_info = match ClientInfo::from_client_raw(&raw) {
-                Ok(ci) => ci,
-                Err(e) => {error!("could not get client_info: {}", e); return;}
-            };
-            debug!("client_info: {:?}", client_info);
-            if client_info.csock_path.exists() {
-                println!("{:?} exists", client_info.csock_path);
-            }
-            debug!("trying to connect to {:?}", client_info.csock_path);
-            let mut reply_socket = match UnixStream::connect(&client_info.csock_path) {
-                Ok(rs) => rs,
-                Err(e) => {panic!("could not create reply_socket: {}", e);}
-            };
-            debug!("reply_socket for {:?} created", client_info.csock_path);
-            match reply_socket.write_all(b"thank you") {
+            match client.write_all(b"thank you") {
                 Ok(_) => info!("message sent back to client"),
                 Err(e) => error!("could not write to client: {}", e)
             };
-            match reply_socket.flush() {
+            match client.flush() {
                 Ok(_) => info!("message flushed to client"),
                 Err(e) => error!("could not flush to client: {}", e)
             }

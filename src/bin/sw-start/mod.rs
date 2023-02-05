@@ -1,6 +1,6 @@
 use std::{
     process,
-    os::unix::net::{UnixStream, UnixListener},
+    os::unix::net::UnixStream,
     io::{Write, Read}, time::Duration
 };
 
@@ -28,11 +28,6 @@ fn main() {
     };
     info!("swd_pid is {}", swd_pid);
 
-
-    info!("creating client socket");
-    let csock_path = format!("/tmp/stopwatchd/sw-start_{}", pid);
-    let listener = UnixListener::bind(&csock_path).unwrap();
-
     let ssock_path = server_socket_path(Some(swd_pid));
     if ssock_path.exists() {
         println!("{:?} exists", ssock_path);
@@ -43,15 +38,14 @@ fn main() {
     stream.set_write_timeout(Some(Duration::new(2, 0))).unwrap();
 
     info!("writing message to server");
-    stream.write_all(format!("{}//hi", csock_path).as_bytes()).unwrap();
+    stream.write_all(b"hi").unwrap();
     stream.flush().unwrap();
 
     info!("waiting for response from server");
-    let (mut response_stream, _response_saddr) = listener.accept().unwrap();
-    response_stream.set_read_timeout(Some(Duration::new(5, 0))).unwrap();
+    stream.set_read_timeout(Some(Duration::new(5, 0))).unwrap();
     let mut braw = vec![0; 256];
     info!("reading response from server");
-    response_stream.read_to_end(&mut braw).unwrap();
+    stream.read(&mut braw).unwrap();
     let response = String::from_utf8(braw).unwrap();
     println!("{}", response);
 }
