@@ -3,6 +3,12 @@ use std::{process, panic, backtrace::Backtrace};
 use log::{SetLoggerError, LevelFilter};
 use syslog::{Formatter3164, Facility, BasicLogger};
 
+// If debug
+#[cfg(debug_assertions)]
+pub const DEFAULT_LOGGER_LEVEL: LevelFilter = LevelFilter::Trace;
+
+// If release
+#[cfg(not(debug_assertions))]
 pub const DEFAULT_LOGGER_LEVEL: LevelFilter = LevelFilter::Info;
 
 pub fn create_syslogger(process: &str) -> syslog::Result<BasicLogger> {
