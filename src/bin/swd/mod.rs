@@ -42,16 +42,15 @@ fn main() {
         }
     }
 
-    { // Handle sockets
-        let ssock_path = server_socket_path(Some(pid));
-        clear_socket(&ssock_path).unwrap();
-        let socket = create_socket(&ssock_path).unwrap();
-        socket.set_nonblocking(true).unwrap();
-        listen_to_socket(&socket, terminate.clone(), Duration::from_millis(10));
-    }
-
+    // Handle sockets
+    let ssock_path = server_socket_path(Some(pid));
+    clear_socket(&ssock_path).unwrap();
+    let socket = create_socket(&ssock_path).unwrap();
+    socket.set_nonblocking(true).unwrap();
+    listen_to_socket(&socket, terminate.clone(), Duration::from_millis(10));
+    
     // Clean up
     info!("cleaning up swd");
-    Cleanup {remove_pidfile: true}.cleanup().unwrap();
+    Cleanup {remove_pidfile: true, remove_sockfile: Some(&ssock_path)}.cleanup().unwrap();
     info!("going under!");
 }
