@@ -23,6 +23,7 @@ name = "sw-start"
 path = "src/bin/sw-start/mod.rs"
 
 [dependencies]
+clap = { version = "4.1.4", features = ["derive"] }
 log = "0.4.17"
 signal-hook = "0.3.14"
 syslog = "6.0.1"

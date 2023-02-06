@@ -3,6 +3,7 @@ use std::{
     process, sync::{Arc, atomic::AtomicBool}, time::Duration
 };
 
+use clap::Parser;
 #[macro_use]
 extern crate log;
 use stopwatchd::{
@@ -17,9 +18,14 @@ use crate::{
 };
 
 mod cleanup;
+mod cli;
 mod socket;
 
 fn main() {
+    let cli = cli::Cli::parse();
+    let interval: u64 = cli.interval.unwrap_or(10);
+    println!("interval: {}", interval);
+
     let pid = process::id();
     logging::setup(&format!("swd.{}", pid), None).unwrap();
     info!("logging started");
@@ -47,7 +53,7 @@ fn main() {
     clear_socket(&ssock_path).unwrap();
     let socket = create_socket(&ssock_path).unwrap();
     socket.set_nonblocking(true).unwrap();
-    listen_to_socket(&socket, terminate.clone(), Duration::from_millis(10));
+    listen_to_socket(&socket, terminate.clone(), Duration::from_millis(interval));
     
     // Clean up
     info!("cleaning up swd");
