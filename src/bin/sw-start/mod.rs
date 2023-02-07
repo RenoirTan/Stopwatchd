@@ -1,8 +1,4 @@
-use std::{
-    process,
-    os::unix::net::UnixStream,
-    io::{Write, Read}
-};
+use std::process;
 
 #[macro_use]
 extern crate log;
@@ -11,8 +7,10 @@ use stopwatchd::{
     runtime::server_socket_path,
     logging
 };
+use tokio::net::UnixStream;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let pid = process::id();
     logging::setup(&format!("sw-start.{}", pid), None).unwrap();
     info!("logging started");
@@ -30,19 +28,23 @@ fn main() {
         debug!("{:?} does not exist", ssock_path);
     }
     trace!("connecting to {:?}", ssock_path);
-    let mut stream = UnixStream::connect(&ssock_path).unwrap();
+    let stream = UnixStream::connect(&ssock_path).await.unwrap();
     // stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
     // stream.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
     trace!("connected to {:?}", ssock_path);
 
+    trace!("checking if can write to server");
+    stream.writable().await.unwrap();
     info!("writing message to server");
-    stream.write_all(b"hi").unwrap();
-    stream.flush().unwrap();
+    stream.try_write(b"hi").unwrap();
 
     info!("waiting for response from server");
-    let mut braw = vec![0; 256];
+
+    trace!("checking if can read from server");
+    stream.readable().await.unwrap();
+    let mut braw = Vec::with_capacity(4096);
     info!("reading response from server");
-    stream.read(&mut braw).unwrap();
+    stream.try_read_buf(&mut braw).unwrap();
     let response = String::from_utf8(braw).unwrap();
     println!("{}", response);
 
