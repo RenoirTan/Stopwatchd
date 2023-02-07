@@ -49,6 +49,7 @@ async fn handle_client(client: UnixStream) {
             let message = format!("client sent {} bytes: {}", bytes_read, raw);
             println!("{}", message);
             info!("{}", message);
+            // std::thread::sleep(std::time::Duration::new(5, 0));
             client.writable().await.unwrap();
             match client.try_write(b"thank you") {
                 Ok(_) => trace!("message sent back to client"),
@@ -75,7 +76,7 @@ pub async fn listen_to_socket(listener: &UnixListener, mut signal_rx: SignalRece
         match incoming {
             Ok((client, _addr)) => {
                 debug!("received incoming");
-                handle_client(client).await;
+                tokio::spawn(handle_client(client));
             },
             Err(e) => error!("could not receive message from client: {}", e)
         }
