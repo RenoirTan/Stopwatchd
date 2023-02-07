@@ -1,8 +1,12 @@
 use std::{
     path::{Path, PathBuf},
-    os::unix::net::{UnixListener, UnixStream},
-    io::{self, Read, Write},
-    fs::remove_file, thread, time::{Duration, Instant}, sync::{Arc, atomic::{AtomicBool, self}}
+    io,
+    fs::remove_file
+};
+
+use tokio::{
+    net::{UnixListener, UnixStream},
+    sync::mpsc::{UnboundedReceiver}
 };
 
 #[derive(Clone, Debug)]
@@ -36,24 +40,21 @@ pub fn create_socket<P: AsRef<Path>>(path: &P) -> io::Result<UnixListener> {
     UnixListener::bind(path)
 }
 
-fn handle_client(client: &mut UnixStream) {
+async fn handle_client(client: UnixStream) {
     trace!("handle_client");
-    let mut braw = vec![0; 256];
-    client.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
-    match client.read(&mut braw) {
+    client.readable().await.unwrap();
+    let mut braw = Vec::with_capacity(4096);
+    match client.try_read_buf(&mut braw) {
         Ok(bytes_read) => {
             let raw = String::from_utf8(braw).unwrap();
             let message = format!("client sent {} bytes: {}", bytes_read, raw);
             println!("{}", message);
             info!("{}", message);
-            match client.write_all(b"thank you") {
+            client.writable().await.unwrap();
+            match client.try_write(b"thank you") {
                 Ok(_) => trace!("message sent back to client"),
                 Err(e) => error!("could not write to client: {}", e)
             };
-            match client.flush() {
-                Ok(_) => trace!("message flushed to client"),
-                Err(e) => error!("could not flush to client: {}", e)
-            }
         },
         Err(e) => {
             let message = format!("could not store client UnixStream in message: {}", e);
@@ -62,27 +63,17 @@ fn handle_client(client: &mut UnixStream) {
     };
 }
 
-pub fn listen_to_socket(listener: &UnixListener, terminate: Arc<AtomicBool>, interval: Duration) {
+pub async fn listen_to_socket(listener: &UnixListener, mut signal_rx: UnboundedReceiver<()>) {
     debug!("listening to socket");
-    let mut start = Instant::now();
-    for incoming in listener.incoming() {
-        if terminate.load(atomic::Ordering::Relaxed) {
-            info!("terminate requested, exiting loop");
-            break;
-        }
+    loop {
+        let incoming = tokio::select!{
+            _ = signal_rx.recv() => {debug!("exiting listen_to_socket"); return;},
+            incoming = listener.accept() => {incoming}
+        };
         match incoming {
-            Ok(mut client) => {
+            Ok((client, _addr)) => {
                 debug!("received incoming");
-                thread::spawn(move || handle_client(&mut client));
-            },
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                // this is way too sus for me i'm sorry
-                let elapsed = start.elapsed();
-                if elapsed < interval {
-                    thread::sleep(interval - elapsed);
-                }
-                start = Instant::now();
-                continue;
+                handle_client(client).await;
             },
             Err(e) => error!("could not receive message from client: {}", e)
         }

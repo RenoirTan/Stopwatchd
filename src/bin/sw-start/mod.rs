@@ -1,8 +1,7 @@
 use std::{
     process,
     os::unix::net::UnixStream,
-    io::{Write, Read},
-    time::Duration
+    io::{Write, Read}
 };
 
 #[macro_use]
@@ -32,8 +31,8 @@ fn main() {
     }
     trace!("connecting to {:?}", ssock_path);
     let mut stream = UnixStream::connect(&ssock_path).unwrap();
-    stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
-    stream.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
+    // stream.set_read_timeout(Some(Duration::new(1, 0))).unwrap();
+    // stream.set_write_timeout(Some(Duration::new(1, 0))).unwrap();
     trace!("connected to {:?}", ssock_path);
 
     info!("writing message to server");

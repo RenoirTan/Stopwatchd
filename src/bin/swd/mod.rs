@@ -1,16 +1,20 @@
 use std::{
     fs::create_dir_all,
-    process, sync::{Arc, atomic::AtomicBool}, time::Duration
+    process, sync::{Arc, atomic::AtomicBool}
 };
 
 use clap::Parser;
+use futures::stream::StreamExt;
 #[macro_use]
 extern crate log;
+use signal_hook::consts::signal::{SIGHUP, SIGTERM, SIGINT, SIGQUIT};
+use signal_hook_tokio::Signals;
 use stopwatchd::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
     logging
 };
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use crate::{
     cleanup::Cleanup,
@@ -21,7 +25,22 @@ mod cleanup;
 mod cli;
 mod socket;
 
-fn main() {
+async fn handle_signals(mut signals: Signals, sender: UnboundedSender<()>) {
+    while let Some(signal) = signals.next().await {
+        match signal {
+            SIGHUP => {
+                let _ = sender.send(());
+            },
+            SIGTERM | SIGINT | SIGQUIT => {
+                let _ = sender.send(());
+            },
+            _ => unreachable!()
+        };
+    }
+}
+
+#[tokio::main]
+async fn main() {
     let cli = cli::Cli::parse();
     let interval: u64 = cli.interval.unwrap_or(10);
     println!("interval: {}", interval);
@@ -35,6 +54,10 @@ fn main() {
     create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
 
     // Setup interrupt handling
+    let (signal_tx, signal_rx) = unbounded_channel();
+    let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT]).unwrap();
+    let handle = signals.handle();
+    let signals_task = tokio::spawn(handle_signals(signals, signal_tx));
     let terminate = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&terminate)).unwrap();
 
@@ -52,8 +75,11 @@ fn main() {
     let ssock_path = server_socket_path(Some(pid));
     clear_socket(&ssock_path).unwrap();
     let socket = create_socket(&ssock_path).unwrap();
-    socket.set_nonblocking(true).unwrap();
-    listen_to_socket(&socket, terminate.clone(), Duration::from_millis(interval));
+    listen_to_socket(&socket, signal_rx).await;
+
+    // Signal handling
+    handle.close();
+    signals_task.await.unwrap();
     
     // Clean up
     info!("cleaning up swd");
