@@ -4,6 +4,7 @@ use std::{
     fs::remove_file
 };
 
+use stopwatchd::models::stopwatch::_simulate_stopwatch;
 use tokio::net::{UnixListener, UnixStream};
 
 use crate::signal::SignalReceiver;
@@ -49,7 +50,7 @@ async fn handle_client(client: UnixStream) {
             let message = format!("client sent {} bytes: {}", bytes_read, raw);
             println!("{}", message);
             info!("{}", message);
-            // std::thread::sleep(std::time::Duration::new(5, 0));
+            _simulate_stopwatch(std::time::Duration::new(5, 0));
             client.writable().await.unwrap();
             match client.try_write(b"thank you") {
                 Ok(_) => trace!("message sent back to client"),

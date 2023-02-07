@@ -5,6 +5,7 @@ use uuid::Uuid;
 pub const NAME_LEN: usize = 6;
 pub type Name = [u8; NAME_LEN];
 
+#[derive(Debug)]
 pub struct Stopwatch {
     pub id: Uuid,
     pub name: Option<Name>,
@@ -57,4 +58,15 @@ impl Stopwatch {
             false
         }
     }
+}
+
+pub fn _simulate_stopwatch(duration: Duration) {
+    debug!("_simulating stopwatch");
+    let mut stopwatch = Stopwatch::new_standby(None);
+    println!("{:?}", stopwatch);
+    stopwatch.play();
+    std::thread::sleep(duration);
+    stopwatch.pause();
+    println!("{:?}", stopwatch);
+    debug!("stopwatch _simulation done");
 }
