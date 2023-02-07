@@ -1,43 +1,28 @@
 use std::{
     fs::create_dir_all,
-    process, sync::{Arc, atomic::AtomicBool}
+    process
 };
 
 use clap::Parser;
-use futures::stream::StreamExt;
 #[macro_use]
 extern crate log;
-use signal_hook::consts::signal::{SIGHUP, SIGTERM, SIGINT, SIGQUIT};
-use signal_hook_tokio::Signals;
 use stopwatchd::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
     logging
 };
-use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
     cleanup::Cleanup,
+    signal::{handle_signals, get_signals},
     socket::{clear_socket, create_socket, listen_to_socket}
 };
 
 mod cleanup;
 mod cli;
+mod signal;
 mod socket;
-
-async fn handle_signals(mut signals: Signals, sender: UnboundedSender<()>) {
-    while let Some(signal) = signals.next().await {
-        match signal {
-            SIGHUP => {
-                let _ = sender.send(());
-            },
-            SIGTERM | SIGINT | SIGQUIT => {
-                let _ = sender.send(());
-            },
-            _ => unreachable!()
-        };
-    }
-}
 
 #[tokio::main]
 async fn main() {
@@ -55,11 +40,9 @@ async fn main() {
 
     // Setup interrupt handling
     let (signal_tx, signal_rx) = unbounded_channel();
-    let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT]).unwrap();
+    let signals = get_signals().unwrap();
     let handle = signals.handle();
     let signals_task = tokio::spawn(handle_signals(signals, signal_tx));
-    let terminate = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&terminate)).unwrap();
 
     { // PID File
         debug!("setting up pidfile");
@@ -75,6 +58,8 @@ async fn main() {
     let ssock_path = server_socket_path(Some(pid));
     clear_socket(&ssock_path).unwrap();
     let socket = create_socket(&ssock_path).unwrap();
+
+    // Application
     listen_to_socket(&socket, signal_rx).await;
 
     // Signal handling

@@ -4,10 +4,9 @@ use std::{
     fs::remove_file
 };
 
-use tokio::{
-    net::{UnixListener, UnixStream},
-    sync::mpsc::{UnboundedReceiver}
-};
+use tokio::net::{UnixListener, UnixStream};
+
+use crate::signal::SignalReceiver;
 
 #[derive(Clone, Debug)]
 pub struct ClientInfo {
@@ -63,12 +62,15 @@ async fn handle_client(client: UnixStream) {
     };
 }
 
-pub async fn listen_to_socket(listener: &UnixListener, mut signal_rx: UnboundedReceiver<()>) {
+pub async fn listen_to_socket(listener: &UnixListener, mut signal_rx: SignalReceiver) {
     debug!("listening to socket");
     loop {
         let incoming = tokio::select!{
-            _ = signal_rx.recv() => {debug!("exiting listen_to_socket"); return;},
-            incoming = listener.accept() => {incoming}
+            _ = signal_rx.recv() => {
+                debug!("exiting listen_to_socket");
+                return;
+            },
+            incoming = listener.accept() => incoming
         };
         match incoming {
             Ok((client, _addr)) => {
