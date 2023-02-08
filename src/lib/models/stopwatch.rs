@@ -68,5 +68,9 @@ pub fn _simulate_stopwatch(duration: Duration) {
     std::thread::sleep(duration);
     stopwatch.pause();
     println!("{:?}", stopwatch);
+    stopwatch.play();
+    std::thread::sleep(duration);
+    stopwatch.pause();
+    println!("{:?}", stopwatch);
     debug!("stopwatch _simulation done");
 }
