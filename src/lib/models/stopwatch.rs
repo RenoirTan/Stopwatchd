@@ -2,7 +2,9 @@ use std::time::Duration;
 
 use uuid::Uuid;
 
-use crate::models::lap::Lap;
+use crate::models::lap::CurrentLap;
+
+use super::lap::FinishedLap;
 
 pub const NAME_LEN: usize = 6;
 pub type Name = [u8; NAME_LEN];
@@ -13,17 +15,16 @@ pub const MIN_LAPS_CAPACITY: usize = 4;
 pub struct Stopwatch {
     pub id: Uuid,
     pub name: Option<Name>,
-    laps: Vec<Lap>,
-    pub ended: bool
+    finished_laps: Vec<FinishedLap>,
+    current_lap: Option<CurrentLap> // If some, not yet ended
 }
 
 impl Stopwatch {
     pub fn new_standby(name: Option<Name>) -> Self {
         let id = Uuid::new_v4();
-        let lap = Lap::new_standby(id);
-        let laps = vec![lap];
-        let ended = false;
-        Self { id, name, laps, ended }
+        let finished_laps = Vec::new();
+        let current_lap = Some(CurrentLap::new_standby(id));
+        Self { id, name, finished_laps, current_lap }
     }
 
     pub fn start_immediately(name: Option<Name>) -> Self {
@@ -37,11 +38,12 @@ impl Stopwatch {
     /// If stopwatch wasn't playing before, false is returned.
     /// True is returned if the stopwatch was playing (just as a warning).
     pub fn play(&mut self) -> bool {
-        if self.ended {
-            return false;
+        match &mut self.current_lap {
+            Some(lap) => {
+                lap.play()
+            },
+            None => false
         }
-        let last_lap = self.laps.last_mut().unwrap(); // assert at least one lap
-        last_lap.play()
     }
 
     /// Pauses the stopwatch.
@@ -49,37 +51,56 @@ impl Stopwatch {
     /// If stopwatch was playing, true is returned.
     /// False is returned if the stopwatch wasn't playing (as a warning).
     pub fn pause(&mut self) -> bool {
-        if self.ended {
-            return false;
+        match &mut self.current_lap {
+            Some(lap) => {
+                lap.pause()
+            },
+            None => false
         }
-        let last_lap = self.laps.last_mut().unwrap(); // assert at least one lap
-        last_lap.pause()
     }
 
-    pub fn lap(&mut self) -> bool {
-        self.laps.last_mut().unwrap().end();
-        self.laps.push(Lap::start_immediately(self.id));
-        true
+    pub fn new_lap(&mut self) -> bool {
+        match self.current_lap.take() {
+            Some(prev_lap) => {
+                self.current_lap = Some(CurrentLap::start_immediately(self.id));
+                self.finished_laps.push(prev_lap.end());
+                true
+            },
+            None => false
+        }
+    }
+
+    pub fn laps(&self) -> usize {
+        self.finished_laps.len() + if self.current_lap.is_some() { 1 } else { 0 }
     }
 
     pub fn end(&mut self) -> bool {
-        if self.ended {
-            true
-        } else {
-            let last_lap = self.laps.last_mut().unwrap();
-            last_lap.end()
+        match self.current_lap.take() {
+            Some(prev_lap) => {
+                self.finished_laps.push(prev_lap.end());
+                false
+            },
+            None => true
         }
     }
 
+    pub fn has_ended(&self) -> bool {
+        self.current_lap.is_none()
+    }
+
     pub fn total_time(&self) -> Duration {
-        self.laps.iter()
-            .fold(Duration::new(0, 0), |total, lap| total + lap.total_time())
+        let total = match &self.current_lap {
+            Some(lap) => lap.total_time(),
+            None => Duration::new(0, 0)
+        };
+        self.finished_laps.iter()
+            .fold(total, |total, lap| total + lap.duration)
     }
 
     pub fn report(&self) -> String {
         let mut report = String::new();
         report.push_str(&format!("Stopwatch ID: {}\n", self.id));
-        report.push_str(&format!("    Laps: {}\n", self.laps.len()));
+        report.push_str(&format!("    Laps: {}\n", self.laps()));
         report.push_str(&format!("    Duration: {} ms", self.total_time().as_millis()));
         report
     }
@@ -96,7 +117,7 @@ pub fn _simulate_stopwatch(duration: Duration) {
     stopwatch.play();
     std::thread::sleep(duration);
     println!("{}", stopwatch.report());
-    stopwatch.lap();
+    stopwatch.new_lap();
     println!("{}", stopwatch.report());
     std::thread::sleep(duration);
     stopwatch.pause();

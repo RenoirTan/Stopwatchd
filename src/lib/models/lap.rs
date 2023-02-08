@@ -3,25 +3,23 @@ use std::time::{SystemTime, Instant, Duration};
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct Lap {
+pub struct CurrentLap {
     pub id: Uuid,
     pub sw_id: Uuid,
     pub start: SystemTime,
     pub timer: Instant,
     pub duration: Duration,
-    pub playing: bool,
-    pub ended: bool
+    pub playing: bool
 }
 
-impl Lap {
+impl CurrentLap {
     pub fn new_standby(sw_id: Uuid) -> Self {
         let id = Uuid::new_v4();
         let start = SystemTime::now();
         let timer = Instant::now();
         let duration = Duration::new(0, 0);
         let playing = false;
-        let ended = false;
-        Self { id, sw_id, start, timer, duration, playing, ended }
+        Self { id, sw_id, start, timer, duration, playing }
     }
 
     pub fn start_immediately(sw_id: Uuid) -> Self {
@@ -31,7 +29,7 @@ impl Lap {
     }
 
     pub fn play(&mut self) -> bool {
-        if self.playing || self.ended {
+        if self.playing {
             true
         } else {
             self.timer = Instant::now();
@@ -41,7 +39,7 @@ impl Lap {
     }
 
     pub fn pause(&mut self) -> bool {
-        if !self.playing || self.ended {
+        if !self.playing {
             false
         } else {
             self.duration += self.timer.elapsed();
@@ -50,14 +48,8 @@ impl Lap {
         }
     }
 
-    pub fn end(&mut self) -> bool {
-        if self.ended {
-            true
-        } else {
-            self.pause();
-            self.ended = true;
-            false
-        }
+    pub fn end(self) -> FinishedLap {
+        self.into()
     }
 
     pub fn total_time(&self) -> Duration {
@@ -67,4 +59,19 @@ impl Lap {
             self.duration
         }
     }
+}
+
+impl Into<FinishedLap> for CurrentLap {
+    fn into(self) -> FinishedLap {
+        let duration = self.total_time();
+        FinishedLap { id: self.id, sw_id: self.sw_id, start: self.start, duration }
+    }
+}
+
+#[derive(Debug)]
+pub struct FinishedLap {
+    pub id: Uuid,
+    pub sw_id: Uuid,
+    pub start: SystemTime,
+    pub duration: Duration
 }
