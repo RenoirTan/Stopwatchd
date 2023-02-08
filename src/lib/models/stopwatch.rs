@@ -97,7 +97,7 @@ impl Stopwatch {
 
     pub fn state(&self) -> State {
         match &self.current_lap {
-            Some(lap) => if lap.playing {
+            Some(lap) => if lap.playing() {
                 State::Playing
             } else {
                 State::Paused

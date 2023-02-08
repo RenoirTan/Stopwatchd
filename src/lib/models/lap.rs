@@ -7,19 +7,17 @@ pub struct CurrentLap {
     pub id: Uuid,
     pub sw_id: Uuid,
     pub start: SystemTime,
-    pub timer: Instant,
-    pub duration: Duration,
-    pub playing: bool
+    timer: Option<Instant>,
+    pub duration: Duration
 }
 
 impl CurrentLap {
     pub fn new_standby(sw_id: Uuid) -> Self {
         let id = Uuid::new_v4();
         let start = SystemTime::now();
-        let timer = Instant::now();
+        let timer = Some(Instant::now());
         let duration = Duration::new(0, 0);
-        let playing = false;
-        Self { id, sw_id, start, timer, duration, playing }
+        Self { id, sw_id, start, timer, duration }
     }
 
     pub fn start_immediately(sw_id: Uuid) -> Self {
@@ -29,17 +27,19 @@ impl CurrentLap {
     }
 
     pub fn play(&mut self) {
-        if !self.playing {
-            self.timer = Instant::now();
-            self.playing = true;
+        if let None = self.timer {
+            self.timer = Some(Instant::now());
         }
     }
 
     pub fn pause(&mut self) {
-        if self.playing {
-            self.duration += self.timer.elapsed();
-            self.playing = false;
+        if let Some(timer) = self.timer.take() {
+            self.duration += timer.elapsed();
         }
+    }
+
+    pub fn playing(&self) -> bool {
+        self.timer.is_some()
     }
 
     pub fn end(self) -> FinishedLap {
@@ -47,8 +47,8 @@ impl CurrentLap {
     }
 
     pub fn total_time(&self) -> Duration {
-        if self.playing {
-            self.duration + self.timer.elapsed()
+        if let Some(ref timer) = self.timer {
+            self.duration + timer.elapsed()
         } else {
             self.duration
         }
