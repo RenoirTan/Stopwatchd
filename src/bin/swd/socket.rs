@@ -50,7 +50,7 @@ async fn handle_client(client: UnixStream) {
             let message = format!("client sent {} bytes: {}", bytes_read, raw);
             println!("{}", message);
             info!("{}", message);
-            _simulate_stopwatch(std::time::Duration::new(5, 0));
+            _simulate_stopwatch(std::time::Duration::new(2, 0));
             client.writable().await.unwrap();
             match client.try_write(b"thank you") {
                 Ok(_) => trace!("message sent back to client"),
