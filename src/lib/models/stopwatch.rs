@@ -12,6 +12,27 @@ pub type Name = [u8; NAME_LEN];
 pub const MIN_LAPS_CAPACITY: usize = 4;
 
 #[derive(Debug)]
+pub enum State {
+    Playing,
+    Paused,
+    Ended
+}
+
+impl State {
+    pub fn playing(&self) -> bool {
+        matches!(self, Self::Playing)
+    }
+
+    pub fn paused(&self) -> bool {
+        matches!(self, Self::Paused)
+    }
+
+    pub fn ended(&self) -> bool {
+        matches!(self, Self::Ended)
+    }
+}
+
+#[derive(Debug)]
 pub struct Stopwatch {
     pub id: Uuid,
     pub name: Option<Name>,
@@ -34,39 +55,35 @@ impl Stopwatch {
     }
 
     /// Starts the stopwatch.
-    /// 
-    /// If stopwatch wasn't playing before, false is returned.
-    /// True is returned if the stopwatch was playing (just as a warning).
-    pub fn play(&mut self) -> bool {
-        match &mut self.current_lap {
-            Some(lap) => {
-                lap.play()
-            },
-            None => false
+    pub fn play(&mut self) {
+        if let Some(ref mut lap) = self.current_lap {
+            lap.play();
         }
     }
 
     /// Pauses the stopwatch.
-    /// 
-    /// If stopwatch was playing, true is returned.
-    /// False is returned if the stopwatch wasn't playing (as a warning).
-    pub fn pause(&mut self) -> bool {
-        match &mut self.current_lap {
-            Some(lap) => {
-                lap.pause()
-            },
-            None => false
+    pub fn pause(&mut self) {
+        if let Some(ref mut lap) = self.current_lap {
+            lap.pause();
         }
     }
 
-    pub fn new_lap(&mut self) -> bool {
+    pub fn new_lap(&mut self, start_immediately: bool) -> State {
         match self.current_lap.take() {
             Some(prev_lap) => {
-                self.current_lap = Some(CurrentLap::start_immediately(self.id));
+                if start_immediately {
+                    self.current_lap = Some(CurrentLap::start_immediately(self.id));
+                } else {
+                    self.current_lap = Some(CurrentLap::new_standby(self.id));
+                }
                 self.finished_laps.push(prev_lap.end());
-                true
+                if start_immediately {
+                    State::Playing
+                } else {
+                    State::Paused
+                }
             },
-            None => false
+            None => State::Ended
         }
     }
 
@@ -84,8 +101,15 @@ impl Stopwatch {
         }
     }
 
-    pub fn has_ended(&self) -> bool {
-        self.current_lap.is_none()
+    pub fn state(&self) -> State {
+        match &self.current_lap {
+            Some(lap) => if lap.playing {
+                State::Playing
+            } else {
+                State::Paused
+            },
+            None => State::Ended
+        }
     }
 
     pub fn total_time(&self) -> Duration {
@@ -100,6 +124,7 @@ impl Stopwatch {
     pub fn report(&self) -> String {
         let mut report = String::new();
         report.push_str(&format!("Stopwatch ID: {}\n", self.id));
+        report.push_str(&format!("    State: {:?}\n", self.state()));
         report.push_str(&format!("    Laps: {}\n", self.laps()));
         report.push_str(&format!("    Duration: {} ms", self.total_time().as_millis()));
         report
@@ -117,7 +142,7 @@ pub fn _simulate_stopwatch(duration: Duration) {
     stopwatch.play();
     std::thread::sleep(duration);
     println!("{}", stopwatch.report());
-    stopwatch.new_lap();
+    stopwatch.new_lap(true);
     println!("{}", stopwatch.report());
     std::thread::sleep(duration);
     stopwatch.pause();

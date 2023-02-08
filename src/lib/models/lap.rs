@@ -28,23 +28,17 @@ impl CurrentLap {
         lap
     }
 
-    pub fn play(&mut self) -> bool {
-        if self.playing {
-            true
-        } else {
+    pub fn play(&mut self) {
+        if !self.playing {
             self.timer = Instant::now();
             self.playing = true;
-            false
         }
     }
 
-    pub fn pause(&mut self) -> bool {
-        if !self.playing {
-            false
-        } else {
+    pub fn pause(&mut self) {
+        if self.playing {
             self.duration += self.timer.elapsed();
             self.playing = false;
-            true
         }
     }
 
