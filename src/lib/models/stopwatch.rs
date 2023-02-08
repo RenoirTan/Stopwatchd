@@ -89,13 +89,9 @@ impl Stopwatch {
         self.finished_laps.len() + if self.current_lap.is_some() { 1 } else { 0 }
     }
 
-    pub fn end(&mut self) -> bool {
-        match self.current_lap.take() {
-            Some(prev_lap) => {
-                self.finished_laps.push(prev_lap.end());
-                false
-            },
-            None => true
+    pub fn end(&mut self) {
+        if let Some(prev_lap) = self.current_lap.take() {
+            self.finished_laps.push(prev_lap.end());
         }
     }
 
