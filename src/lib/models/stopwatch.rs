@@ -2,9 +2,7 @@ use std::time::Duration;
 
 use uuid::Uuid;
 
-use crate::models::lap::CurrentLap;
-
-use super::lap::FinishedLap;
+use super::lap::{CurrentLap, FinishedLap};
 
 pub const NAME_LEN: usize = 6;
 pub type Name = [u8; NAME_LEN];
