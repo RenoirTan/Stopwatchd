@@ -39,15 +39,15 @@ pub struct Stopwatch {
 }
 
 impl Stopwatch {
-    pub fn new_standby(name: Option<Name>) -> Self {
+    pub fn new(name: Option<Name>) -> Self {
         let id = Uuid::new_v4();
         let finished_laps = Vec::new();
-        let current_lap = Some(CurrentLap::new_standby(id));
+        let current_lap = Some(CurrentLap::new(id));
         Self { id, name, finished_laps, current_lap }
     }
 
-    pub fn start_immediately(name: Option<Name>) -> Self {
-        let mut sw = Self::new_standby(name);
+    pub fn start(name: Option<Name>) -> Self {
+        let mut sw = Self::new(name);
         sw.play();
         sw
     }
@@ -70,9 +70,9 @@ impl Stopwatch {
         match self.current_lap.take() {
             Some(prev_lap) => {
                 if start_immediately {
-                    self.current_lap = Some(CurrentLap::start_immediately(self.id));
+                    self.current_lap = Some(CurrentLap::start(self.id));
                 } else {
-                    self.current_lap = Some(CurrentLap::new_standby(self.id));
+                    self.current_lap = Some(CurrentLap::new(self.id));
                 }
                 self.finished_laps.push(prev_lap.end());
                 if start_immediately {
@@ -127,7 +127,7 @@ impl Stopwatch {
 
 pub fn _simulate_stopwatch(duration: Duration) {
     debug!("_simulating stopwatch");
-    let mut stopwatch = Stopwatch::new_standby(None);
+    let mut stopwatch = Stopwatch::new(None);
     println!("{}", stopwatch.report());
     stopwatch.play();
     std::thread::sleep(duration);

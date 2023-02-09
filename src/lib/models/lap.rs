@@ -12,7 +12,7 @@ pub struct CurrentLap {
 }
 
 impl CurrentLap {
-    pub fn new_standby(sw_id: Uuid) -> Self {
+    pub fn new(sw_id: Uuid) -> Self {
         let id = Uuid::new_v4();
         let start = SystemTime::now();
         let timer = Some(Instant::now());
@@ -20,8 +20,8 @@ impl CurrentLap {
         Self { id, sw_id, start, timer, duration }
     }
 
-    pub fn start_immediately(sw_id: Uuid) -> Self {
-        let mut lap = Self::new_standby(sw_id);
+    pub fn start(sw_id: Uuid) -> Self {
+        let mut lap = Self::new(sw_id);
         lap.play();
         lap
     }
