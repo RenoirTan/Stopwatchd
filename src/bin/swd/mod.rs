@@ -21,6 +21,7 @@ use crate::{
 
 mod cleanup;
 mod cli;
+mod handlers;
 mod signal;
 mod socket;
 

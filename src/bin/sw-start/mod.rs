@@ -5,7 +5,7 @@ extern crate log;
 use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
-    logging
+    logging, communication::ClientMessage, intention::{Intention, Command}
 };
 use tokio::net::UnixStream;
 
@@ -35,8 +35,19 @@ async fn main() {
 
     trace!("checking if can write to server");
     stream.writable().await.unwrap();
+
+    // generate message
+    let cmsg = ClientMessage {
+        pid,
+        intention: Intention {
+            command: Command::Start,
+            verbose: true
+        },
+        message: b"random_message".to_vec()
+    };
+
     info!("writing message to server");
-    stream.try_write(b"hi").unwrap();
+    stream.try_write(&cmsg.to_bytes().unwrap()).unwrap();
 
     info!("waiting for response from server");
 
