@@ -40,7 +40,7 @@ pub fn create_socket<P: AsRef<Path>>(path: &P) -> io::Result<UnixListener> {
     UnixListener::bind(path)
 }
 
-async fn handle_client(client: UnixStream) {
+async fn _handle_client(client: UnixStream) {
     trace!("handle_client");
     client.readable().await.unwrap();
     let mut braw = Vec::with_capacity(4096);
@@ -77,7 +77,7 @@ pub async fn listen_to_socket(listener: &UnixListener, mut signal_rx: SignalRece
         match incoming {
             Ok((client, _addr)) => {
                 debug!("received incoming");
-                tokio::spawn(handle_client(client));
+                tokio::spawn(_handle_client(client));
             },
             Err(e) => error!("could not receive message from client: {}", e)
         }
