@@ -1,5 +1,9 @@
-use std::io::{Write, self};
+use std::io;
 
+use ciborium::{
+    de::from_reader,
+    ser::into_writer
+};
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -14,31 +18,15 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn to_bytes(&self) -> &'static [u8] {
-        use Command::*;
-        match self {
-            Start => b"start",
-            End => b"end",
-            Delete => b"delete",
-            Play => b"play",
-            Pause => b"pause",
-            Lap => b"lap",
-            Info => b"info"
-        }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = vec![];
+        into_writer(&self, &mut buffer)
+            .expect("Command::to_bytes got an error from ciborium"); // Should not error out
+        buffer
     }
 
     pub fn from_bytes(input: &[u8]) -> Option<Self> {
-        use Command::*;
-        match input {
-            b"start" => Some(Start),
-            b"end" => Some(End),
-            b"delete" => Some(Delete),
-            b"play" => Some(Play),
-            b"pause" => Some(Pause),
-            b"lap" => Some(Lap),
-            b"info" => Some(Info),
-            _ => None
-        }
+        from_reader(input).ok()
     }
 }
 
@@ -53,6 +41,7 @@ impl Intention {
         Self { command, verbose: false }
     }
 
+/*
     /// Convert intention into bytes and write into anything that writes bytes.
     /// 
     /// Format: `<command>(:verbose)?`
@@ -60,7 +49,7 @@ impl Intention {
         let mut bytes_written = 0;
 
         // write command
-        bytes_written += destination.write(self.command.to_bytes())?;
+        bytes_written += destination.write(&self.command.to_bytes())?;
 
         // write verbose if self.verbose is true
         if self.verbose {
@@ -68,15 +57,17 @@ impl Intention {
         }
 
         Ok(bytes_written)
-    }
+    } */
 
     pub fn to_bytes(&self) -> io::Result<Vec<u8>> {
-        let mut output = vec![];
-        self.write_as_bytes(&mut output)?;
-        Ok(output)
+        let mut buffer = vec![];
+        match into_writer(self, &mut buffer) {
+            Ok(()) => Ok(buffer),
+            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
+        }
     }
 
-    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
+/*     pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
         let mut parts_iter = input.split(|b| *b == b':');
 
         let raw_command = parts_iter.next().ok_or_else(||
@@ -93,6 +84,12 @@ impl Intention {
         }
 
         Ok(Self { command, verbose })
+    } */
+
+    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
+        from_reader(input).map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidInput, e)
+        })
     }
 }
 
@@ -130,6 +127,25 @@ mod test {
     use super::{Intention, Command};
 
     #[test]
+    fn test_commands_cycle() {
+        use Command::*;
+
+        fn assert_command(command: Command) {
+            let encoded = command.to_bytes();
+            let decoded = Command::from_bytes(&encoded).unwrap();
+            assert_eq!(command, decoded);
+        }
+
+        assert_command(Start);
+        assert_command(End);
+        assert_command(Delete);
+        assert_command(Play);
+        assert_command(Pause);
+        assert_command(Lap);
+        assert_command(Info);
+    }
+
+    /* #[test]
     fn test_intention_start_to_bytes() {
         let intention = Intention { command: Command::Start, verbose: false };
         let bytes = intention.to_bytes().unwrap();
@@ -169,7 +185,7 @@ mod test {
         let bytes = b"no";
         let intention = Intention::from_bytes(bytes);
         assert!(intention.is_err());
-    }
+    } */
 
     #[test]
     fn test_intention_to_bytes_to_intention() {
@@ -179,11 +195,11 @@ mod test {
         assert_eq!(intention, intention2);
     }
 
-    #[test]
+    /* #[test]
     fn test_bytes_to_intention_to_bytes() {
         let bytes = b"end";
         let intention = Intention::from_bytes(bytes).unwrap();
         let bytes2 = intention.to_bytes().unwrap();
         assert_eq!(bytes, bytes2.as_slice());
-    }
+    } */
 }

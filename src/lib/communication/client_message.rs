@@ -1,5 +1,9 @@
-use std::{process, io::{self, Write}};
+use std::{process, io};
 
+use ciborium::{
+    de::from_reader,
+    ser::into_writer
+};
 use serde::{Serialize, Deserialize};
 
 use crate::communication::intention::Intention;
@@ -17,6 +21,7 @@ impl ClientMessage {
         Self { pid, intention, message }
     }
 
+    /* 
     /// Format: `<pid><intention>=<message>`
     pub fn write_as_bytes(&self, destination: &mut dyn Write) -> io::Result<usize> {
         let mut bytes_written = 0;
@@ -27,15 +32,17 @@ impl ClientMessage {
         bytes_written += destination.write(&self.message)?;
 
         Ok(bytes_written)
-    }
+    } */
 
     pub fn to_bytes(&self) -> io::Result<Vec<u8>> {
-        let mut output = vec![];
-        self.write_as_bytes(&mut output)?;
-        Ok(output)
+        let mut buffer = vec![];
+        match into_writer(self, &mut buffer) {
+            Ok(()) => Ok(buffer),
+            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
+        }
     }
 
-    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
+    /* pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
         let len = input.len();
         if len < 4 {
             return Err(io::Error::new(io::ErrorKind::InvalidInput, "malformed pid"));
@@ -53,6 +60,12 @@ impl ClientMessage {
         let message = raw_msg.to_vec();
 
         Ok(Self { pid, intention, message })
+    } */
+
+    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
+        from_reader(input).map_err(|e| {
+            io::Error::new(io::ErrorKind::InvalidInput, e)
+        })
     }
 }
 
@@ -93,6 +106,40 @@ mod test {
     use super::ClientMessage;
 
     #[test]
+    fn test_cycle_0() {
+        let cm = ClientMessage {
+            pid: 100,
+            intention: Intention {
+                command: Command::Play,
+                verbose: false
+            },
+            message: b"random_message".to_vec()
+        };
+
+        let encoded = cm.to_bytes().unwrap();
+        let decoded = ClientMessage::from_bytes(&encoded).unwrap();
+
+        assert_eq!(cm, decoded);
+    }
+
+    #[test]
+    fn test_cycle_1() {
+        let cm = ClientMessage {
+            pid: 0x87654321,
+            intention: Intention {
+                command: Command::Start,
+                verbose: true
+            },
+            message: b"more things".to_vec()
+        };
+
+        let encoded = cm.to_bytes().unwrap();
+        let decoded = ClientMessage::from_bytes(&encoded).unwrap();
+
+        assert_eq!(cm, decoded);
+    }
+
+    /* #[test]
     fn test_client_message_to_bytes() {
         let pid = 0xabcdef;
         let intention = Intention { command: Command::Info, verbose: true };
@@ -146,5 +193,5 @@ mod test {
     fn test_bytes_to_client_message_bad_2() {
         let raw = b"<3";
         assert!(ClientMessage::from_bytes(raw).is_err());
-    }
+    } */
 }
