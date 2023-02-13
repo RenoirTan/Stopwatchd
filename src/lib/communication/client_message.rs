@@ -1,6 +1,6 @@
 use std::{process, io::{self, Write}};
 
-use crate::intention::Intention;
+use crate::communication::intention::Intention;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClientMessage {
@@ -86,7 +86,7 @@ impl TryInto<Vec<u8>> for ClientMessage {
 
 #[cfg(test)]
 mod test {
-    use crate::intention::{Intention, Command};
+    use crate::communication::intention::{Intention, Command};
 
     use super::ClientMessage;
 

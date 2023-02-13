@@ -1,6 +1,6 @@
 use std::io;
 
-use stopwatchd::communication::ClientMessage;
+use stopwatchd::communication::client_message::ClientMessage;
 use tokio::net::UnixStream;
 
 const BUF_MIN_CAPACITY: usize = 4096;

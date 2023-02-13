@@ -5,7 +5,11 @@ extern crate log;
 use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
-    logging, communication::ClientMessage, intention::{Intention, Command}
+    logging,
+    communication::{
+        client_message::ClientMessage,
+        intention::{Intention, Command}
+    }
 };
 use tokio::net::UnixStream;
 
