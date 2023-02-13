@@ -1,6 +1,8 @@
 use std::io::{Write, self};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Command {
     Start,
     End,
@@ -40,7 +42,7 @@ impl Command {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Intention {
     pub command: Command,
     pub verbose: bool

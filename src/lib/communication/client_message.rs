@@ -1,8 +1,10 @@
 use std::{process, io::{self, Write}};
 
+use serde::{Serialize, Deserialize};
+
 use crate::communication::intention::Intention;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientMessage {
     pub pid: u32,
     pub intention: Intention,
