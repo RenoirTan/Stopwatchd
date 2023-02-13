@@ -1,5 +1,6 @@
 use std::process;
 
+use ciborium::ser::into_writer;
 #[macro_use]
 extern crate log;
 use stopwatchd::{
@@ -50,8 +51,12 @@ async fn main() {
         message: b"random_message".to_vec()
     };
 
+    debug!("encoding message using ciborium");
+    let mut message = vec![];
+    into_writer(&cmsg, &mut message).unwrap();
+
     info!("writing message to server");
-    stream.try_write(&cmsg.to_bytes().unwrap()).unwrap();
+    stream.try_write(&message).unwrap();
 
     info!("waiting for response from server");
 

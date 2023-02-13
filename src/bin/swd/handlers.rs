@@ -1,5 +1,6 @@
 use std::io;
 
+use ciborium::de::from_reader;
 use stopwatchd::communication::client_message::ClientMessage;
 use tokio::net::UnixStream;
 
@@ -12,7 +13,7 @@ pub async fn handle_client(client: UnixStream) -> io::Result<()> {
     let bytes_read = client.try_read_buf(&mut braw)?;
     debug!("received {} bytes from client", bytes_read);
 
-    let cmsg = ClientMessage::from_bytes(&braw)?;
+    let cmsg: ClientMessage = from_reader(&braw[..]).unwrap();
     println!("{:?}", cmsg);
 
     trace!("waiting to send message to client");
