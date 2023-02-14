@@ -16,39 +16,6 @@ impl ClientMessage {
         let pid = process::id();
         Self { pid, intention, message }
     }
-
-    /* 
-    /// Format: `<pid><intention>=<message>`
-    pub fn write_as_bytes(&self, destination: &mut dyn Write) -> io::Result<usize> {
-        let mut bytes_written = 0;
-
-        bytes_written += destination.write(&self.pid.to_le_bytes())?;
-        bytes_written += self.intention.write_as_bytes(destination)?;
-        bytes_written += destination.write(b"=")?;
-        bytes_written += destination.write(&self.message)?;
-
-        Ok(bytes_written)
-    } */
-
-    /* pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
-        let len = input.len();
-        if len < 4 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "malformed pid"));
-        }
-        let pid = u32::from_le_bytes([input[0], input[1], input[2], input[3]]);
-
-        // [4..] to skip past pid
-        let mut iter = input[4..].splitn(2, |b| *b == b'=');
-
-        let raw_intention = iter.next()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "no intention found"))?;
-        let intention = Intention::from_bytes(raw_intention)?;
-        
-        let raw_msg = iter.next().unwrap_or(b"");
-        let message = raw_msg.to_vec();
-
-        Ok(Self { pid, intention, message })
-    } */
 }
 
 impl Codecable<'_> for ClientMessage { }
@@ -125,60 +92,4 @@ mod test {
 
         assert_eq!(cm, decoded);
     }
-
-    /* #[test]
-    fn test_client_message_to_bytes() {
-        let pid = 0xabcdef;
-        let intention = Intention { command: Command::Info, verbose: true };
-        let message = b"test message".to_vec();
-
-        let cm = ClientMessage { pid, intention, message };
-
-        let result = cm.to_bytes().unwrap();
-
-        assert_eq!(result, b"\xef\xcd\xab\x00info:verbose=test message");
-    }
-
-    #[test]
-    fn test_bytes_to_client_message() {
-        let raw = b"\x01\x00\x00\x00start:verbose=something";
-        let cm = ClientMessage::from_bytes(raw).unwrap();
-        let correct = ClientMessage {
-            pid: 1,
-            intention: Intention {
-                command: Command::Start,
-                verbose: true
-            },
-            message: b"something".to_vec()
-        };
-
-        assert_eq!(cm, correct);
-    }
-
-    #[test]
-    fn test_bytes_to_client_message_2() {
-        let raw = b"\x21\x43\x65\x87play";
-        let cm = ClientMessage::from_bytes(raw).unwrap();
-        let correct = ClientMessage {
-            pid: 0x87654321,
-            intention: Intention {
-                command: Command::Play,
-                verbose: false
-            },
-            message: vec![]
-        };
-        assert_eq!(cm, correct);
-    }
-
-    #[test]
-    fn test_bytes_to_client_message_bad() {
-        let raw = b"aaa_nosuchthing";
-        assert!(ClientMessage::from_bytes(raw).is_err());
-    }
-
-    #[test]
-    fn test_bytes_to_client_message_bad_2() {
-        let raw = b"<3";
-        assert!(ClientMessage::from_bytes(raw).is_err());
-    } */
 }
