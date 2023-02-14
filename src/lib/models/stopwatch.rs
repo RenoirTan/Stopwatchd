@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use super::lap::{CurrentLap, FinishedLap};
@@ -9,7 +10,7 @@ pub type Name = [u8; NAME_LEN];
 
 pub const MIN_LAPS_CAPACITY: usize = 4;
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
     Playing,
     Paused,
