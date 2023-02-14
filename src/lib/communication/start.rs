@@ -8,7 +8,7 @@ use crate::{
     models::stopwatch::{Name, State, Stopwatch}
 };
 
-use super::client_message::{ClientMessage, ClientRequest};
+use super::{client_message::{ClientMessage, ClientRequest}, server_message::{ServerReply, ServerMessage}};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientStartStopwatch {
@@ -46,5 +46,17 @@ impl From<&Stopwatch> for ServerStartStopwatch {
         let state = stopwatch.state();
         let start_time = stopwatch.start_time();
         Self { sw_id, name, state, start_time }
+    }
+}
+
+impl Into<ServerReply> for ServerStartStopwatch {
+    fn into(self) -> ServerReply {
+        ServerReply::Start(self)
+    }
+}
+
+impl Into<ServerMessage> for ServerStartStopwatch {
+    fn into(self) -> ServerMessage {
+        ServerMessage::create(self.into())
     }
 }

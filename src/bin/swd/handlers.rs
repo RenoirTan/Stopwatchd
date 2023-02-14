@@ -3,7 +3,7 @@ use std::io;
 use stopwatchd::{
     communication::{
         start::ServerStartStopwatch,
-        client_message::{ClientMessage, ClientRequest}
+        client_message::{ClientMessage, ClientRequest}, server_message::ServerMessage
     },
     traits::Codecable,
     models::stopwatch::Stopwatch
@@ -36,7 +36,7 @@ async fn start_stopwatch(client: &UnixStream) -> io::Result<()> {
     debug!("creating stopwatch");
     let mut stopwatch = Stopwatch::start(None);
 
-    let reply = ServerStartStopwatch::from(&stopwatch);
+    let reply: ServerMessage = ServerStartStopwatch::from(&stopwatch).into();
     let message = reply.to_bytes()?;
 
     trace!("waiting to send message to client");

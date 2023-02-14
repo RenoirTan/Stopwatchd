@@ -7,8 +7,8 @@ use stopwatchd::{
     runtime::server_socket_path,
     logging,
     communication::{
-        start::{ClientStartStopwatch, ServerStartStopwatch},
-        client_message::ClientMessage
+        start::ClientStartStopwatch,
+        client_message::ClientMessage, server_message::{ServerMessage, ServerReply}
     },
     traits::Codecable
 };
@@ -59,8 +59,12 @@ async fn main() {
     let mut braw = Vec::with_capacity(4096);
     info!("reading response from server");
     stream.try_read_buf(&mut braw).unwrap();
-    let reply = ServerStartStopwatch::from_bytes(&braw).unwrap();
-    println!("{:?}", reply);
+
+    let reply = ServerMessage::from_bytes(&braw).unwrap();
+    match reply.reply {
+        ServerReply::Start(s) => println!("{:?}", s),
+        _ => panic!("swd should have replied with ServerReply::Start")
+    }
 
     info!("exiting");
 }
