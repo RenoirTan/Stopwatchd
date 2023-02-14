@@ -15,7 +15,7 @@ impl CurrentLap {
     pub fn new(sw_id: Uuid) -> Self {
         let id = Uuid::new_v4();
         let start = SystemTime::now();
-        let timer = Some(Instant::now());
+        let timer = None;
         let duration = Duration::new(0, 0);
         Self { id, sw_id, start, timer, duration }
     }
