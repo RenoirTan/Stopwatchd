@@ -8,10 +8,14 @@ use crate::{
     models::stopwatch::{Name, State, Stopwatch}
 };
 
-use super::{client_message::{ClientMessage, ClientRequest}, server_message::{ServerReply, ServerMessage}};
+use super::{
+    client_message::{ClientMessage, ClientRequest},
+    server_message::{ServerReply, ServerMessage}
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientStartStopwatch {
+    pub name: Option<Name>,
     pub verbose: bool
 }
 

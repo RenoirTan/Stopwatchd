@@ -2,6 +2,7 @@ use std::process;
 
 #[macro_use]
 extern crate log;
+use clap::Parser;
 use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
@@ -10,12 +11,21 @@ use stopwatchd::{
         start::ClientStartStopwatch,
         client_message::ClientMessage, server_message::{ServerMessage, ServerReply}
     },
-    traits::Codecable
+    traits::Codecable, models::stopwatch::truncated_name_from_str
 };
 use tokio::net::UnixStream;
 
+mod cli;
+
 #[tokio::main]
 async fn main() {
+    let cli = cli::Cli::parse();
+    let sw_name = cli.name;
+    let verbose = cli.verbose;
+    if let Some(ref n) = sw_name {
+        println!("requesting stopwatch to be named: {}", n);
+    }
+
     let pid = process::id();
     logging::setup(&format!("sw-start.{}", pid), None).unwrap();
     info!("logging started");
@@ -43,7 +53,8 @@ async fn main() {
 
     // generate message
     let request: ClientMessage = ClientStartStopwatch {
-        verbose: false
+        name: sw_name.as_ref().map(truncated_name_from_str),
+        verbose
     }.into();
 
     debug!("encoding message using ciborium");

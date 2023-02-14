@@ -8,6 +8,31 @@ use super::lap::{CurrentLap, FinishedLap};
 pub const NAME_LEN: usize = 6;
 pub type Name = [u8; NAME_LEN];
 
+pub fn truncated_name_from_bytes(name: &[u8]) -> Name {
+    let name_len = name.len();
+    let mut output = [0, 0, 0, 0, 0, 0];
+    for i in 0..NAME_LEN {
+        if i < name_len {
+            output[i] = name[i];
+        }
+    }
+    output
+}
+
+pub fn truncated_name_from_str<S: AsRef<str>>(name: S) -> Name {
+    truncated_name_from_bytes(name.as_ref().as_bytes())
+}
+
+pub fn name_from_str<S: AsRef<str>>(name: S) -> Result<Name, usize> {
+    let name = name.as_ref().as_bytes();
+    let name_len = name.len();
+    if name_len > NAME_LEN {
+        return Err(name_len);
+    }
+
+    Ok(truncated_name_from_bytes(name))
+}
+
 pub const MIN_LAPS_CAPACITY: usize = 4;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

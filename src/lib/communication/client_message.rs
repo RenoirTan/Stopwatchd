@@ -63,7 +63,10 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let request = ClientRequest::Start(ClientStartStopwatch { verbose: false });
+        let request = ClientRequest::Start(ClientStartStopwatch {
+            name: None,
+            verbose: false
+        });
         let cm = ClientMessage {
             pid: 100,
             request
@@ -77,7 +80,10 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let request = ClientRequest::Start(ClientStartStopwatch { verbose: true });
+        let request = ClientRequest::Start(ClientStartStopwatch {
+            name: Some([b'r', b'a', b'n', b'd', b'o', b'm']),
+            verbose: true
+        });
         let cm = ClientMessage {
             pid: 0x87654321,
             request
