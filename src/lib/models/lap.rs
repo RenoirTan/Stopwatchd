@@ -46,6 +46,15 @@ impl CurrentLap {
         self.into()
     }
 
+    pub fn normalize(&self) -> FinishedLap {
+        FinishedLap {
+            id: self.id,
+            sw_id: self.sw_id,
+            start: self.start,
+            duration: self.total_time()
+        }
+    }
+
     pub fn total_time(&self) -> Duration {
         if let Some(ref timer) = self.timer {
             self.duration + timer.elapsed()
@@ -62,7 +71,7 @@ impl Into<FinishedLap> for CurrentLap {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct FinishedLap {
     pub id: Uuid,
     pub sw_id: Uuid,

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
@@ -90,6 +90,28 @@ impl Stopwatch {
         self.finished_laps.len() + if self.current_lap.is_some() { 1 } else { 0 }
     }
 
+    pub fn first_lap(&self) -> Option<FinishedLap> {
+        match self.finished_laps.first() {
+            Some(lap) => Some(lap.clone()),
+            None => self.current_lap.as_ref().map(|l| l.normalize())
+        }
+    }
+
+    pub fn last_lap(&self) -> Option<FinishedLap> {
+        match self.current_lap.as_ref() {
+            Some(lap) => Some(lap.normalize()),
+            None => self.finished_laps.last().map(|l| l.clone())
+        }
+    }
+
+    pub fn finished_laps(&self) -> &[FinishedLap] {
+        &self.finished_laps
+    }
+
+    pub fn current_lap(&self) -> Option<&CurrentLap> {
+        self.current_lap.as_ref()
+    }
+
     pub fn end(&mut self) {
         if let Some(prev_lap) = self.current_lap.take() {
             self.finished_laps.push(prev_lap.end());
@@ -105,6 +127,10 @@ impl Stopwatch {
             },
             None => State::Ended
         }
+    }
+
+    pub fn start_time(&self) -> Option<SystemTime> {
+        self.first_lap().map(|l| l.start)
     }
 
     pub fn total_time(&self) -> Duration {

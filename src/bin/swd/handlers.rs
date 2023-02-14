@@ -19,7 +19,7 @@ pub async fn handle_client(client: UnixStream) -> io::Result<()> {
     println!("{:?}", request);
 
     debug!("creating stopwatch");
-    let mut stopwatch = Stopwatch::new(None);
+    let mut stopwatch = Stopwatch::start(None);
 
     let reply = ServerStartStopwatch::from(&stopwatch);
     let message = reply.to_bytes()?;
