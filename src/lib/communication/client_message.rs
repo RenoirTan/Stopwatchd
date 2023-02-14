@@ -2,37 +2,36 @@ use std::{process, io};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{communication::intention::Intention, traits::Codecable};
+use crate::traits::Codecable;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+use super::start::ClientStartStopwatch;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ClientRequest {
+    Start(ClientStartStopwatch),
+    #[default] Default
+}
+
+impl Into<ClientMessage> for ClientRequest {
+    fn into(self) -> ClientMessage {
+        ClientMessage::create(self)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientMessage {
     pub pid: u32,
-    pub intention: Intention,
-    pub message: Vec<u8>
+    pub request: ClientRequest
 }
 
 impl ClientMessage {
-    pub fn create(intention: Intention, message: Vec<u8>) -> Self {
+    pub fn create(request: ClientRequest) -> Self {
         let pid = process::id();
-        Self { pid, intention, message }
+        Self { pid, request }
     }
 }
 
 impl Codecable<'_> for ClientMessage { }
-
-impl Default for ClientMessage {
-    fn default() -> Self {
-        let intention = Intention::default();
-        let message = Vec::default();
-        Self::create(intention, message)
-    }
-}
-
-impl From<Intention> for ClientMessage {
-    fn from(intention: Intention) -> Self {
-        Self::create(intention, Vec::default())
-    }
-}
 
 impl TryFrom<&[u8]> for ClientMessage {
     type Error = io::Error;
@@ -53,7 +52,10 @@ impl TryInto<Vec<u8>> for ClientMessage {
 #[cfg(test)]
 mod test {
     use crate::{
-        communication::intention::{Intention, Command},
+        communication::{
+            start::ClientStartStopwatch,
+            client_message::ClientRequest
+        },
         traits::Codecable
     };
 
@@ -61,13 +63,10 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
+        let request = ClientRequest::Start(ClientStartStopwatch { verbose: false });
         let cm = ClientMessage {
             pid: 100,
-            intention: Intention {
-                command: Command::Play,
-                verbose: false
-            },
-            message: b"random_message".to_vec()
+            request
         };
 
         let encoded = cm.to_bytes().unwrap();
@@ -78,13 +77,10 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
+        let request = ClientRequest::Start(ClientStartStopwatch { verbose: true });
         let cm = ClientMessage {
             pid: 0x87654321,
-            intention: Intention {
-                command: Command::Start,
-                verbose: true
-            },
-            message: b"more things".to_vec()
+            request
         };
 
         let encoded = cm.to_bytes().unwrap();

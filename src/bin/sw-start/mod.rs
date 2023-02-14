@@ -6,7 +6,10 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
     logging,
-    communication::start::{ClientStartStopwatch, ServerStartStopwatch},
+    communication::{
+        start::{ClientStartStopwatch, ServerStartStopwatch},
+        client_message::ClientMessage
+    },
     traits::Codecable
 };
 use tokio::net::UnixStream;
@@ -39,9 +42,9 @@ async fn main() {
     stream.writable().await.unwrap();
 
     // generate message
-    let request = ClientStartStopwatch {
+    let request: ClientMessage = ClientStartStopwatch {
         verbose: false
-    };
+    }.into();
 
     debug!("encoding message using ciborium");
     let message = request.to_bytes().unwrap();

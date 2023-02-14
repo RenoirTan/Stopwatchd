@@ -8,12 +8,26 @@ use crate::{
     models::stopwatch::{Name, State, Stopwatch}
 };
 
+use super::client_message::{ClientMessage, ClientRequest};
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientStartStopwatch {
     pub verbose: bool
 }
 
 impl Codecable<'_> for ClientStartStopwatch { }
+
+impl Into<ClientRequest> for ClientStartStopwatch {
+    fn into(self) -> ClientRequest {
+        ClientRequest::Start(self)
+    }
+}
+
+impl Into<ClientMessage> for ClientStartStopwatch {
+    fn into(self) -> ClientMessage {
+        ClientMessage::create(self.into())
+    }
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerStartStopwatch {

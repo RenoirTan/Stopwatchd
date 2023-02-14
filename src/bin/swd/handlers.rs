@@ -1,8 +1,12 @@
 use std::io;
 
 use stopwatchd::{
-    communication::start::{ClientStartStopwatch, ServerStartStopwatch},
-    traits::Codecable, models::stopwatch::Stopwatch
+    communication::{
+        start::ServerStartStopwatch,
+        client_message::{ClientMessage, ClientRequest}
+    },
+    traits::Codecable,
+    models::stopwatch::Stopwatch
 };
 use tokio::net::UnixStream;
 
@@ -15,9 +19,20 @@ pub async fn handle_client(client: UnixStream) -> io::Result<()> {
     let bytes_read = client.try_read_buf(&mut braw)?;
     debug!("received {} bytes from client", bytes_read);
 
-    let request = ClientStartStopwatch::from_bytes(&braw)?;
+    let request = ClientMessage::from_bytes(&braw)?;
     println!("{:?}", request);
 
+    match request.request {
+        ClientRequest::Start(_) => { start_stopwatch(&client).await?; },
+        ClientRequest::Default => println!("Received default request"),
+        #[allow(unreachable_patterns)]
+        _ => println!("unimplemented")
+    };
+
+    Ok(())
+}
+
+async fn start_stopwatch(client: &UnixStream) -> io::Result<()> {
     debug!("creating stopwatch");
     let mut stopwatch = Stopwatch::start(None);
 
@@ -30,6 +45,7 @@ pub async fn handle_client(client: UnixStream) -> io::Result<()> {
     trace!("message sent to client");
 
     stopwatch.end();
+    trace!("stopwatch stopped");
     println!("{:?}", stopwatch);
 
     Ok(())
