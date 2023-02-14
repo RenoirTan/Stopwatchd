@@ -1,10 +1,8 @@
 use std::io;
 
-use ciborium::{
-    de::from_reader,
-    ser::into_writer
-};
 use serde::{Serialize, Deserialize};
+
+use crate::traits::Codecable;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Command {
@@ -17,18 +15,7 @@ pub enum Command {
     #[default] Info
 }
 
-impl Command {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = vec![];
-        into_writer(&self, &mut buffer)
-            .expect("Command::to_bytes got an error from ciborium"); // Should not error out
-        buffer
-    }
-
-    pub fn from_bytes(input: &[u8]) -> Option<Self> {
-        from_reader(input).ok()
-    }
-}
+impl Codecable<'_> for Command { }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Intention {
@@ -59,14 +46,6 @@ impl Intention {
         Ok(bytes_written)
     } */
 
-    pub fn to_bytes(&self) -> io::Result<Vec<u8>> {
-        let mut buffer = vec![];
-        match into_writer(self, &mut buffer) {
-            Ok(()) => Ok(buffer),
-            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
-        }
-    }
-
 /*     pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
         let mut parts_iter = input.split(|b| *b == b':');
 
@@ -85,13 +64,9 @@ impl Intention {
 
         Ok(Self { command, verbose })
     } */
-
-    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
-        from_reader(input).map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidInput, e)
-        })
-    }
 }
+
+impl Codecable<'_> for Intention { }
 
 impl From<Command> for Intention {
     fn from(command: Command) -> Self {
@@ -103,7 +78,7 @@ impl TryFrom<&[u8]> for Intention {
     type Error = io::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.as_ref())
+        Self::from_bytes(&value)
     }
 }
 
@@ -124,6 +99,8 @@ impl TryInto<Vec<u8>> for Intention {
 
 #[cfg(test)]
 mod test {
+    use crate::traits::Codecable;
+
     use super::{Intention, Command};
 
     #[test]
@@ -131,7 +108,7 @@ mod test {
         use Command::*;
 
         fn assert_command(command: Command) {
-            let encoded = command.to_bytes();
+            let encoded = command.to_bytes().unwrap();
             let decoded = Command::from_bytes(&encoded).unwrap();
             assert_eq!(command, decoded);
         }

@@ -1,12 +1,8 @@
 use std::{process, io};
 
-use ciborium::{
-    de::from_reader,
-    ser::into_writer
-};
 use serde::{Serialize, Deserialize};
 
-use crate::communication::intention::Intention;
+use crate::{communication::intention::Intention, traits::Codecable};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientMessage {
@@ -34,14 +30,6 @@ impl ClientMessage {
         Ok(bytes_written)
     } */
 
-    pub fn to_bytes(&self) -> io::Result<Vec<u8>> {
-        let mut buffer = vec![];
-        match into_writer(self, &mut buffer) {
-            Ok(()) => Ok(buffer),
-            Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e))
-        }
-    }
-
     /* pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
         let len = input.len();
         if len < 4 {
@@ -61,13 +49,9 @@ impl ClientMessage {
 
         Ok(Self { pid, intention, message })
     } */
-
-    pub fn from_bytes(input: &[u8]) -> io::Result<Self> {
-        from_reader(input).map_err(|e| {
-            io::Error::new(io::ErrorKind::InvalidInput, e)
-        })
-    }
 }
+
+impl Codecable<'_> for ClientMessage { }
 
 impl Default for ClientMessage {
     fn default() -> Self {
@@ -87,7 +71,7 @@ impl TryFrom<&[u8]> for ClientMessage {
     type Error = io::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Self::from_bytes(value)
+        Self::from_bytes(&value)
     }
 }
 
@@ -101,7 +85,10 @@ impl TryInto<Vec<u8>> for ClientMessage {
 
 #[cfg(test)]
 mod test {
-    use crate::communication::intention::{Intention, Command};
+    use crate::{
+        communication::intention::{Intention, Command},
+        traits::Codecable
+    };
 
     use super::ClientMessage;
 
