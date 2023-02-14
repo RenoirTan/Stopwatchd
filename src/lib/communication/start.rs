@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
@@ -17,7 +19,8 @@ impl Codecable<'_> for ClientStartStopwatch { }
 pub struct ServerStartStopwatch {
     pub sw_id: Uuid,
     pub name: Option<Name>,
-    pub state: State
+    pub state: State,
+    pub start_time: Option<SystemTime>
 }
 
 impl Codecable<'_> for ServerStartStopwatch { }
@@ -27,6 +30,7 @@ impl From<&Stopwatch> for ServerStartStopwatch {
         let sw_id = stopwatch.id;
         let name = stopwatch.name;
         let state = stopwatch.state();
-        Self { sw_id, name, state }
+        let start_time = stopwatch.start_time();
+        Self { sw_id, name, state, start_time }
     }
 }
