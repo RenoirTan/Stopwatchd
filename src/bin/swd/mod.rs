@@ -16,12 +16,13 @@ use tokio::sync::mpsc::unbounded_channel;
 use crate::{
     cleanup::Cleanup,
     signal::{handle_signals, get_signals},
-    socket::{clear_socket, create_socket, listen_to_socket}
+    socket::{clear_socket, create_socket, listen_to_socket}, manager::{Manager, make_request_channels, manage}
 };
 
 mod cleanup;
 mod cli;
 mod handlers;
+mod manager;
 mod signal;
 mod socket;
 
@@ -38,6 +39,12 @@ async fn main() {
     // Filesystem
     debug!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
     create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
+
+    // Start stopwatch manager
+    // Must come before interrupt handler for some reason
+    let manager = Manager::new();
+    let (req_tx, req_rx) = make_request_channels();
+    let manager_handle = tokio::spawn(manage(manager, req_rx));
 
     // Setup interrupt handling
     let (signal_tx, signal_rx) = unbounded_channel();
@@ -61,7 +68,10 @@ async fn main() {
     let socket = create_socket(&ssock_path).unwrap();
 
     // Application
-    listen_to_socket(&socket, signal_rx).await;
+    listen_to_socket(&socket, signal_rx, req_tx).await;
+
+    // Clean up manager
+    manager_handle.await.unwrap();
 
     // Signal handling
     handle.close();
