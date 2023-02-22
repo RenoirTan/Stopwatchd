@@ -1,7 +1,12 @@
-use std::time::{Duration, SystemTime};
+use std::{
+    time::{Duration, SystemTime},
+    ops::Deref
+};
 
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
+
+use crate::util::uuid_like_identifier;
 
 use super::lap::{CurrentLap, FinishedLap};
 
@@ -24,6 +29,11 @@ impl Name {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    #[inline]
+    pub fn inner(&self) -> &String {
+        &self.0
+    }
 }
 
 impl Default for Name {
@@ -40,6 +50,15 @@ impl<S: Into<String>> From<Option<S>> for Name {
             Some(n) => n.into(),
             None => String::new()
         })
+    }
+}
+
+impl Deref for Name {
+    type Target = String;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.inner()
     }
 }
 
@@ -63,6 +82,39 @@ impl State {
 
     pub fn ended(&self) -> bool {
         matches!(self, Self::Ended)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum UNMatchKind {
+    Name,
+    Uuid
+}
+
+impl UNMatchKind {
+    pub fn name_matched(self) -> bool {
+        matches!(self, UNMatchKind::Name)
+    }
+
+    pub fn uuid_matched(self) -> bool {
+        matches!(self, UNMatchKind::Uuid)
+    }
+}
+
+struct UuidNameMatcher<'s> {
+    id: &'s Uuid,
+    name: &'s Name
+}
+
+impl UuidNameMatcher<'_> {
+    fn matches(&self, test: &str) -> Option<UNMatchKind> {
+        if **self.name == test && !test.is_empty() {
+            Some(UNMatchKind::Name)
+        } else if uuid_like_identifier(self.id, test) {
+            Some(UNMatchKind::Uuid)
+        } else {
+            None
+        }
     }
 }
 
@@ -131,6 +183,10 @@ impl Stopwatch {
             Some(lap) => Some(lap.clone()),
             None => self.current_lap.as_ref().map(|l| l.normalize())
         }
+    }
+
+    pub fn matches_identifier(&self, identifier: impl AsRef<str>) -> Option<UNMatchKind> {
+        UuidNameMatcher { id: &self.id, name: &self.name }.matches(identifier.as_ref())
     }
 
     pub fn last_lap(&self) -> Option<FinishedLap> {
