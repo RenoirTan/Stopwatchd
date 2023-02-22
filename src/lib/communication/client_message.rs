@@ -4,11 +4,12 @@ use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
 
-use super::start::ClientStartStopwatch;
+use super::{start::ClientStartStopwatch, info::ClientInfoStopwatch};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClientRequest {
     Start(ClientStartStopwatch),
+    Info(ClientInfoStopwatch),
     #[default] Default
 }
 

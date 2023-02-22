@@ -209,6 +209,14 @@ impl Stopwatch {
         self.current_lap.as_ref()
     }
 
+    pub fn all_laps(&self) -> Vec<FinishedLap> {
+        let mut laps = self.finished_laps.clone();
+        if let Some(cur) = &self.current_lap {
+            laps.push(cur.normalize());
+        }
+        laps
+    }
+
     pub fn end(&mut self) {
         if let Some(prev_lap) = self.current_lap.take() {
             self.finished_laps.push(prev_lap.end());

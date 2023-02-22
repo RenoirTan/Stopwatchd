@@ -1,5 +1,6 @@
 use std::time::{SystemTime, Instant, Duration};
 
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -71,7 +72,7 @@ impl Into<FinishedLap> for CurrentLap {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FinishedLap {
     pub id: Uuid,
     pub sw_id: Uuid,

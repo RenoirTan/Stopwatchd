@@ -73,6 +73,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
         use ClientRequest::*;
         match request.action {
             Start(css) => start(&mut manager, &request.res_tx, css).await,
+            Info(_cis) => {println!("info request received")},
             Default => default(&request.res_tx).await
         }
     }
