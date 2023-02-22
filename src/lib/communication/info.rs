@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     traits::Codecable,
     models::{
-        stopwatch::{Name, State, Stopwatch},
+        stopwatch::{Name, State, Stopwatch, FindStopwatchError},
         lap::FinishedLap
     }
 };
@@ -38,18 +38,27 @@ impl Into<ClientMessage> for ClientInfoStopwatch {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerInfoStopwatch {
-    inner: Option<ServerInfoStopwatchInner>
+    pub info: Result<ServerInfoStopwatchInner, FindStopwatchError>
 }
 
 impl ServerInfoStopwatch {
     pub fn found(&self) -> bool {
-        self.inner.is_some()
-    }
-
-    pub fn get_inner(&self) -> Option<&ServerInfoStopwatchInner> {
-        self.inner.as_ref()
+        self.info.is_ok()
     }
 }
+
+impl Into<ServerReply> for ServerInfoStopwatch {
+    fn into(self) -> ServerReply {
+        ServerReply::Info(self)
+    }
+}
+
+impl Into<ServerMessage> for ServerInfoStopwatch {
+    fn into(self) -> ServerMessage {
+        ServerMessage::create(self.into())
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerInfoStopwatchInner {
@@ -98,7 +107,7 @@ impl Codecable<'_> for ServerInfoStopwatchInner { }
 
 impl Into<ServerInfoStopwatch> for ServerInfoStopwatchInner {
     fn into(self) -> ServerInfoStopwatch {
-        ServerInfoStopwatch { inner: Some(self) }
+        ServerInfoStopwatch { info: Ok(self) }
     }
 }
 
