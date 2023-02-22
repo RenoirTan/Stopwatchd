@@ -5,10 +5,9 @@ use stopwatchd::{
         client_message::ClientRequest,
         server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch}
     },
-    models::stopwatch::Stopwatch
+    models::stopwatch::{Stopwatch, UuidNameMatcher}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
-use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct Request {
@@ -37,7 +36,7 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 }
 
 pub struct Manager {
-    stopwatches: HashMap<Uuid, Stopwatch>
+    stopwatches: HashMap<UuidNameMatcher, Stopwatch>
 }
 
 impl Manager {
@@ -50,7 +49,7 @@ impl Manager {
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartStopwatch) {
     let stopwatch = Stopwatch::new(Some(css.name.clone()));
     let reply = ServerStartStopwatch::from(&stopwatch);
-    manager.stopwatches.insert(stopwatch.id, stopwatch);
+    manager.stopwatches.insert(stopwatch.get_matcher(), stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
     trace!("manage is sending response back for start");
     if let Err(e) = res_tx.send(response) {

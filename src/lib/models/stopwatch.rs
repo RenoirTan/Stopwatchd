@@ -11,7 +11,7 @@ use crate::util::uuid_like_identifier;
 use super::lap::{CurrentLap, FinishedLap};
 
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Name(String);
 
 impl Name {
@@ -101,16 +101,17 @@ impl UNMatchKind {
     }
 }
 
-struct UuidNameMatcher<'s> {
-    id: &'s Uuid,
-    name: &'s Name
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct UuidNameMatcher {
+    id: Uuid,
+    name: Name
 }
 
-impl UuidNameMatcher<'_> {
-    fn matches(&self, test: &str) -> Option<UNMatchKind> {
-        if **self.name == test && !test.is_empty() {
+impl UuidNameMatcher {
+    pub fn matches(&self, test: &str) -> Option<UNMatchKind> {
+        if *self.name == test && !test.is_empty() {
             Some(UNMatchKind::Name)
-        } else if uuid_like_identifier(self.id, test) {
+        } else if uuid_like_identifier(&self.id, test) {
             Some(UNMatchKind::Uuid)
         } else {
             None
@@ -186,7 +187,11 @@ impl Stopwatch {
     }
 
     pub fn matches_identifier(&self, identifier: impl AsRef<str>) -> Option<UNMatchKind> {
-        UuidNameMatcher { id: &self.id, name: &self.name }.matches(identifier.as_ref())
+        self.get_matcher().matches(identifier.as_ref())
+    }
+
+    pub fn get_matcher(&self) -> UuidNameMatcher {
+        UuidNameMatcher { id: self.id, name: self.name.clone() }
     }
 
     pub fn last_lap(&self) -> Option<FinishedLap> {
