@@ -1,11 +1,11 @@
-use std::{collections::HashMap, time::SystemTime};
+use std::collections::HashMap;
 
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
         server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch}
     },
-    models::stopwatch::{Stopwatch, State}
+    models::stopwatch::Stopwatch
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
@@ -37,28 +37,26 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 }
 
 pub struct Manager {
-    _stopwatches: HashMap<Uuid, Stopwatch>
+    stopwatches: HashMap<Uuid, Stopwatch>
 }
 
 impl Manager {
     pub fn new() -> Self {
-        let _stopwatches = HashMap::new();
-        Self { _stopwatches }
+        let stopwatches = HashMap::new();
+        Self { stopwatches }
     }
 }
 
-async fn start(request: &Request, css: ClientStartStopwatch) {
-    let reply = ServerStartStopwatch {
-        sw_id: Uuid::new_v4(),
-        name: css.name,
-        state: State::Playing,
-        start_time: Some(SystemTime::now())
-    };
+async fn start(manager: &mut Manager, request: &Request, css: ClientStartStopwatch) {
+    let stopwatch = Stopwatch::new(css.name);
+    let reply = ServerStartStopwatch::from(&stopwatch);
+    manager.stopwatches.insert(stopwatch.id, stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
     trace!("manage is sending response back for start");
     if let Err(e) = request.res_tx.send(response) {
         error!("{}", e);
     }
+    println!("stopwatches: {:?}", manager.stopwatches);
 }
 
 async fn default(request: &Request) {
@@ -69,13 +67,13 @@ async fn default(request: &Request) {
     }
 }
 
-pub async fn manage(mut _manager: Manager, mut req_rx: RequestReceiver) {
+pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
     debug!("start manage");
     while let Some(request) = req_rx.recv().await {
         trace!("manage received request");
         use ClientRequest::*;
         match request.action {
-            Start(css) => start(&request, css).await,
+            Start(css) => start(&mut manager, &request, css).await,
             Default => default(&request).await
         }
     }
