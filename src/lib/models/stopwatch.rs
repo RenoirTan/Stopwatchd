@@ -5,32 +5,37 @@ use uuid::Uuid;
 
 use super::lap::{CurrentLap, FinishedLap};
 
-pub const NAME_LEN: usize = 6;
-pub type Name = [u8; NAME_LEN];
 
-pub fn truncated_name_from_bytes(name: &[u8]) -> Name {
-    let name_len = name.len();
-    let mut output = [0, 0, 0, 0, 0, 0];
-    for i in 0..NAME_LEN {
-        if i < name_len {
-            output[i] = name[i];
-        }
-    }
-    output
-}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Name(String);
 
-pub fn truncated_name_from_str<S: AsRef<str>>(name: S) -> Name {
-    truncated_name_from_bytes(name.as_ref().as_bytes())
-}
-
-pub fn name_from_str<S: AsRef<str>>(name: S) -> Result<Name, usize> {
-    let name = name.as_ref().as_bytes();
-    let name_len = name.len();
-    if name_len > NAME_LEN {
-        return Err(name_len);
+impl Name {
+    #[inline]
+    pub fn new<S: Into<String>>(name: S) -> Self {
+        Self(name.into())
     }
 
-    Ok(truncated_name_from_bytes(name))
+    #[inline]
+    pub fn empty() -> Self {
+        Self("".to_string())
+    }
+}
+
+impl Default for Name {
+    #[inline]
+    fn default() -> Self {
+        Self("".to_string())
+    }
+}
+
+impl<S: Into<String>> From<Option<S>> for Name {
+    #[inline]
+    fn from(name: Option<S>) -> Self {
+        Self(match name {
+            Some(n) => n.into(),
+            None => String::new()
+        })
+    }
 }
 
 pub const MIN_LAPS_CAPACITY: usize = 4;
@@ -59,7 +64,7 @@ impl State {
 #[derive(Debug)]
 pub struct Stopwatch {
     pub id: Uuid,
-    pub name: Option<Name>,
+    pub name: Name,
     finished_laps: Vec<FinishedLap>,
     current_lap: Option<CurrentLap> // If some, not yet ended
 }
@@ -67,6 +72,7 @@ pub struct Stopwatch {
 impl Stopwatch {
     pub fn new(name: Option<Name>) -> Self {
         let id = Uuid::new_v4();
+        let name = name.unwrap_or_default();
         let finished_laps = Vec::new();
         let current_lap = Some(CurrentLap::new(id));
         Self { id, name, finished_laps, current_lap }

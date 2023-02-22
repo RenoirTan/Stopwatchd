@@ -11,7 +11,7 @@ use stopwatchd::{
         start::ClientStartStopwatch,
         client_message::ClientMessage, server_message::{ServerMessage, ServerReply}
     },
-    traits::Codecable, models::stopwatch::truncated_name_from_str
+    traits::Codecable, models::stopwatch::Name
 };
 use tokio::net::UnixStream;
 
@@ -53,7 +53,7 @@ async fn main() {
 
     // generate message
     let request: ClientMessage = ClientStartStopwatch {
-        name: sw_name.as_ref().map(truncated_name_from_str),
+        name: Name::from(sw_name),
         verbose
     }.into();
 

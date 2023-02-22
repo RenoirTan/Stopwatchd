@@ -56,7 +56,7 @@ mod test {
             start::ClientStartStopwatch,
             client_message::ClientRequest
         },
-        traits::Codecable
+        traits::Codecable, models::stopwatch::Name
     };
 
     use super::ClientMessage;
@@ -64,7 +64,7 @@ mod test {
     #[test]
     fn test_cycle_0() {
         let request = ClientRequest::Start(ClientStartStopwatch {
-            name: None,
+            name: Name::default(),
             verbose: false
         });
         let cm = ClientMessage {
@@ -81,7 +81,7 @@ mod test {
     #[test]
     fn test_cycle_1() {
         let request = ClientRequest::Start(ClientStartStopwatch {
-            name: Some([b'r', b'a', b'n', b'd', b'o', b'm']),
+            name: Name::new("random"),
             verbose: true
         });
         let cm = ClientMessage {

@@ -13,9 +13,9 @@ use super::{
     server_message::{ServerReply, ServerMessage}
 };
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientStartStopwatch {
-    pub name: Option<Name>,
+    pub name: Name,
     pub verbose: bool
 }
 
@@ -33,10 +33,10 @@ impl Into<ClientMessage> for ClientStartStopwatch {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerStartStopwatch {
     pub sw_id: Uuid,
-    pub name: Option<Name>,
+    pub name: Name,
     pub state: State,
     pub start_time: Option<SystemTime>
 }
@@ -46,7 +46,7 @@ impl Codecable<'_> for ServerStartStopwatch { }
 impl From<&Stopwatch> for ServerStartStopwatch {
     fn from(stopwatch: &Stopwatch) -> Self {
         let sw_id = stopwatch.id;
-        let name = stopwatch.name;
+        let name = stopwatch.name.clone();
         let state = stopwatch.state();
         let start_time = stopwatch.start_time();
         Self { sw_id, name, state, start_time }

@@ -47,22 +47,22 @@ impl Manager {
     }
 }
 
-async fn start(manager: &mut Manager, request: &Request, css: ClientStartStopwatch) {
-    let stopwatch = Stopwatch::new(css.name);
+async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartStopwatch) {
+    let stopwatch = Stopwatch::new(Some(css.name.clone()));
     let reply = ServerStartStopwatch::from(&stopwatch);
     manager.stopwatches.insert(stopwatch.id, stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
     trace!("manage is sending response back for start");
-    if let Err(e) = request.res_tx.send(response) {
+    if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     }
     println!("stopwatches: {:?}", manager.stopwatches);
 }
 
-async fn default(request: &Request) {
+async fn default(res_tx: &ResponseSender) {
     let response = Response { output: ServerReply::Default };
     trace!("manage is sending response back for default");
-    if let Err(e) = request.res_tx.send(response) {
+    if let Err(e) = res_tx.send(response) {
         error!("{}", e)
     }
 }
@@ -73,8 +73,8 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
         trace!("manage received request");
         use ClientRequest::*;
         match request.action {
-            Start(css) => start(&mut manager, &request, css).await,
-            Default => default(&request).await
+            Start(css) => start(&mut manager, &request.res_tx, css).await,
+            Default => default(&request.res_tx).await
         }
     }
     debug!("stop manage");
