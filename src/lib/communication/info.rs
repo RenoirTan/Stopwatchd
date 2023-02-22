@@ -38,6 +38,21 @@ impl Into<ClientMessage> for ClientInfoStopwatch {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerInfoStopwatch {
+    inner: Option<ServerInfoStopwatchInner>
+}
+
+impl ServerInfoStopwatch {
+    pub fn found(&self) -> bool {
+        self.inner.is_some()
+    }
+
+    pub fn get_inner(&self) -> Option<&ServerInfoStopwatchInner> {
+        self.inner.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerInfoStopwatchInner {
     pub sw_id: Uuid,
     pub name: Name,
     pub state: State,
@@ -47,7 +62,7 @@ pub struct ServerInfoStopwatch {
     pub verbose_info: Option<ServerInfoStopwatchVerbose>
 }
 
-impl ServerInfoStopwatch {
+impl ServerInfoStopwatchInner {
     pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
         let sw_id = stopwatch.id;
         let name = stopwatch.name.clone();
@@ -79,15 +94,21 @@ impl ServerInfoStopwatch {
     }
 }
 
-impl Codecable<'_> for ServerInfoStopwatch { }
+impl Codecable<'_> for ServerInfoStopwatchInner { }
 
-impl Into<ServerReply> for ServerInfoStopwatch {
-    fn into(self) -> ServerReply {
-        ServerReply::Info(self)
+impl Into<ServerInfoStopwatch> for ServerInfoStopwatchInner {
+    fn into(self) -> ServerInfoStopwatch {
+        ServerInfoStopwatch { inner: Some(self) }
     }
 }
 
-impl Into<ServerMessage> for ServerInfoStopwatch {
+impl Into<ServerReply> for ServerInfoStopwatchInner {
+    fn into(self) -> ServerReply {
+        ServerReply::Info(self.into())
+    }
+}
+
+impl Into<ServerMessage> for ServerInfoStopwatchInner {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }
@@ -109,7 +130,7 @@ impl ServerInfoStopwatchVerbose {
 mod test {
     use crate::models::stopwatch::{Stopwatch, Name};
 
-    use super::ServerInfoStopwatch;
+    use super::ServerInfoStopwatchInner;
 
     fn make_stopwatch() -> Stopwatch {
         let mut stopwatch = Stopwatch::start(Some(Name::new("aaa")));
@@ -118,7 +139,7 @@ mod test {
         stopwatch
     }
 
-    fn basic_asserts(stopwatch: &Stopwatch, info: &ServerInfoStopwatch) {
+    fn basic_asserts(stopwatch: &Stopwatch, info: &ServerInfoStopwatchInner) {
         assert_eq!(stopwatch.id, info.sw_id);
         assert_eq!(stopwatch.name, info.name);
         assert_eq!(stopwatch.state(), info.state);
@@ -130,7 +151,7 @@ mod test {
     #[test]
     fn test_from_stopwatch() {
         let stopwatch = make_stopwatch();
-        let info = ServerInfoStopwatch::from_stopwatch(&stopwatch, false);
+        let info = ServerInfoStopwatchInner::from_stopwatch(&stopwatch, false);
         basic_asserts(&stopwatch, &info);
         assert_eq!(info.verbose_info, None);
     }
@@ -138,7 +159,7 @@ mod test {
     #[test]
     fn test_from_stopwatch_verbose() {
         let stopwatch = make_stopwatch();
-        let info = ServerInfoStopwatch::from_stopwatch(&stopwatch, true);
+        let info = ServerInfoStopwatchInner::from_stopwatch(&stopwatch, true);
         basic_asserts(&stopwatch, &info);
         assert!(matches!(info.verbose_info, Some(_)));
     }
