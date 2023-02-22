@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::SystemTime};
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
-        server_message::ServerReply, start::ServerStartStopwatch
+        server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch}
     },
     models::stopwatch::{Stopwatch, State}
 };
@@ -47,32 +47,36 @@ impl Manager {
     }
 }
 
+async fn start(request: &Request, css: ClientStartStopwatch) {
+    let reply = ServerStartStopwatch {
+        sw_id: Uuid::new_v4(),
+        name: css.name,
+        state: State::Playing,
+        start_time: Some(SystemTime::now())
+    };
+    let response = Response { output: ServerReply::Start(reply) };
+    trace!("manage is sending response back for start");
+    if let Err(e) = request.res_tx.send(response) {
+        error!("{}", e);
+    }
+}
+
+async fn default(request: &Request) {
+    let response = Response { output: ServerReply::Default };
+    trace!("manage is sending response back for default");
+    if let Err(e) = request.res_tx.send(response) {
+        error!("{}", e)
+    }
+}
+
 pub async fn manage(mut _manager: Manager, mut req_rx: RequestReceiver) {
     debug!("start manage");
     while let Some(request) = req_rx.recv().await {
         trace!("manage received request");
         use ClientRequest::*;
         match request.action {
-            Start(start) => {
-                let reply = ServerStartStopwatch {
-                    sw_id: Uuid::new_v4(),
-                    name: start.name,
-                    state: State::Playing,
-                    start_time: Some(SystemTime::now())
-                };
-                let response = Response { output: ServerReply::Start(reply) };
-                trace!("manage is sending response back for start");
-                if let Err(e) = request.res_tx.send(response) {
-                    error!("{}", e);
-                }
-            },
-            Default => {
-                let response = Response { output: ServerReply::Default };
-                trace!("manage is sending response back for default");
-                if let Err(e) = request.res_tx.send(response) {
-                    error!("{}", e)
-                }
-            }
+            Start(css) => start(&request, css).await,
+            Default => default(&request).await
         }
     }
     debug!("stop manage");
