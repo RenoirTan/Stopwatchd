@@ -19,6 +19,11 @@ impl Name {
     pub fn empty() -> Self {
         Self("".to_string())
     }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Default for Name {
