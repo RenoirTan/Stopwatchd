@@ -130,6 +130,7 @@ async fn info(manager: &mut Manager, res_tx: &ResponseSender, cis: ClientInfoSto
             if let Err(e) = res_tx.send(response) {
                 error!("{}", e);
             }
+            manager.add_stopwatch(sw);
         },
         Err(fse) => {
             let response = Response {
