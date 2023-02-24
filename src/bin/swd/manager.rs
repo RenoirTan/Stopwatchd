@@ -111,7 +111,7 @@ impl Manager {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartStopwatch) {
-    let stopwatch = Stopwatch::new(Some(css.name.clone()));
+    let stopwatch = Stopwatch::start(Some(css.name.clone()));
     let reply = ServerStartStopwatch::from(&stopwatch);
     manager.add_stopwatch(stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
