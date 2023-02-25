@@ -59,6 +59,8 @@ impl Into<ServerMessage> for ServerInfoStopwatch {
     }
 }
 
+impl Codecable<'_> for ServerInfoStopwatch { }
+
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerInfoStopwatchInner {

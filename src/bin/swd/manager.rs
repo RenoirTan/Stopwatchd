@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
-        server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch},
+        server_message::ServerReply, start::{ServerStartStopwatchInner, ClientStartStopwatch, ServerStartStopwatch},
         info::{ClientInfoStopwatch, ServerInfoStopwatch, ServerInfoStopwatchInner}
     },
     models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
@@ -57,6 +57,42 @@ impl Manager {
 
     pub fn add_most_recently_accessed(&mut self, uuid_name: UuidName) {
         self.access_order.push(uuid_name);
+    }
+
+    pub fn has_name(&self, identifier: &str) -> Option<UuidName> {
+        if identifier.is_empty() {
+            return None;
+        }
+        for (_, stopwatch) in self.stopwatches.iter() {
+            if *stopwatch.name == identifier {
+                return Some(stopwatch.get_uuid_name());
+            }
+        }
+        None
+    }
+
+    pub fn has_uuid(&self, identifier: &str) -> Option<UuidName> {
+        let my_uuid = match Uuid::parse_str(identifier) {
+            Ok(id) => id,
+            Err(_) => return None
+        };
+        for (_, stopwatch) in self.stopwatches.iter() {
+            if stopwatch.id == my_uuid {
+                return Some(stopwatch.get_uuid_name());
+            }
+        }
+        None
+    }
+
+    pub fn has_uuid_or_name(&self, identifier: &str) -> Option<UuidName> {
+        // TODO: Might make this more efficient
+        if let Some(un) = self.has_name(identifier) {
+            Some(un)
+        } else if let Some(un) = self.has_uuid(identifier) {
+            Some(un)
+        } else {
+            None
+        }
     }
 
     fn get_stopwatches_indices_by_identifier(
@@ -128,8 +164,24 @@ impl Manager {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartStopwatch) {
+    // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(Some(css.name.clone()));
-    let reply = ServerStartStopwatch::from(&stopwatch);
+
+    if let Some(uuid_name) = manager.has_uuid_or_name(&css.name) {
+        trace!("stopwatch with the same name or uuid already exists");
+        let reply = ServerStartStopwatch {
+            start: Err(FindStopwatchError {
+                identifier: (*css.name).clone(),
+                duplicates: vec![(uuid_name.id, uuid_name.name)]
+            })
+        };
+        let response = Response { output: reply.into() };
+        if let Err(e) = res_tx.send(response) {
+            error!("{}", e);
+        }
+    }
+
+    let reply = ServerStartStopwatchInner::from(&stopwatch).into();
     manager.add_stopwatch(stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
     trace!("manage is sending response back for start");

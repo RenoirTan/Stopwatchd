@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     traits::Codecable,
-    models::stopwatch::{Name, State, Stopwatch}
+    models::stopwatch::{Name, State, Stopwatch, FindStopwatchError}
 };
 
 use super::{
@@ -35,21 +35,12 @@ impl Into<ClientMessage> for ClientStartStopwatch {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ServerStartStopwatch {
-    pub sw_id: Uuid,
-    pub name: Name,
-    pub state: State,
-    pub start_time: Option<SystemTime>
+    pub start: Result<ServerStartStopwatchInner, FindStopwatchError>
 }
 
-impl Codecable<'_> for ServerStartStopwatch { }
-
-impl From<&Stopwatch> for ServerStartStopwatch {
-    fn from(stopwatch: &Stopwatch) -> Self {
-        let sw_id = stopwatch.id;
-        let name = stopwatch.name.clone();
-        let state = stopwatch.state();
-        let start_time = stopwatch.start_time();
-        Self { sw_id, name, state, start_time }
+impl ServerStartStopwatch {
+    pub fn started(&self) -> bool {
+        self.start.is_ok()
     }
 }
 
@@ -60,6 +51,46 @@ impl Into<ServerReply> for ServerStartStopwatch {
 }
 
 impl Into<ServerMessage> for ServerStartStopwatch {
+    fn into(self) -> ServerMessage {
+        ServerMessage::create(self.into())
+    }
+}
+
+impl Codecable<'_> for ServerStartStopwatch { }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerStartStopwatchInner {
+    pub sw_id: Uuid,
+    pub name: Name,
+    pub state: State,
+    pub start_time: Option<SystemTime>
+}
+
+impl Codecable<'_> for ServerStartStopwatchInner { }
+
+impl From<&Stopwatch> for ServerStartStopwatchInner {
+    fn from(stopwatch: &Stopwatch) -> Self {
+        let sw_id = stopwatch.id;
+        let name = stopwatch.name.clone();
+        let state = stopwatch.state();
+        let start_time = stopwatch.start_time();
+        Self { sw_id, name, state, start_time }
+    }
+}
+
+impl Into<ServerStartStopwatch> for ServerStartStopwatchInner {
+    fn into(self) -> ServerStartStopwatch {
+        ServerStartStopwatch { start: Ok(self) }
+    }
+}
+
+impl Into<ServerReply> for ServerStartStopwatchInner {
+    fn into(self) -> ServerReply {
+        ServerReply::Start(self.into())
+    }
+}
+
+impl Into<ServerMessage> for ServerStartStopwatchInner {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }
