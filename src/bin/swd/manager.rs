@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
-        server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch}, info::{ClientInfoStopwatch, ServerInfoStopwatch, ServerInfoStopwatchInner}
+        server_message::ServerReply, start::{ServerStartStopwatch, ClientStartStopwatch},
+        info::{ClientInfoStopwatch, ServerInfoStopwatch, ServerInfoStopwatchInner}
     },
-    models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError}
+    models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
+use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct Request {
@@ -34,17 +38,25 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 }
 
 pub struct Manager {
-    stopwatches: Vec<Stopwatch> // Last item is most recently accessed
+    stopwatches: HashMap<Uuid, Stopwatch>,
+    access_order: Vec<UuidName> // Last item is most recently accessed
 }
 
 impl Manager {
     pub fn new() -> Self {
-        let stopwatches = Vec::new();
-        Self { stopwatches }
+        let stopwatches = HashMap::new();
+        let access_order = Vec::new();
+        Self { stopwatches, access_order }
     }
 
     pub fn add_stopwatch(&mut self, stopwatch: Stopwatch) {
-        self.stopwatches.push(stopwatch);
+        let un = stopwatch.get_uuid_name();
+        self.stopwatches.insert(un.id, stopwatch);
+        self.access_order.push(un);
+    }
+
+    pub fn add_most_recently_accessed(&mut self, uuid_name: UuidName) {
+        self.access_order.push(uuid_name);
     }
 
     fn get_stopwatches_indices_by_identifier(
@@ -55,8 +67,9 @@ impl Manager {
         let mut name_matches = vec![];
         let mut uuid_matches = vec![];
         // Reverse because last item is the most recently accessed
-        'a: for index in (0..self.stopwatches.len()).rev() {
-            let match_kind = self.stopwatches[index].matches_identifier(identifier);
+        'a: for index in (0..self.access_order.len()).rev() {
+            let uuid_name = &self.access_order[index];
+            let match_kind = uuid_name.matches(identifier);
             // Prefer name matches over uuid matches
             // So if a name match was found already, ignore uuid matches
             match match_kind {
@@ -87,12 +100,14 @@ impl Manager {
     pub fn get_stopwatch_by_identifier(
         &mut self,
         identifier: &str
-    ) -> Result<Stopwatch, FindStopwatchError> {
+    ) -> Result<(Option<&mut Stopwatch>, UuidName), FindStopwatchError> {
         let (indices, _) = self.get_stopwatches_indices_by_identifier(identifier, false);
         if indices.len() != 1 {
-            return Err(self.manager_stopwatches_error(identifier.to_string(), &indices));
+            Err(self.manager_stopwatches_error(identifier.to_string(), &indices))
         } else {
-            Ok(self.stopwatches.remove(indices[0]))
+            // Removed from access order, must be added back in
+            let uuid_name = self.access_order.remove(indices[0]);
+            Ok((self.stopwatches.get_mut(&uuid_name.id), uuid_name))
         }
     }
 
@@ -103,8 +118,10 @@ impl Manager {
     ) -> FindStopwatchError {
         let mut duplicates = vec![];
         for index in indices {
-            let stopwatch = &self.stopwatches[*index];
-            duplicates.push((stopwatch.id, stopwatch.name.clone()));
+            let uuid_name = &self.access_order[*index];
+            if let Some(stopwatch) = self.stopwatches.get(&uuid_name.id) {
+                duplicates.push((stopwatch.id, stopwatch.name.clone()));
+            }
         }
         FindStopwatchError { identifier, duplicates }
     }
@@ -123,23 +140,39 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartS
 }
 
 async fn info(manager: &mut Manager, res_tx: &ResponseSender, cis: ClientInfoStopwatch) {
-    match manager.get_stopwatch_by_identifier(&cis.identifier) {
-        Ok(sw) => {
+    trace!("got request for info");
+    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&cis.identifier) {
+        Ok((Some(sw), uuid_name)) => {
             let reply = ServerInfoStopwatchInner::from_stopwatch(&sw, cis.verbose).into();
-            let response = Response { output: reply };
-            if let Err(e) = res_tx.send(response) {
-                error!("{}", e);
-            }
-            manager.add_stopwatch(sw);
+            (Response { output: reply }, Some(uuid_name))
+        },
+        Ok((None, _)) => {
+            warn!("found a uuid/name match but stopwatch was not in hashmap");
+            let fse = FindStopwatchError {
+                identifier: cis.identifier.clone(),
+                duplicates: vec![]
+            };
+            let response = Response {
+                output: ServerReply::Info(ServerInfoStopwatch { info: Err(fse) })
+            };
+            // don't send UuidName so that it can be removed from the access order
+            (response, None)
         },
         Err(fse) => {
             let response = Response {
                 output: ServerReply::Info(ServerInfoStopwatch { info: Err(fse) })
             };
-            if let Err(e) = res_tx.send(response) {
-                error!("{}", e);
-            }
+            (response, None)
         }
+    };
+    // UuidName must be added here to please the borrow checker
+    if let Some(un) = uuid_name {
+        manager.add_most_recently_accessed(un);
+    }
+    if let Err(e) = res_tx.send(response) {
+        error!("{}", e);
+    } else {
+        trace!("sent info back to user");
     }
 }
 

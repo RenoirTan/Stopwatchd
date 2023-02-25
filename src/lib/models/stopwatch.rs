@@ -102,12 +102,12 @@ impl UNMatchKind {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct UuidNameMatcher {
-    id: Uuid,
-    name: Name
+pub struct UuidName {
+    pub id: Uuid,
+    pub name: Name
 }
 
-impl UuidNameMatcher {
+impl UuidName {
     pub fn matches(&self, test: &str) -> Option<UNMatchKind> {
         if *self.name == test && !test.is_empty() {
             Some(UNMatchKind::Name)
@@ -229,11 +229,11 @@ impl Stopwatch {
     }
 
     pub fn matches_identifier(&self, identifier: impl AsRef<str>) -> Option<UNMatchKind> {
-        self.get_matcher().matches(identifier.as_ref())
+        self.get_uuid_name().matches(identifier.as_ref())
     }
 
-    pub fn get_matcher(&self) -> UuidNameMatcher {
-        UuidNameMatcher { id: self.id, name: self.name.clone() }
+    pub fn get_uuid_name(&self) -> UuidName {
+        UuidName { id: self.id, name: self.name.clone() }
     }
 
     pub fn last_lap(&self) -> Option<FinishedLap> {
