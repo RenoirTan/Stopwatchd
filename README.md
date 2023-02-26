@@ -14,11 +14,11 @@ sw start
 `sw start` (or `sw-start`) creates a new stopwatch and prints out the name of the new stopwatch. In this case, we will be using abcdef as the name of the stopwatch for the following examples. You can provide a name for the stopwatch using `sw start [name]`, but the command will error out if that name has already been taken.
 
 ```bash
-sw read abcdef
+sw info abcdef
 # 300
 ```
 
-`sw read` (or `sw-read`) queries `swd` for information from a stopwatch (or even a bunch of stopwatches). By default, the time printed out will be in terms of seconds; so after 5 minutes, running `sw read abcdef` should show you 300.
+`sw info` (or `sw-info`) queries `swd` for information from a stopwatch (or even a bunch of stopwatches). By default, the time printed out will be in terms of seconds; so after 5 minutes, running `sw info abcdef` should show you 300.
 
 ```bash
 sw lap abcdef
@@ -35,17 +35,17 @@ sw stop abcdef
 `sw stop` or (`sw-stop`) stops the stopwatch and print the time elapsed from start to finish.
 
 ```bash
-sw read abcdef --all
+sw info abcdef --all
 # Duration
 # 360
 # Laps
 # 1> 310
 ```
 
-`sw read [name] --all` prints out more verbose information for a particularly stopwatch.
+`sw info [name] --all` prints out more verbose information for a particularly stopwatch.
 
 ```bash
-sw read abcdef --all --format '%m:%s'
+sw info abcdef --all --format '%m:%s'
 # Duration
 # 6:00
 # Laps
