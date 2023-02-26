@@ -42,10 +42,10 @@ sw info abcdef --all
 # 1> 310
 ```
 
-`sw info [name] --all` prints out more verbose information for a particularly stopwatch.
+`sw info [name] --verbose` prints out more verbose information for a particularly stopwatch.
 
 ```bash
-sw info abcdef --all --format '%m:%s'
+sw info abcdef --verbose --format '%m:%s'
 # Duration
 # 6:00
 # Laps
