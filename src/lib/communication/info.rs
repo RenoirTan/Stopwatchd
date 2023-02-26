@@ -18,7 +18,7 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoRequest {
-    pub identifier: String,
+    pub identifier: Option<String>,
     pub verbose: bool
 }
 

@@ -67,7 +67,8 @@ async fn main() {
     let reply = ServerMessage::from_bytes(&braw).unwrap();
     match reply.reply {
         ServerReply::Info(i) => println!("{:?}", i),
-        _ => panic!("swd should have replied with ServerReply::Info")
+        ServerReply::InfoList(i) => println!("{:?}", i),
+        _ => panic!("swd should have replied with ServerReply::Info or InfoList")
     }
 
     info!("exiting");

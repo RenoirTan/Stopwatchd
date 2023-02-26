@@ -4,7 +4,7 @@ use stopwatchd::{
     communication::{
         client_message::ClientRequest,
         server_message::ServerReply, start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess}
+        info::{InfoRequest, InfoReply, InfoSuccess}, info_list::InfoListSuccess
     },
     models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
 };
@@ -161,6 +161,40 @@ impl Manager {
         }
         FindStopwatchError { identifier, duplicates }
     }
+
+    pub (self) fn stopwatches_by_access_order(&self) -> StopwatchByAccessOrder<'_> {
+        StopwatchByAccessOrder {
+            stopwatches: &self.stopwatches,
+            access_order: &self.access_order,
+            index: 0
+        }
+    }
+}
+
+
+struct StopwatchByAccessOrder<'m> {
+    stopwatches: &'m HashMap<Uuid, Stopwatch>,
+    access_order: &'m Vec<UuidName>,
+    index: usize
+}
+
+impl<'m> Iterator for StopwatchByAccessOrder<'m> {
+    type Item = &'m Stopwatch;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == self.access_order.len() {
+            None
+        } else {
+            let uuid = self.access_order.get(self.index)?;
+            self.index += 1;
+            self.stopwatches.get(&uuid.id)
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.access_order.len() - self.index;
+        (remaining, Some(remaining))
+    }
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest) {
@@ -193,7 +227,17 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest
 
 async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("got request for info");
-    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&req.identifier) {
+    // If an identifier given, search for just that one stopwatch
+    match req.identifier {
+        Some(_) => info_one(manager, res_tx, req).await,
+        None => info_list(manager, res_tx, req).await
+    }
+}
+
+async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
+    trace!("info_one");
+    let identifier = req.identifier.unwrap().clone();
+    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&identifier) {
         Ok((Some(sw), uuid_name)) => {
             let reply = InfoSuccess::from_stopwatch(&sw, req.verbose).into();
             (Response { output: reply }, Some(uuid_name))
@@ -201,7 +245,7 @@ async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) 
         Ok((None, _)) => {
             warn!("found a uuid/name match but stopwatch was not in hashmap");
             let fse = FindStopwatchError {
-                identifier: req.identifier.clone(),
+                identifier,
                 duplicates: vec![]
             };
             let response = Response {
@@ -225,6 +269,19 @@ async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) 
         error!("{}", e);
     } else {
         trace!("sent info back to user");
+    }
+}
+
+async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, _: InfoRequest) {
+    trace!("info_list");
+    let reply = InfoListSuccess::from_iter(manager.stopwatches_by_access_order()).into();
+    let response = Response {
+        output: reply
+    };
+    if let Err(e) = res_tx.send(response) {
+        error!("{}", e);
+    } else {
+        trace!("sent info list back to user");
     }
 }
 
