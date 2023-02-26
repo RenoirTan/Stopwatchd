@@ -4,12 +4,12 @@ use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
 
-use super::{start::ClientStartStopwatch, info::ClientInfoStopwatch};
+use super::{start::StartRequest, info::InfoRequest};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClientRequest {
-    Start(ClientStartStopwatch),
-    Info(ClientInfoStopwatch),
+    Start(StartRequest),
+    Info(InfoRequest),
     #[default] Default
 }
 
@@ -54,7 +54,7 @@ impl TryInto<Vec<u8>> for ClientMessage {
 mod test {
     use crate::{
         communication::{
-            start::ClientStartStopwatch,
+            start::StartRequest,
             client_message::ClientRequest
         },
         traits::Codecable, models::stopwatch::Name
@@ -64,7 +64,7 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let request = ClientRequest::Start(ClientStartStopwatch {
+        let request = ClientRequest::Start(StartRequest {
             name: Name::default(),
             verbose: false
         });
@@ -81,7 +81,7 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let request = ClientRequest::Start(ClientStartStopwatch {
+        let request = ClientRequest::Start(StartRequest {
             name: Name::new("random"),
             verbose: true
         });

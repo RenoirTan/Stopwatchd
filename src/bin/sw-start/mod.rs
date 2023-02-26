@@ -8,7 +8,7 @@ use stopwatchd::{
     runtime::server_socket_path,
     logging,
     communication::{
-        start::ClientStartStopwatch,
+        start::StartRequest,
         client_message::ClientMessage, server_message::{ServerMessage, ServerReply}
     },
     traits::Codecable, models::stopwatch::Name
@@ -52,7 +52,7 @@ async fn main() {
     stream.writable().await.unwrap();
 
     // generate message
-    let request: ClientMessage = ClientStartStopwatch {
+    let request: ClientMessage = StartRequest {
         name: Name::from(sw_name),
         verbose
     }.into();

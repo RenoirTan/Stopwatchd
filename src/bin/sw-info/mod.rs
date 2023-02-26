@@ -9,7 +9,7 @@ use stopwatchd::{
     runtime::server_socket_path,
     communication::{
         client_message::ClientMessage,
-        info::ClientInfoStopwatch,
+        info::InfoRequest,
         server_message::{ServerMessage, ServerReply}
     },
     traits::Codecable
@@ -47,7 +47,7 @@ async fn main() {
     trace!("checking if can write to server");
     stream.writable().await.unwrap();
 
-    let request: ClientMessage = ClientInfoStopwatch {
+    let request: ClientMessage = InfoRequest {
         identifier,
         verbose
     }.into();

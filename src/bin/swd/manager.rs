@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
-        server_message::ServerReply, start::{ServerStartStopwatchInner, ClientStartStopwatch, ServerStartStopwatch},
-        info::{ClientInfoStopwatch, ServerInfoStopwatch, ServerInfoStopwatchInner}
+        server_message::ServerReply, start::{StartSuccess, StartRequest, StartReply},
+        info::{InfoRequest, InfoReply, InfoSuccess}
     },
     models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
 };
@@ -163,15 +163,15 @@ impl Manager {
     }
 }
 
-async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartStopwatch) {
+async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest) {
     // Start stopwatch first, delete if need be
-    let stopwatch = Stopwatch::start(Some(css.name.clone()));
+    let stopwatch = Stopwatch::start(Some(req.name.clone()));
 
-    if let Some(uuid_name) = manager.has_uuid_or_name(&css.name) {
+    if let Some(uuid_name) = manager.has_uuid_or_name(&req.name) {
         trace!("stopwatch with the same name or uuid already exists");
-        let reply = ServerStartStopwatch {
+        let reply = StartReply {
             start: Err(FindStopwatchError {
-                identifier: (*css.name).clone(),
+                identifier: (*req.name).clone(),
                 duplicates: vec![(uuid_name.id, uuid_name.name)]
             })
         };
@@ -181,7 +181,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartS
         }
     }
 
-    let reply = ServerStartStopwatchInner::from(&stopwatch).into();
+    let reply = StartSuccess::from(&stopwatch).into();
     manager.add_stopwatch(stopwatch);
     let response = Response { output: ServerReply::Start(reply) };
     trace!("manage is sending response back for start");
@@ -191,28 +191,28 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, css: ClientStartS
     println!("stopwatches: {:?}", manager.stopwatches);
 }
 
-async fn info(manager: &mut Manager, res_tx: &ResponseSender, cis: ClientInfoStopwatch) {
+async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("got request for info");
-    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&cis.identifier) {
+    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&req.identifier) {
         Ok((Some(sw), uuid_name)) => {
-            let reply = ServerInfoStopwatchInner::from_stopwatch(&sw, cis.verbose).into();
+            let reply = InfoSuccess::from_stopwatch(&sw, req.verbose).into();
             (Response { output: reply }, Some(uuid_name))
         },
         Ok((None, _)) => {
             warn!("found a uuid/name match but stopwatch was not in hashmap");
             let fse = FindStopwatchError {
-                identifier: cis.identifier.clone(),
+                identifier: req.identifier.clone(),
                 duplicates: vec![]
             };
             let response = Response {
-                output: ServerReply::Info(ServerInfoStopwatch { info: Err(fse) })
+                output: ServerReply::Info(InfoReply { info: Err(fse) })
             };
             // don't send UuidName so that it can be removed from the access order
             (response, None)
         },
         Err(fse) => {
             let response = Response {
-                output: ServerReply::Info(ServerInfoStopwatch { info: Err(fse) })
+                output: ServerReply::Info(InfoReply { info: Err(fse) })
             };
             (response, None)
         }
@@ -238,13 +238,13 @@ async fn default(res_tx: &ResponseSender) {
 
 pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
     debug!("start manage");
-    while let Some(request) = req_rx.recv().await {
-        trace!("manage received request");
+    while let Some(message) = req_rx.recv().await {
+        trace!("manage received message");
         use ClientRequest::*;
-        match request.action {
-            Start(css) => start(&mut manager, &request.res_tx, css).await,
-            Info(cis) => info(&mut manager, &request.res_tx, cis).await,
-            Default => default(&request.res_tx).await
+        match message.action {
+            Start(start_req) => start(&mut manager, &message.res_tx, start_req).await,
+            Info(info_req) => info(&mut manager, &message.res_tx, info_req).await,
+            Default => default(&message.res_tx).await
         }
     }
     debug!("stop manage");

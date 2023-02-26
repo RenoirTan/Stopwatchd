@@ -14,61 +14,61 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClientStartStopwatch {
+pub struct StartRequest {
     pub name: Name,
     pub verbose: bool
 }
 
-impl Codecable<'_> for ClientStartStopwatch { }
+impl Codecable<'_> for StartRequest { }
 
-impl Into<ClientRequest> for ClientStartStopwatch {
+impl Into<ClientRequest> for StartRequest {
     fn into(self) -> ClientRequest {
         ClientRequest::Start(self)
     }
 }
 
-impl Into<ClientMessage> for ClientStartStopwatch {
+impl Into<ClientMessage> for StartRequest {
     fn into(self) -> ClientMessage {
         ClientMessage::create(self.into())
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerStartStopwatch {
-    pub start: Result<ServerStartStopwatchInner, FindStopwatchError>
+pub struct StartReply {
+    pub start: Result<StartSuccess, FindStopwatchError>
 }
 
-impl ServerStartStopwatch {
+impl StartReply {
     pub fn started(&self) -> bool {
         self.start.is_ok()
     }
 }
 
-impl Into<ServerReply> for ServerStartStopwatch {
+impl Into<ServerReply> for StartReply {
     fn into(self) -> ServerReply {
         ServerReply::Start(self)
     }
 }
 
-impl Into<ServerMessage> for ServerStartStopwatch {
+impl Into<ServerMessage> for StartReply {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }
 }
 
-impl Codecable<'_> for ServerStartStopwatch { }
+impl Codecable<'_> for StartReply { }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerStartStopwatchInner {
+pub struct StartSuccess {
     pub sw_id: Uuid,
     pub name: Name,
     pub state: State,
     pub start_time: Option<SystemTime>
 }
 
-impl Codecable<'_> for ServerStartStopwatchInner { }
+impl Codecable<'_> for StartSuccess { }
 
-impl From<&Stopwatch> for ServerStartStopwatchInner {
+impl From<&Stopwatch> for StartSuccess {
     fn from(stopwatch: &Stopwatch) -> Self {
         let sw_id = stopwatch.id;
         let name = stopwatch.name.clone();
@@ -78,19 +78,19 @@ impl From<&Stopwatch> for ServerStartStopwatchInner {
     }
 }
 
-impl Into<ServerStartStopwatch> for ServerStartStopwatchInner {
-    fn into(self) -> ServerStartStopwatch {
-        ServerStartStopwatch { start: Ok(self) }
+impl Into<StartReply> for StartSuccess {
+    fn into(self) -> StartReply {
+        StartReply { start: Ok(self) }
     }
 }
 
-impl Into<ServerReply> for ServerStartStopwatchInner {
+impl Into<ServerReply> for StartSuccess {
     fn into(self) -> ServerReply {
         ServerReply::Start(self.into())
     }
 }
 
-impl Into<ServerMessage> for ServerStartStopwatchInner {
+impl Into<ServerMessage> for StartSuccess {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }

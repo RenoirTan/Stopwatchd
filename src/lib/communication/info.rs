@@ -17,63 +17,63 @@ use super::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ClientInfoStopwatch {
+pub struct InfoRequest {
     pub identifier: String,
     pub verbose: bool
 }
 
-impl Codecable<'_> for ClientInfoStopwatch { }
+impl Codecable<'_> for InfoRequest { }
 
-impl Into<ClientRequest> for ClientInfoStopwatch {
+impl Into<ClientRequest> for InfoRequest {
     fn into(self) -> ClientRequest {
         ClientRequest::Info(self)
     }
 }
 
-impl Into<ClientMessage> for ClientInfoStopwatch {
+impl Into<ClientMessage> for InfoRequest {
     fn into(self) -> ClientMessage {
         ClientMessage::create(self.into())
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerInfoStopwatch {
-    pub info: Result<ServerInfoStopwatchInner, FindStopwatchError>
+pub struct InfoReply {
+    pub info: Result<InfoSuccess, FindStopwatchError>
 }
 
-impl ServerInfoStopwatch {
+impl InfoReply {
     pub fn found(&self) -> bool {
         self.info.is_ok()
     }
 }
 
-impl Into<ServerReply> for ServerInfoStopwatch {
+impl Into<ServerReply> for InfoReply {
     fn into(self) -> ServerReply {
         ServerReply::Info(self)
     }
 }
 
-impl Into<ServerMessage> for ServerInfoStopwatch {
+impl Into<ServerMessage> for InfoReply {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }
 }
 
-impl Codecable<'_> for ServerInfoStopwatch { }
+impl Codecable<'_> for InfoReply { }
 
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerInfoStopwatchInner {
+pub struct InfoSuccess {
     pub sw_id: Uuid,
     pub name: Name,
     pub state: State,
     pub start_time: Option<SystemTime>,
     pub total_time: Duration,
     laps_count: usize,
-    pub verbose_info: Option<ServerInfoStopwatchVerbose>
+    pub verbose_info: Option<VerboseInfo>
 }
 
-impl ServerInfoStopwatchInner {
+impl InfoSuccess {
     pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
         let sw_id = stopwatch.id;
         let name = stopwatch.name.clone();
@@ -82,7 +82,7 @@ impl ServerInfoStopwatchInner {
         let total_time = stopwatch.total_time();
         let laps_count = stopwatch.laps();
         let verbose_info = if verbose {
-            Some(ServerInfoStopwatchVerbose::from_stopwatch(stopwatch))
+            Some(VerboseInfo::from_stopwatch(stopwatch))
         } else {
             None
         };
@@ -105,32 +105,32 @@ impl ServerInfoStopwatchInner {
     }
 }
 
-impl Codecable<'_> for ServerInfoStopwatchInner { }
+impl Codecable<'_> for InfoSuccess { }
 
-impl Into<ServerInfoStopwatch> for ServerInfoStopwatchInner {
-    fn into(self) -> ServerInfoStopwatch {
-        ServerInfoStopwatch { info: Ok(self) }
+impl Into<InfoReply> for InfoSuccess {
+    fn into(self) -> InfoReply {
+        InfoReply { info: Ok(self) }
     }
 }
 
-impl Into<ServerReply> for ServerInfoStopwatchInner {
+impl Into<ServerReply> for InfoSuccess {
     fn into(self) -> ServerReply {
         ServerReply::Info(self.into())
     }
 }
 
-impl Into<ServerMessage> for ServerInfoStopwatchInner {
+impl Into<ServerMessage> for InfoSuccess {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self.into())
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerInfoStopwatchVerbose {
+pub struct VerboseInfo {
     pub laps: Vec<FinishedLap>
 }
 
-impl ServerInfoStopwatchVerbose {
+impl VerboseInfo {
     pub fn from_stopwatch(stopwatch: &Stopwatch) -> Self {
         let laps = stopwatch.all_laps();
         Self { laps }
@@ -141,7 +141,7 @@ impl ServerInfoStopwatchVerbose {
 mod test {
     use crate::models::stopwatch::{Stopwatch, Name};
 
-    use super::ServerInfoStopwatchInner;
+    use super::InfoSuccess;
 
     fn make_stopwatch() -> Stopwatch {
         let mut stopwatch = Stopwatch::start(Some(Name::new("aaa")));
@@ -150,7 +150,7 @@ mod test {
         stopwatch
     }
 
-    fn basic_asserts(stopwatch: &Stopwatch, info: &ServerInfoStopwatchInner) {
+    fn basic_asserts(stopwatch: &Stopwatch, info: &InfoSuccess) {
         assert_eq!(stopwatch.id, info.sw_id);
         assert_eq!(stopwatch.name, info.name);
         assert_eq!(stopwatch.state(), info.state);
@@ -162,7 +162,7 @@ mod test {
     #[test]
     fn test_from_stopwatch() {
         let stopwatch = make_stopwatch();
-        let info = ServerInfoStopwatchInner::from_stopwatch(&stopwatch, false);
+        let info = InfoSuccess::from_stopwatch(&stopwatch, false);
         basic_asserts(&stopwatch, &info);
         assert_eq!(info.verbose_info, None);
     }
@@ -170,7 +170,7 @@ mod test {
     #[test]
     fn test_from_stopwatch_verbose() {
         let stopwatch = make_stopwatch();
-        let info = ServerInfoStopwatchInner::from_stopwatch(&stopwatch, true);
+        let info = InfoSuccess::from_stopwatch(&stopwatch, true);
         basic_asserts(&stopwatch, &info);
         assert!(matches!(info.verbose_info, Some(_)));
     }
