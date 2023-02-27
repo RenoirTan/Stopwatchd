@@ -1,8 +1,8 @@
-use std::{process, io};
+use std::{process, io, fmt};
 
 use serde::{Serialize, Deserialize};
 
-use crate::traits::Codecable;
+use crate::{traits::Codecable, models::stopwatch::FindStopwatchError};
 
 use super::{start::StartReply, info::InfoReply, info_list::InfoListReply};
 
@@ -17,6 +17,22 @@ pub enum ServerReply {
 impl Into<ServerMessage> for ServerReply {
     fn into(self) -> ServerMessage {
         ServerMessage::create(self)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServerError {
+    FindStopwatchError(FindStopwatchError),
+    Other(String)
+}
+
+impl fmt::Display for ServerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ServerError::*;
+        match self {
+            FindStopwatchError(fse) => write!(f, "{}", fse.diagnose()),
+            Other(s) => write!(f, "{}", s)
+        }
     }
 }
 
