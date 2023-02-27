@@ -213,6 +213,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest
         let response = Response { output: reply.into() };
         if let Err(e) = res_tx.send(response) {
             error!("{}", e);
+            return; // Exit before the bad stopwatch gets added
         }
     }
 
