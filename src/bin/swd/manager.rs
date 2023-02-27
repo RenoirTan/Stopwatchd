@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use stopwatchd::{
     communication::{
         client_message::ClientRequest,
-        server_message::ServerReply, start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess}, info_list::InfoListSuccess
+        server_message::ServerReply,
+        start::{StartSuccess, StartRequest, StartReply},
+        info::{InfoRequest, InfoReply, InfoSuccess},
     },
     models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
 };
@@ -249,14 +250,14 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
                 duplicates: vec![]
             };
             let response = Response {
-                output: ServerReply::Info(InfoReply { info: Err(fse) })
+                output: ServerReply::Info(InfoReply { result: Err(fse) })
             };
             // don't send UuidName so that it can be removed from the access order
             (response, None)
         },
         Err(fse) => {
             let response = Response {
-                output: ServerReply::Info(InfoReply { info: Err(fse) })
+                output: ServerReply::Info(InfoReply { result: Err(fse) })
             };
             (response, None)
         }
@@ -272,9 +273,9 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
     }
 }
 
-async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, _: InfoRequest) {
+async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("info_list");
-    let reply = InfoListSuccess::from_iter(manager.stopwatches_by_access_order()).into();
+    let reply = InfoSuccess::from_iter(manager.stopwatches_by_access_order(), req.verbose).into();
     let response = Response {
         output: reply
     };
