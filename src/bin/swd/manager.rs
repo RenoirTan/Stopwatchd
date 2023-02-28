@@ -5,7 +5,7 @@ use stopwatchd::{
         client_message::ClientRequest,
         server_message::ServerReply,
         start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess},
+        info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess}, details::StopwatchDetails,
     },
     models::stopwatch::{Stopwatch, FindStopwatchError},
     identifiers::{UNMatchKind, UuidName, Identifier}
@@ -256,12 +256,23 @@ async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequ
     }
 }
 
-async fn stop(_manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) {
+async fn stop(manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) {
     trace!("got request for stop");
-    let details = vec![];
-    for _identifiers in &req.identifiers {
-
+    let mut details = vec![];
+    let mut errors: Vec<FindStopwatchError> = vec![];
+    for identifier in &req.identifiers {
+        let identifier = Identifier::from(identifier);
+        let sw = match manager.get_stopwatch_by_identifier(&identifier) {
+            Ok(sw) => sw,
+            Err(e) => {
+                errors.push(e);
+                continue;
+            }
+        };
+        sw.end();
+        details.push(StopwatchDetails::from_stopwatch(sw, req.verbose));
     }
+    println!("stop errors {:?}", errors);
     let reply = StopSuccess { details }.into();
     let response = Response { output: reply };
     if let Err(e) = res_tx.send(response) {
