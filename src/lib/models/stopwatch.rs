@@ -6,7 +6,7 @@ use std::{
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
-use crate::util::uuid_like_identifier;
+use crate::identifiers::{UNMatchKind, UuidName, Identifier};
 
 use super::lap::{CurrentLap, FinishedLap};
 
@@ -82,40 +82,6 @@ impl State {
 
     pub fn ended(&self) -> bool {
         matches!(self, Self::Ended)
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum UNMatchKind {
-    Name,
-    Uuid
-}
-
-impl UNMatchKind {
-    pub fn name_matched(self) -> bool {
-        matches!(self, UNMatchKind::Name)
-    }
-
-    pub fn uuid_matched(self) -> bool {
-        matches!(self, UNMatchKind::Uuid)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct UuidName {
-    pub id: Uuid,
-    pub name: Name
-}
-
-impl UuidName {
-    pub fn matches(&self, test: &str) -> Option<UNMatchKind> {
-        if *self.name == test && !test.is_empty() {
-            Some(UNMatchKind::Name)
-        } else if uuid_like_identifier(&self.id, test) > 0 {
-            Some(UNMatchKind::Uuid)
-        } else {
-            None
-        }
     }
 }
 
@@ -228,8 +194,8 @@ impl Stopwatch {
         }
     }
 
-    pub fn matches_identifier(&self, identifier: impl AsRef<str>) -> Option<UNMatchKind> {
-        self.get_uuid_name().matches(identifier.as_ref())
+    pub fn matches_identifier(&self, identifier: &Identifier) -> Option<UNMatchKind> {
+        self.get_uuid_name().matches(identifier)
     }
 
     pub fn get_uuid_name(&self) -> UuidName {

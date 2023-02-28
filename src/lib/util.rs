@@ -12,6 +12,11 @@ pub fn press_enter_to_continue() -> io::Result<()> {
 pub const UUID_STRLEN: usize = 32;
 
 #[inline]
+pub fn get_uuid_node(uuid: &Uuid) -> u64 {
+    uuid.as_u64_pair().1 & ((1 << 48) - 1)
+}
+
+#[inline]
 pub fn uuid_is_identifier(uuid: &Uuid, test: &str) -> bool {
     uuid_like_identifier(uuid, test) == UUID_STRLEN
 }

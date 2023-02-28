@@ -7,7 +7,8 @@ use stopwatchd::{
         start::{StartSuccess, StartRequest, StartReply},
         info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess},
     },
-    models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
+    models::stopwatch::{Stopwatch, FindStopwatchError},
+    identifiers::{UNMatchKind, UuidName, Identifier}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
@@ -98,7 +99,7 @@ impl Manager {
 
     fn get_stopwatches_indices_by_identifier(
         &self,
-        identifier: &str,
+        identifier: &Identifier,
         only_one: bool
     ) -> (Vec<usize>, UNMatchKind) {
         let mut name_matches = vec![];
@@ -136,11 +137,11 @@ impl Manager {
 
     pub fn get_stopwatch_by_identifier(
         &mut self,
-        identifier: &str
+        identifier: &Identifier
     ) -> Result<(Option<&mut Stopwatch>, UuidName), FindStopwatchError> {
         let (indices, _) = self.get_stopwatches_indices_by_identifier(identifier, false);
         if indices.len() != 1 {
-            Err(self.manager_stopwatches_error(identifier.to_string(), &indices))
+            Err(self.manager_stopwatches_error(identifier, &indices))
         } else {
             // Removed from access order, must be added back in
             let uuid_name = self.access_order.remove(indices[0]);
@@ -150,7 +151,7 @@ impl Manager {
 
     fn manager_stopwatches_error(
         &self,
-        identifier: String,
+        identifier: &Identifier,
         indices: &[usize]
     ) -> FindStopwatchError {
         let mut duplicates = vec![];
@@ -160,6 +161,7 @@ impl Manager {
                 duplicates.push((stopwatch.id, stopwatch.name.clone()));
             }
         }
+        let identifier = identifier.to_string();
         FindStopwatchError { identifier, duplicates }
     }
 
@@ -238,7 +240,7 @@ async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) 
 
 async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("info_one");
-    let identifier = req.identifier.unwrap().clone();
+    let identifier = Identifier::from(req.identifier.unwrap());
     let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&identifier) {
         Ok((Some(sw), uuid_name)) => {
             let reply = InfoSuccess::from_stopwatch(&sw, req.verbose).into();
@@ -247,7 +249,7 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
         Ok((None, _)) => {
             warn!("found a uuid/name match but stopwatch was not in hashmap");
             let fse = FindStopwatchError {
-                identifier,
+                identifier: identifier.to_string(),
                 duplicates: vec![]
             };
             let response = Response {

@@ -2,6 +2,7 @@
 extern crate log;
 
 pub mod communication;
+pub mod identifiers;
 pub mod logging;
 pub mod models;
 pub mod pidfile;
