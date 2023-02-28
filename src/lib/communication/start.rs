@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::{
     traits::Codecable,
-    models::stopwatch::{Name, State, Stopwatch, FindStopwatchError}
+    models::stopwatch::{Name, State, Stopwatch},
+    error::FindStopwatchError
 };
 
 use super::{

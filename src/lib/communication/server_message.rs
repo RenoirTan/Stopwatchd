@@ -2,7 +2,7 @@ use std::{process, io, fmt};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{traits::Codecable, models::stopwatch::FindStopwatchError};
+use crate::{traits::Codecable, error::FindStopwatchError};
 
 use super::{start::StartReply, info::InfoReply, stop::StopReply};
 

@@ -2,7 +2,8 @@ use serde::{Serialize, Deserialize};
 
 use crate::{
     traits::Codecable,
-    models::stopwatch::{Stopwatch, FindStopwatchError}
+    models::stopwatch::Stopwatch,
+    error::FindStopwatchError
 };
 
 use super::{

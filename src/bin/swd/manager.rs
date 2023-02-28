@@ -7,7 +7,8 @@ use stopwatchd::{
         start::{StartSuccess, StartRequest, StartReply},
         info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess}, details::StopwatchDetails,
     },
-    models::stopwatch::{Stopwatch, FindStopwatchError},
+    models::stopwatch::Stopwatch,
+    error::FindStopwatchError,
     identifiers::{UNMatchKind, UuidName, Identifier}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
