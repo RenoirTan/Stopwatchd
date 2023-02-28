@@ -1,8 +1,11 @@
+use std::fmt;
+
+use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
 use crate::{models::stopwatch::Name, util::get_uuid_node};
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct Identifier {
     raw: String,
     possible_node: Option<u64>
@@ -57,6 +60,12 @@ impl Into<String> for Identifier {
     }
 }
 
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.raw)
+    }
+}
+
 impl PartialEq<Identifier> for Identifier {
     fn eq(&self, other: &Identifier) -> bool {
         self.raw == other.raw
@@ -91,7 +100,7 @@ impl UNMatchKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UuidName {
     pub id: Uuid,
     pub name: Name

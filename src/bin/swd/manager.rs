@@ -111,7 +111,7 @@ impl Manager {
             }
         }
         possible_index.ok_or_else(|| 
-            FindStopwatchError { identifier: identifier.to_string(), duplicates: vec![] }
+            FindStopwatchError { identifier: identifier.clone(), duplicates: vec![] }
         )
     }
 
@@ -127,7 +127,7 @@ impl Manager {
                 Ok(sw)
             },
             None => Err(FindStopwatchError {
-                identifier: identifier.to_string(),
+                identifier: identifier.clone(),
                 duplicates: vec![]
             })
         }
@@ -141,11 +141,11 @@ impl Manager {
         let mut duplicates = vec![];
         for index in indices {
             let uuid_name = &self.access_order[*index];
-            if let Some(stopwatch) = self.stopwatches.get(&uuid_name.id) {
-                duplicates.push((stopwatch.id, stopwatch.name.clone()));
+            if let Some(_sw) = self.stopwatches.get(&uuid_name.id) {
+                duplicates.push(uuid_name.clone());
             }
         }
-        let identifier = identifier.to_string();
+        let identifier = identifier.clone();
         FindStopwatchError { identifier, duplicates }
     }
 
@@ -192,8 +192,8 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest
         trace!("stopwatch with the same name or uuid already exists");
         let reply = StartReply {
             start: Err(FindStopwatchError {
-                identifier: (*req.name).clone(),
-                duplicates: vec![(uuid_name.id, uuid_name.name)]
+                identifier: Identifier::new((*req.name).clone()),
+                duplicates: vec![uuid_name]
             })
         };
         let response = Response { output: reply.into() };

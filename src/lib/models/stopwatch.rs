@@ -87,8 +87,8 @@ impl State {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindStopwatchError {
-    pub identifier: String,
-    pub duplicates: Vec<(Uuid, Name)>
+    pub identifier: Identifier,
+    pub duplicates: Vec<UuidName>
 }
 
 impl FindStopwatchError {
@@ -111,7 +111,9 @@ impl FindStopwatchError {
             diagnosis
         } else {
             diagnosis += "\n";
-            for (uuid, name) in &self.duplicates {
+            for uuid_name in &self.duplicates {
+                let uuid = uuid_name.id;
+                let name = &uuid_name.name;
                 diagnosis += &format!("    Uuid: {:?} Name: {:?}", uuid, name);
             }
             diagnosis
