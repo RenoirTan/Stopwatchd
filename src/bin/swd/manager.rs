@@ -232,8 +232,9 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
             Response { output: reply }
         },
         Err(fse) => {
+            let reply = InfoReply::from_err_iter([fse].into_iter());
             Response {
-                output: ServerReply::Info(InfoReply { result: Err(fse) })
+                output: reply.into()
             }
         }
     };
@@ -246,7 +247,8 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
 
 async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("info_list");
-    let reply = InfoSuccess::from_iter(manager.stopwatches_by_access_order(), req.verbose).into();
+    let reply = InfoReply::from_stopwatch_iter(manager.stopwatches_by_access_order(), req.verbose)
+        .into();
     let response = Response {
         output: reply
     };

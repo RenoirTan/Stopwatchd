@@ -18,6 +18,16 @@ impl Identifier {
         me
     }
 
+    pub fn from_uuid_name(uuid_name: &UuidName) -> Self {
+        if uuid_name.name.is_empty() {
+            let uuid = get_uuid_node(&uuid_name.id);
+            let raw = format!("{:X}", uuid);
+            Self { raw, possible_node: Some(uuid) }
+        } else {
+            Self::new((*uuid_name.name).clone())
+        }
+    }
+
     pub fn get_identifier(&self) -> &str {
         &self.raw
     }

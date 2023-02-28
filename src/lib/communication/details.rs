@@ -8,7 +8,7 @@ use crate::{
         stopwatch::{Name, State, Stopwatch},
         lap::FinishedLap
     },
-    traits::Codecable
+    traits::Codecable, identifiers::UuidName
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +59,13 @@ impl StopwatchDetails {
         match &self.verbose_info {
             Some(vi) => vi.laps.len(),
             None => self.laps_count
+        }
+    }
+
+    pub fn get_uuid_name(&self) -> UuidName {
+        UuidName {
+            id: self.sw_id,
+            name: self.name.clone()
         }
     }
 }
