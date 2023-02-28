@@ -15,7 +15,7 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoRequest {
-    pub identifier: Option<String>,
+    pub identifiers: Vec<Identifier>,
     pub verbose: bool
 }
 
@@ -40,6 +40,10 @@ pub struct InfoReply {
 }
 
 impl InfoReply {
+    pub fn new() -> Self {
+        InfoReply { success: HashMap::new(), errored: HashMap::new() }
+    }
+
     pub fn from_stopwatch_iter<'s, I>(iter: I, verbose: bool) -> Self
     where
         I: Iterator<Item = &'s Stopwatch>
@@ -87,6 +91,16 @@ impl InfoReply {
             success: HashMap::new(),
             errored
         }
+    }
+
+    pub fn add_success(&mut self, info: InfoSuccess) {
+        let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
+        self.success.insert(identifier, info);
+    }
+
+    pub fn add_error(&mut self, fse: FindStopwatchError) {
+        let identifier = fse.identifier.clone();
+        self.errored.insert(identifier, fse);
     }
 }
 

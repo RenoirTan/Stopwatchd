@@ -217,27 +217,26 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest
 async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("got request for info");
     // If an identifier given, search for just that one stopwatch
-    match req.identifier {
-        Some(_) => info_one(manager, res_tx, req).await,
-        None => info_list(manager, res_tx, req).await
+    if req.identifiers.len() > 0 {
+        info_specified(manager, res_tx, req).await
+    } else {
+        info_all(manager, res_tx, req).await
     }
 }
 
-async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
-    trace!("info_one");
-    let identifier = Identifier::from(req.identifier.unwrap());
-    let response = match manager.get_stopwatch_by_identifier(&identifier) {
-        Ok(sw) => {
-            let reply = InfoSuccess::from_stopwatch(&sw, req.verbose).into();
-            Response { output: reply }
-        },
-        Err(fse) => {
-            let reply = InfoReply::from_err_iter([fse].into_iter());
-            Response {
-                output: reply.into()
-            }
+async fn info_specified(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
+    trace!("info_specified");
+    let mut reply = InfoReply::new();
+    for identifier in &req.identifiers {
+        match manager.get_stopwatch_by_identifier(identifier) {
+            Ok(sw) => {
+                let success = InfoSuccess::from_stopwatch(sw, req.verbose);
+                reply.add_success(success);
+            },
+            Err(fse) => reply.add_error(fse)
         }
-    };
+    }
+    let response = Response { output: reply.into() };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
@@ -245,8 +244,8 @@ async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
     }
 }
 
-async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
-    trace!("info_list");
+async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
+    trace!("info_all");
     let reply = InfoReply::from_stopwatch_iter(manager.stopwatches_by_access_order(), req.verbose)
         .into();
     let response = Response {
