@@ -111,7 +111,7 @@ impl UuidName {
     pub fn matches(&self, test: &str) -> Option<UNMatchKind> {
         if *self.name == test && !test.is_empty() {
             Some(UNMatchKind::Name)
-        } else if uuid_like_identifier(&self.id, test) {
+        } else if uuid_like_identifier(&self.id, test) > 0 {
             Some(UNMatchKind::Uuid)
         } else {
             None
