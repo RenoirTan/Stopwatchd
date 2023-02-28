@@ -57,10 +57,6 @@ impl Manager {
         self.access_order.push(un);
     }
 
-    pub fn add_most_recently_accessed(&mut self, uuid_name: UuidName) {
-        self.access_order.push(uuid_name);
-    }
-
     pub fn has_name(&self, identifier: &str) -> Option<UuidName> {
         if identifier.is_empty() {
             return None;
@@ -97,55 +93,43 @@ impl Manager {
         }
     }
 
-    fn get_stopwatches_indices_by_identifier(
-        &self,
-        identifier: &Identifier,
-        only_one: bool
-    ) -> (Vec<usize>, UNMatchKind) {
-        let mut name_matches = vec![];
-        let mut uuid_matches = vec![];
-        // Reverse because last item is the most recently accessed
-        'a: for index in (0..self.access_order.len()).rev() {
-            let uuid_name = &self.access_order[index];
-            let match_kind = uuid_name.matches(identifier);
-            // Prefer name matches over uuid matches
-            // So if a name match was found already, ignore uuid matches
-            match match_kind {
+    /// Get the index of the stopwatch that matches `identifier` inside `access_order`
+    fn find_ao_index(&self, identifier: &Identifier) -> Result<usize, FindStopwatchError> {
+        let mut possible_index = None;
+        for (index, uuid_name) in self.access_order.iter().enumerate() {
+            match uuid_name.matches(identifier) {
                 Some(UNMatchKind::Name) => {
-                    name_matches.push(index);
-                    if only_one {
-                        break 'a;
-                    }
+                    return Ok(index);
                 },
                 Some(UNMatchKind::Uuid) => {
-                    if name_matches.len() > 0 {
-                        continue;
+                    if let Some(pi) = possible_index {
+                        return Err(self.manager_stopwatches_error(identifier, &[pi, index]));
                     }
-                    uuid_matches.push(index);
-                    // There may be match by name after this,
-                    // so we don't skip even if only_one is true
+                    possible_index = Some(index);
                 },
-                None => continue
+                None => { }
             }
         }
-        if name_matches.len() > 0 {
-            (name_matches, UNMatchKind::Name)
-        } else {
-            (uuid_matches, UNMatchKind::Uuid)
-        }
+        possible_index.ok_or_else(|| 
+            FindStopwatchError { identifier: identifier.to_string(), duplicates: vec![] }
+        )
     }
 
     pub fn get_stopwatch_by_identifier(
         &mut self,
         identifier: &Identifier
-    ) -> Result<(Option<&mut Stopwatch>, UuidName), FindStopwatchError> {
-        let (indices, _) = self.get_stopwatches_indices_by_identifier(identifier, false);
-        if indices.len() != 1 {
-            Err(self.manager_stopwatches_error(identifier, &indices))
-        } else {
-            // Removed from access order, must be added back in
-            let uuid_name = self.access_order.remove(indices[0]);
-            Ok((self.stopwatches.get_mut(&uuid_name.id), uuid_name))
+    ) -> Result<&mut Stopwatch, FindStopwatchError> {
+        let ao_index = self.find_ao_index(identifier)?;
+        let uuid_name = self.access_order.remove(ao_index);
+        match self.stopwatches.get_mut(&uuid_name.id) {
+            Some(sw) => {
+                self.access_order.push(uuid_name);
+                Ok(sw)
+            },
+            None => Err(FindStopwatchError {
+                identifier: identifier.to_string(),
+                duplicates: vec![]
+            })
         }
     }
 
@@ -241,34 +225,17 @@ async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) 
 async fn info_one(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("info_one");
     let identifier = Identifier::from(req.identifier.unwrap());
-    let (response, uuid_name) = match manager.get_stopwatch_by_identifier(&identifier) {
-        Ok((Some(sw), uuid_name)) => {
+    let response = match manager.get_stopwatch_by_identifier(&identifier) {
+        Ok(sw) => {
             let reply = InfoSuccess::from_stopwatch(&sw, req.verbose).into();
-            (Response { output: reply }, Some(uuid_name))
-        },
-        Ok((None, _)) => {
-            warn!("found a uuid/name match but stopwatch was not in hashmap");
-            let fse = FindStopwatchError {
-                identifier: identifier.to_string(),
-                duplicates: vec![]
-            };
-            let response = Response {
-                output: ServerReply::Info(InfoReply { result: Err(fse) })
-            };
-            // don't send UuidName so that it can be removed from the access order
-            (response, None)
+            Response { output: reply }
         },
         Err(fse) => {
-            let response = Response {
+            Response {
                 output: ServerReply::Info(InfoReply { result: Err(fse) })
-            };
-            (response, None)
+            }
         }
     };
-    // UuidName must be added here to please the borrow checker
-    if let Some(un) = uuid_name {
-        manager.add_most_recently_accessed(un);
-    }
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
