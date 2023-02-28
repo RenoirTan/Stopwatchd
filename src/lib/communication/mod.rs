@@ -3,3 +3,4 @@ pub mod details;
 pub mod info;
 pub mod server_message;
 pub mod start;
+pub mod stop;

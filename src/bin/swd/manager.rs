@@ -5,7 +5,7 @@ use stopwatchd::{
         client_message::ClientRequest,
         server_message::ServerReply,
         start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess},
+        info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess},
     },
     models::stopwatch::{Stopwatch, UNMatchKind, FindStopwatchError, UuidName}
 };
@@ -287,6 +287,21 @@ async fn info_list(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequ
     }
 }
 
+async fn stop(_manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) {
+    trace!("got request for stop");
+    let details = vec![];
+    for _identifiers in &req.identifiers {
+
+    }
+    let reply = StopSuccess { details }.into();
+    let response = Response { output: reply };
+    if let Err(e) = res_tx.send(response) {
+        error!("{}", e);
+    } else {
+        trace!("sent stop back to user");
+    }
+}
+
 async fn default(res_tx: &ResponseSender) {
     let response = Response { output: ServerReply::Default };
     trace!("manage is sending response back for default");
@@ -303,6 +318,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
         match message.action {
             Start(start_req) => start(&mut manager, &message.res_tx, start_req).await,
             Info(info_req) => info(&mut manager, &message.res_tx, info_req).await,
+            Stop(stop_req) => stop(&mut manager, &message.res_tx, stop_req).await,
             Default => default(&message.res_tx).await
         }
     }
