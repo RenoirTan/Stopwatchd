@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    traits::Codecable,
+    traits::{Codecable, FromStopwatch, FromSuccessfuls},
     models::stopwatch::Stopwatch,
     error::FindStopwatchError, identifiers::Identifier
 };
@@ -44,55 +44,6 @@ impl InfoReply {
         InfoReply { success: HashMap::new(), errored: HashMap::new() }
     }
 
-    pub fn from_stopwatch_iter<'s, I>(iter: I, verbose: bool) -> Self
-    where
-        I: Iterator<Item = &'s Stopwatch>
-    {
-        let mut success = HashMap::new();
-        for stopwatch in iter {
-            let identifier = Identifier::from_uuid_name(&stopwatch.get_uuid_name());
-            let details = InfoSuccess::from_stopwatch(stopwatch, verbose);
-            success.insert(identifier, details);
-        }
-        Self {
-            success,
-            errored: HashMap::new()
-        }
-    }
-
-    pub fn from_success_iter<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = InfoSuccess>
-    {
-        let mut success = HashMap::new();
-        for info in iter {
-            let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
-            success.insert(identifier, info);
-        }
-        Self { success, errored: HashMap::new() }
-    }
-
-    pub fn from_details_iter<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = StopwatchDetails>
-    {
-        Self::from_success_iter(iter.map(|d| InfoSuccess { details: d }))
-    }
-
-    pub fn from_err_iter<I>(iter: I) -> Self
-    where
-        I: Iterator<Item = FindStopwatchError>
-    {
-        let mut errored = HashMap::new();
-        for fse in iter {
-            errored.insert(fse.identifier.clone(), fse);
-        }
-        Self {
-            success: HashMap::new(),
-            errored
-        }
-    }
-
     pub fn add_success(&mut self, info: InfoSuccess) {
         let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
         self.success.insert(identifier, info);
@@ -101,6 +52,22 @@ impl InfoReply {
     pub fn add_error(&mut self, fse: FindStopwatchError) {
         let identifier = fse.identifier.clone();
         self.errored.insert(identifier, fse);
+    }
+}
+
+impl FromSuccessfuls for InfoReply {
+    type Successful = InfoSuccess;
+
+    fn from_successfuls<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self::Successful>
+    {
+        let mut success = HashMap::new();
+        for info in iter {
+            let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
+            success.insert(identifier, info);
+        }
+        Self { success, errored: HashMap::new() }
     }
 }
 
@@ -125,11 +92,6 @@ pub struct InfoSuccess {
 }
 
 impl InfoSuccess {
-    pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
-        let details = StopwatchDetails::from_stopwatch(stopwatch, verbose);
-        Self { details }
-    }
-
     pub fn to_reply(self) -> InfoReply {
         let mut success = HashMap::new();
         let identifier = Identifier::from_uuid_name(&self.details.get_uuid_name());
@@ -139,6 +101,19 @@ impl InfoSuccess {
 }
 
 impl Codecable<'_> for InfoSuccess { }
+
+impl FromStopwatch for InfoSuccess {
+    fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
+        let details = StopwatchDetails::from_stopwatch(stopwatch, verbose);
+        Self { details }
+    }
+}
+
+impl From<StopwatchDetails> for InfoSuccess {
+    fn from(details: StopwatchDetails) -> Self {
+        Self { details }
+    }
+}
 
 impl Into<InfoReply> for InfoSuccess {
     fn into(self) -> InfoReply {

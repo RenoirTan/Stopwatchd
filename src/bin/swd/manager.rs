@@ -5,11 +5,14 @@ use stopwatchd::{
         client_message::ClientRequest,
         server_message::ServerReply,
         start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess}, stop::{StopRequest, StopSuccess}, details::StopwatchDetails,
+        info::{InfoRequest, InfoReply, InfoSuccess},
+        stop::{StopRequest, StopSuccess},
+        details::StopwatchDetails,
     },
     models::stopwatch::Stopwatch,
     error::FindStopwatchError,
-    identifiers::{UNMatchKind, UuidName, Identifier}
+    identifiers::{UNMatchKind, UuidName, Identifier},
+    traits::{FromStopwatch, FromStopwatches}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
@@ -246,7 +249,7 @@ async fn info_specified(manager: &mut Manager, res_tx: &ResponseSender, req: Inf
 
 async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
     trace!("info_all");
-    let reply = InfoReply::from_stopwatch_iter(manager.stopwatches_by_access_order(), req.verbose)
+    let reply = InfoReply::from_stopwatches(manager.stopwatches_by_access_order(), req.verbose)
         .into();
     let response = Response {
         output: reply
