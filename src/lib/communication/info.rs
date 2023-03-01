@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    traits::{Codecable, FromStopwatch, FromSuccessfuls},
+    traits::{Codecable, FromStopwatch, FromSuccessfuls, FromErrors},
     models::stopwatch::Stopwatch,
     error::FindStopwatchError, identifiers::Identifier
 };
@@ -68,6 +68,22 @@ impl FromSuccessfuls for InfoReply {
             success.insert(identifier, info);
         }
         Self { success, errored: HashMap::new() }
+    }
+}
+
+impl FromErrors for InfoReply {
+    type Error = FindStopwatchError;
+
+    fn from_errors<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self::Error>
+    {
+        let mut errored = HashMap::new();
+        for error in iter {
+            let identifier = error.identifier.clone();
+            errored.insert(identifier, error);
+        }
+        Self { success: HashMap::new(), errored }
     }
 }
 

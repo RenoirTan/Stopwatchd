@@ -71,3 +71,11 @@ pub trait FromSuccessfuls {
     where
         I: Iterator<Item = Self::Successful>;
 }
+
+pub trait FromErrors {
+    type Error;
+
+    fn from_errors<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self::Error>;
+}
