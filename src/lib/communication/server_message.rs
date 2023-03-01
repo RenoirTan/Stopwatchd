@@ -4,13 +4,14 @@ use serde::{Serialize, Deserialize};
 
 use crate::{traits::Codecable, error::FindStopwatchError};
 
-use super::{start::StartReply, info::InfoReply, stop::StopReply};
+use super::{start::StartReply, info::InfoReply, stop::StopReply, lap::LapReply};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ServerReply {
     Start(StartReply),
     Info(InfoReply),
     Stop(StopReply),
+    Lap(LapReply),
     #[default] Default
 }
 

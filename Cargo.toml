@@ -30,6 +30,10 @@ path = "src/bin/sw-info/mod.rs"
 name = "sw-stop"
 path = "src/bin/sw-stop/mod.rs"
 
+[[bin]]
+name = "sw-lap"
+path = "src/bin/sw-lap/mod.rs"
+
 [dependencies]
 ciborium = "0.2.0"
 clap = { version = "4.1.4", features = ["derive"] }
