@@ -6,8 +6,7 @@ use stopwatchd::{
         server_message::ServerReply,
         start::{StartSuccess, StartRequest, StartReply},
         info::{InfoRequest, InfoReply, InfoSuccess},
-        stop::{StopRequest, StopSuccess},
-        details::StopwatchDetails,
+        stop::{StopRequest, StopSuccess, StopReply}
     },
     models::stopwatch::Stopwatch,
     error::FindStopwatchError,
@@ -263,23 +262,20 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
 
 async fn stop(manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) {
     trace!("got request for stop");
-    let mut details = vec![];
-    let mut errors: Vec<FindStopwatchError> = vec![];
+    let mut reply = StopReply::new();
     for identifier in &req.identifiers {
         let identifier = Identifier::from(identifier);
-        let sw = match manager.get_stopwatch_by_identifier(&identifier) {
-            Ok(sw) => sw,
+        match manager.get_stopwatch_by_identifier(&identifier) {
+            Ok(sw) => {
+                sw.end();
+                reply.add_success(StopSuccess::from_stopwatch(sw, req.verbose));
+            },
             Err(e) => {
-                errors.push(e);
-                continue;
+                reply.add_error(e);
             }
-        };
-        sw.end();
-        details.push(StopwatchDetails::from_stopwatch(sw, req.verbose));
+        }
     }
-    println!("stop errors {:?}", errors);
-    let reply = StopSuccess { details }.into();
-    let response = Response { output: reply };
+    let response = Response { output: reply.into() };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {

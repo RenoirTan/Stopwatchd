@@ -1,14 +1,18 @@
+use std::collections::HashMap;
+
 use serde::{Serialize, Deserialize};
 
 use crate::{
-    traits::Codecable,
+    traits::{Codecable, FromStopwatch, FromSuccessfuls, FromErrors},
     models::stopwatch::Stopwatch,
-    error::FindStopwatchError
+    error::FindStopwatchError,
+    identifiers::Identifier
 };
 
 use super::{
     client_message::{ClientRequest, ClientMessage},
-    server_message::{ServerReply, ServerMessage}, details::StopwatchDetails
+    server_message::{ServerReply, ServerMessage},
+    details::StopwatchDetails
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,12 +37,55 @@ impl Into<ClientMessage> for StopRequest {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopReply {
-    pub result: Result<StopSuccess, FindStopwatchError>
+    pub success: HashMap<Identifier, StopSuccess>,
+    pub errored: HashMap<Identifier, FindStopwatchError>
 }
 
 impl StopReply {
-    pub fn found(&self) -> bool {
-        self.result.is_ok()
+    pub fn new() -> Self {
+        StopReply { success: HashMap::new(), errored: HashMap::new() }
+    }
+
+    pub fn add_success(&mut self, stop: StopSuccess) {
+        let identifier = Identifier::from_uuid_name(&stop.details.get_uuid_name());
+        self.success.insert(identifier, stop);
+    }
+
+    pub fn add_error(&mut self, fse: FindStopwatchError) {
+        let identifier = fse.identifier.clone();
+        self.errored.insert(identifier, fse);
+    }
+}
+
+impl FromSuccessfuls for StopReply {
+    type Successful = StopSuccess;
+
+    fn from_successfuls<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self::Successful>
+    {
+        let mut success = HashMap::new();
+        for info in iter {
+            let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
+            success.insert(identifier, info);
+        }
+        Self { success, errored: HashMap::new() }
+    }
+}
+
+impl FromErrors for StopReply {
+    type Error = FindStopwatchError;
+
+    fn from_errors<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self::Error>
+    {
+        let mut errored = HashMap::new();
+        for error in iter {
+            let identifier = error.identifier.clone();
+            errored.insert(identifier, error);
+        }
+        Self { success: HashMap::new(), errored }
     }
 }
 
@@ -59,29 +106,35 @@ impl Codecable<'_> for StopReply { }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopSuccess {
-    pub details: Vec<StopwatchDetails>
+    pub details: StopwatchDetails
 }
 
 impl StopSuccess {
-    pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
-        let details = vec![StopwatchDetails::from_stopwatch(stopwatch, verbose)];
-        Self { details }
-    }
-
-    pub fn from_iter<'s, I>(iter: I, verbose: bool) -> Self
-    where
-        I: Iterator<Item = &'s Stopwatch>
-    {
-        let details = StopwatchDetails::from_iter(iter, verbose);
-        Self { details }
+    pub fn to_reply(self) -> StopReply {
+        let mut sr = StopReply::new();
+        sr.add_success(self);
+        sr
     }
 }
 
 impl Codecable<'_> for StopSuccess { }
 
+impl FromStopwatch for StopSuccess {
+    fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
+        let details = StopwatchDetails::from_stopwatch(stopwatch, verbose);
+        Self { details }
+    }
+}
+
+impl From<StopwatchDetails> for StopSuccess {
+    fn from(details: StopwatchDetails) -> Self {
+        Self { details }
+    }
+}
+
 impl Into<StopReply> for StopSuccess {
     fn into(self) -> StopReply {
-        StopReply { result: Ok(self) }
+        self.to_reply()
     }
 }
 
