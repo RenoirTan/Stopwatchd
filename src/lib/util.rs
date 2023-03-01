@@ -1,6 +1,8 @@
-use std::io::{stdin, Read, self, stdout, Write};
+use std::{io::{stdin, Read, self, stdout, Write}, collections::HashMap};
 
 use uuid::Uuid;
+
+use crate::identifiers::Identifier;
 
 pub fn press_enter_to_continue() -> io::Result<()> {
     print!("Press enter to continue> ");
@@ -33,4 +35,20 @@ pub fn uuid_like_identifier(uuid: &Uuid, test: &str) -> usize {
     } else {
         0
     }
+}
+
+/// Convert an iterator of values (`iter`) into a [`HashMap`] with their corresponding
+/// identifiers as keys. You must provide a function `get_identifier` which obtains each
+/// value's identifier.
+pub fn map_identifier_to_values<I, V, F>(iter: I, mut get_identifier: F) -> HashMap<Identifier, V>
+where
+    I: Iterator<Item = V>,
+    F: FnMut(&V) -> Identifier
+{
+    let mut map = HashMap::new();
+    for value in iter {
+        let identifier = get_identifier(&value);
+        map.insert(identifier, value);
+    }
+    map
 }

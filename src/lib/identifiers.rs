@@ -126,4 +126,8 @@ impl UuidName {
             None
         }
     }
+
+    pub fn as_identifier(&self) -> Identifier {
+        Identifier::from_uuid_name(self)
+    }
 }

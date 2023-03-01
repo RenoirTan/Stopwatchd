@@ -6,7 +6,7 @@ use crate::{
     traits::{Codecable, FromStopwatch, FromSuccessfuls, FromErrors},
     models::stopwatch::Stopwatch,
     error::FindStopwatchError,
-    identifiers::Identifier
+    identifiers::Identifier, util::map_identifier_to_values
 };
 
 use super::{
@@ -64,11 +64,7 @@ impl FromSuccessfuls for StopReply {
     where
         I: Iterator<Item = Self::Successful>
     {
-        let mut success = HashMap::new();
-        for info in iter {
-            let identifier = Identifier::from_uuid_name(&info.details.get_uuid_name());
-            success.insert(identifier, info);
-        }
+        let success = map_identifier_to_values(iter, StopSuccess::get_identifier);
         Self { success, errored: HashMap::new() }
     }
 }
@@ -80,11 +76,7 @@ impl FromErrors for StopReply {
     where
         I: Iterator<Item = Self::Error>
     {
-        let mut errored = HashMap::new();
-        for error in iter {
-            let identifier = error.identifier.clone();
-            errored.insert(identifier, error);
-        }
+        let errored = map_identifier_to_values(iter, |e| e.identifier.clone());
         Self { success: HashMap::new(), errored }
     }
 }
@@ -114,6 +106,10 @@ impl StopSuccess {
         let mut sr = StopReply::new();
         sr.add_success(self);
         sr
+    }
+
+    pub fn get_identifier(&self) -> Identifier {
+        self.details.get_identifier()
     }
 }
 
