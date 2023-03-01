@@ -172,12 +172,12 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
     type Item = &'m Stopwatch;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index == self.access_order.len() {
+        if self.index >= self.access_order.len() {
             None
         } else {
-            let uuid = self.access_order.get(self.index)?;
+            let uuid_name = self.access_order.get(self.index)?;
             self.index += 1;
-            self.stopwatches.get(&uuid.id)
+            self.stopwatches.get(&uuid_name.id)
         }
     }
 
