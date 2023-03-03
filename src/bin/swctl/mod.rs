@@ -7,7 +7,14 @@ use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
-    communication::{client_message::ClientMessage, server_message::ServerMessage},
+    communication::{
+        client_message::ClientMessage,
+        server_message::{ServerMessage, ServerReply},
+        start::StartReply,
+        info::InfoReply,
+        stop::StopReply,
+        lap::LapReply
+    },
     traits::Codecable
 };
 use tokio::net::UnixStream;
@@ -58,5 +65,45 @@ async fn main() {
     let reply = ServerMessage::from_bytes(&braw).unwrap();
     println!("{:?}", reply);
 
+    match reply.reply {
+        ServerReply::Start(s) => handle_start(s).await,
+        ServerReply::Info(i) => handle_info(i).await,
+        ServerReply::Stop(s) => handle_stop(s).await,
+        ServerReply::Lap(l) => handle_lap(l).await,
+        ServerReply::Default => panic!("should not be ServerReply::Default")
+    }
+
     info!("exiting");
+}
+
+async fn handle_start(start_reply: StartReply) {
+    if start_reply.start.is_ok() {
+        println!("successfully started");
+    } else {
+        println!("error occurred");
+    }
+}
+
+async fn handle_info(info_reply: InfoReply) {
+    if info_reply.errored.len() > 0 {
+        println!("errors occurred");
+    } else {
+        println!("successful query");
+    }
+}
+
+async fn handle_stop(stop_reply: StopReply) {
+    if stop_reply.errored.len() > 0 {
+        println!("errors occurred");
+    } else {
+        println!("successful query");
+    }
+}
+
+async fn handle_lap(lap_reply: LapReply) {
+    if lap_reply.errored.len() > 0 {
+        println!("errors occurred");
+    } else {
+        println!("successful query");
+    }
 }
