@@ -21,6 +21,19 @@ sw info abcdef
 `sw info` (or `sw-info`) queries `swd` for information from a stopwatch (or even a bunch of stopwatches). By default, the time printed out will be in terms of seconds; so after 5 minutes, running `sw info abcdef` should show you 300.
 
 ```bash
+sw pause abcdef
+# 100
+```
+
+`sw pause` (or `sw-pause`) temporarily stops the timer on the current lap and shows the total time the lap had been running.
+
+```bash
+sw play abcdef
+```
+
+`sw play` (or `sw-play`) tells the lap to continue timing.
+
+```bash
 sw lap abcdef
 # 1 310
 ```
