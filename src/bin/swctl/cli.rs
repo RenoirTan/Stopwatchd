@@ -23,7 +23,10 @@ pub enum Subcommands {
     Lap(Lap),
 
     /// Pause the current lap for each stopwatch
-    Pause(Pause)
+    Pause(Pause),
+
+    /// Continue the current lap for each stopwatch
+    Play(Play)
 }
 
 #[derive(Args, Clone, Debug)]
@@ -72,6 +75,17 @@ pub struct Lap {
 #[derive(Args, Clone, Debug)]
 pub struct Pause {
     /// List stopwatches to pause.
+    /// Must specify more than 1 stopwatch.
+    pub identifiers: Vec<String>,
+
+    /// Display detailed information
+    #[arg(short, long)]
+    pub verbose: bool
+}
+
+#[derive(Args, Clone, Debug)]
+pub struct Play {
+    /// List of stopwatches to play.
     /// Must specify more than 1 stopwatch.
     pub identifiers: Vec<String>,
 

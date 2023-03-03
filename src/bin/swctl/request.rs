@@ -5,7 +5,7 @@ use stopwatchd::{
         info::InfoRequest,
         stop::StopRequest,
         lap::LapRequest,
-        pause::PauseRequest
+        pause::PauseRequest, play::PlayRequest
     },
     models::stopwatch::Name, identifiers::Identifier
 };
@@ -18,7 +18,8 @@ pub fn args_to_request(args: cli::Cli) -> ClientRequest {
         Subcommands::Info(info_args) => info_args_to_request(info_args),
         Subcommands::Stop(stop_args) => stop_args_to_request(stop_args),
         Subcommands::Lap(lap_args) => lap_args_to_request(lap_args),
-        Subcommands::Pause(pause_args) => pause_args_to_request(pause_args)
+        Subcommands::Pause(pause_args) => pause_args_to_request(pause_args),
+        Subcommands::Play(play_args) => play_args_to_request(play_args)
     }
 }
 
@@ -52,6 +53,13 @@ fn lap_args_to_request(args: cli::Lap) -> ClientRequest {
 
 fn pause_args_to_request(args: cli::Pause) -> ClientRequest {
     PauseRequest {
+        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
+        verbose: args.verbose
+    }.into()
+}
+
+fn play_args_to_request(args: cli::Play) -> ClientRequest {
+    PlayRequest {
         identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
         verbose: args.verbose
     }.into()
