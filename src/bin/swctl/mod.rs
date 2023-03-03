@@ -21,7 +21,7 @@ async fn main() {
     println!("{:?}", cli);
 
     let pid = process::id();
-    logging::setup(&format!("sw-info.{}", pid), None).unwrap();
+    logging::setup(&format!("swctl.{}", pid), None).unwrap();
     debug!("swctl has started outputting logs");
 
     let swd_pid = {
