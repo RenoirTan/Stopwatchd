@@ -18,21 +18,21 @@ crate-type = ["lib"]
 name = "swd"
 path = "src/bin/swd/mod.rs"
 
-[[bin]]
-name = "sw-start"
-path = "src/bin/sw-start/mod.rs"
-
-[[bin]]
-name = "sw-info"
-path = "src/bin/sw-info/mod.rs"
-
-[[bin]]
-name = "sw-stop"
-path = "src/bin/sw-stop/mod.rs"
-
-[[bin]]
-name = "sw-lap"
-path = "src/bin/sw-lap/mod.rs"
+#[[bin]]
+#name = "sw-start"
+#path = "src/bin/sw-start/mod.rs"
+#
+#[[bin]]
+#name = "sw-info"
+#path = "src/bin/sw-info/mod.rs"
+#
+#[[bin]]
+#name = "sw-stop"
+#path = "src/bin/sw-stop/mod.rs"
+#
+#[[bin]]
+#name = "sw-lap"
+#path = "src/bin/sw-lap/mod.rs"
 
 [[bin]]
 name = "swctl"
