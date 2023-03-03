@@ -4,7 +4,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
 
-use super::{start::StartRequest, info::InfoRequest, stop::StopRequest, lap::LapRequest};
+use super::{start::StartRequest, info::InfoRequest, stop::StopRequest, lap::LapRequest, pause::PauseRequest};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClientRequest {
@@ -12,6 +12,7 @@ pub enum ClientRequest {
     Info(InfoRequest),
     Stop(StopRequest),
     Lap(LapRequest),
+    Pause(PauseRequest),
     #[default] Default
 }
 

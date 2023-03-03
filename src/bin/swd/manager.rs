@@ -6,7 +6,9 @@ use stopwatchd::{
         server_message::ServerReply,
         start::{StartSuccess, StartRequest, StartReply},
         info::{InfoRequest, InfoReply, InfoSuccess},
-        stop::{StopRequest, StopSuccess, StopReply}, lap::{LapRequest, LapReply, LapSuccess}
+        stop::{StopRequest, StopSuccess, StopReply},
+        lap::{LapRequest, LapReply, LapSuccess},
+        pause::{PauseRequest, PauseReply, PauseSuccess}
     },
     models::stopwatch::Stopwatch,
     error::FindStopwatchError,
@@ -304,6 +306,28 @@ async fn lap(manager: &mut Manager, res_tx: &ResponseSender, req: LapRequest) {
     }
 }
 
+async fn pause(manager: &mut Manager, res_tx: &ResponseSender, req: PauseRequest) {
+    trace!("got request for pause");
+    let mut reply = PauseReply::new();
+    for identifier in &req.identifiers {
+        match manager.get_stopwatch_by_identifier(&identifier) {
+            Ok(sw) => {
+                sw.pause();
+                reply.add_success(PauseSuccess::from_stopwatch(sw, req.verbose));
+            },
+            Err(e) => {
+                reply.add_error(e);
+            }
+        }
+    }
+    let response = Response { output: reply.into() };
+    if let Err(e) = res_tx.send(response) {
+        error!("{}", e);
+    } else {
+        trace!("sent stop back to user");
+    }
+}
+
 async fn default(res_tx: &ResponseSender) {
     let response = Response { output: ServerReply::Default };
     trace!("manage is sending response back for default");
@@ -322,6 +346,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
             Info(info_req) => info(&mut manager, &message.res_tx, info_req).await,
             Stop(stop_req) => stop(&mut manager, &message.res_tx, stop_req).await,
             Lap(lap_req) => lap(&mut manager, &message.res_tx, lap_req).await,
+            Pause(pause_req) => pause(&mut manager, &message.res_tx, pause_req).await,
             Default => default(&message.res_tx).await
         }
     }

@@ -13,7 +13,8 @@ use stopwatchd::{
         start::StartReply,
         info::InfoReply,
         stop::StopReply,
-        lap::LapReply
+        lap::LapReply,
+        pause::PauseReply
     },
     traits::Codecable
 };
@@ -70,6 +71,7 @@ async fn main() {
         ServerReply::Info(i) => handle_info(i).await,
         ServerReply::Stop(s) => handle_stop(s).await,
         ServerReply::Lap(l) => handle_lap(l).await,
+        ServerReply::Pause(p) => handle_pause(p).await,
         ServerReply::Default => panic!("should not be ServerReply::Default")
     }
 
@@ -102,6 +104,14 @@ async fn handle_stop(stop_reply: StopReply) {
 
 async fn handle_lap(lap_reply: LapReply) {
     if lap_reply.errored.len() > 0 {
+        println!("errors occurred");
+    } else {
+        println!("successful query");
+    }
+}
+
+async fn handle_pause(pause_reply: PauseReply) {
+    if pause_reply.errored.len() > 0 {
         println!("errors occurred");
     } else {
         println!("successful query");
