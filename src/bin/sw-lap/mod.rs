@@ -12,7 +12,8 @@ use stopwatchd::{
         lap::LapRequest,
         server_message::{ServerMessage, ServerReply}
     },
-    traits::Codecable
+    traits::Codecable,
+    identifiers::Identifier
 };
 use tokio::net::UnixStream;
 
@@ -21,7 +22,7 @@ mod cli;
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
-    let identifiers = cli.identifiers;
+    let identifiers = cli.identifiers.into_iter().map(Identifier::new).collect();
     let verbose = cli.verbose;
 
     let pid = process::id();

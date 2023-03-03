@@ -264,7 +264,6 @@ async fn stop(manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) 
     trace!("got request for stop");
     let mut reply = StopReply::new();
     for identifier in &req.identifiers {
-        let identifier = Identifier::from(identifier);
         match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
                 sw.end();
@@ -287,7 +286,6 @@ async fn lap(manager: &mut Manager, res_tx: &ResponseSender, req: LapRequest) {
     trace!("got request for lap");
     let mut reply = LapReply::new();
     for identifier in &req.identifiers {
-        let identifier = Identifier::from(identifier);
         match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
                 sw.new_lap(true);

@@ -17,7 +17,7 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopRequest {
-    pub identifiers: Vec<String>,
+    pub identifiers: Vec<Identifier>,
     pub verbose: bool
 }
 

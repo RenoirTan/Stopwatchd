@@ -1,33 +1,28 @@
 use std::process;
 
-use clap::Parser;
 #[macro_use]
 extern crate log;
+use clap::Parser;
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
-    communication::{
-        client_message::ClientMessage,
-        stop::StopRequest,
-        server_message::{ServerMessage, ServerReply}
-    },
-    traits::Codecable,
-    identifiers::Identifier
+    communication::{client_message::ClientMessage, server_message::ServerMessage},
+    traits::Codecable
 };
 use tokio::net::UnixStream;
 
 mod cli;
+mod request;
 
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
-    let identifiers = cli.identifiers.into_iter().map(Identifier::new).collect();
-    let verbose = cli.verbose;
+    println!("{:?}", cli);
 
     let pid = process::id();
-    logging::setup(&format!("sw-stop.{}", pid), None).unwrap();
-    info!("logging started");
+    logging::setup(&format!("sw-info.{}", pid), None).unwrap();
+    debug!("swctl has started outputting logs");
 
     let swd_pid = {
         let mut pidfile = open_pidfile(false).unwrap();
@@ -39,7 +34,7 @@ async fn main() {
     if ssock_path.exists() {
         debug!("{:?} exists", ssock_path);
     } else {
-        debug!("{:?} does not exist", ssock_path);
+        panic!("{:?} does not exist", ssock_path);
     }
     trace!("connecting to {:?}", ssock_path);
     let stream = UnixStream::connect(&ssock_path).await.unwrap();
@@ -48,16 +43,11 @@ async fn main() {
     trace!("checking if can write to server");
     stream.writable().await.unwrap();
 
-    let request: ClientMessage = StopRequest {
-        identifiers,
-        verbose
-    }.into();
-
-    debug!("encoding message using ciborium");
-    let message = request.to_bytes().unwrap();
+    let message: ClientMessage = request::args_to_request(cli).into();
+    let message_bytes = message.to_bytes().unwrap();
 
     info!("writing message to server");
-    stream.try_write(&message).unwrap();
+    stream.try_write(&message_bytes).unwrap();
 
     trace!("checking if can read from server");
     stream.readable().await.unwrap();
@@ -66,10 +56,7 @@ async fn main() {
     stream.try_read_buf(&mut braw).unwrap();
 
     let reply = ServerMessage::from_bytes(&braw).unwrap();
-    match reply.reply {
-        ServerReply::Stop(i) => println!("{:?}", i),
-        _ => panic!("swd should have replied with ServerReply::Stop")
-    }
+    println!("{:?}", reply);
 
     info!("exiting");
 }
