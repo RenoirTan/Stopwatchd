@@ -1,10 +1,28 @@
-use std::{process, io, fmt};
+use std::{process, io, fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
 use crate::{traits::Codecable, error::FindStopwatchError};
 
-use super::{start::StartReply, info::InfoReply, stop::StopReply, lap::LapReply, pause::PauseReply, play::PlayReply, delete::DeleteReply};
+use super::{
+    start::StartReply,
+    info::InfoReply,
+    stop::StopReply,
+    lap::LapReply,
+    pause::PauseReply,
+    play::PlayReply,
+    delete::DeleteReply,
+    details::StopwatchDetails
+};
+
+pub fn details_map_into<I, K, V>(iter: I) -> HashMap<K, V>
+where
+    I: IntoIterator<Item = (K, StopwatchDetails)>,
+    K: Hash + Eq,
+    V: From<StopwatchDetails>
+{
+    iter.into_iter().map(|(k, v)| (k, From::from(v))).collect()
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ServerReply {

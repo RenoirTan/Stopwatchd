@@ -42,7 +42,7 @@ pub fn uuid_like_identifier(uuid: &Uuid, test: &str) -> usize {
 /// value's identifier.
 pub fn map_identifier_to_values<I, V, F>(iter: I, mut get_identifier: F) -> HashMap<Identifier, V>
 where
-    I: Iterator<Item = V>,
+    I: IntoIterator<Item = V>,
     F: FnMut(&V) -> Identifier
 {
     let mut map = HashMap::new();

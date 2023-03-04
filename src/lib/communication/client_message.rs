@@ -26,49 +26,6 @@ pub enum ClientRequestKind {
     #[default] Default
 }
 
-macro_rules! crk_get_variant {
-    ($is:ident, $get:ident, $get_mut:ident, $to:ident, $variant:ident, $specific:ty) => {
-        pub fn $is(&self) -> bool {
-            self.$get().is_some()
-        }
-
-        pub fn $get(&self) -> Option<&$specific> {
-            match self {
-                Self::$variant(rk) => Some(rk),
-                _ => None
-            }
-        }
-
-        pub fn $get_mut(&mut self) -> Option<&mut $specific> {
-            match self {
-                Self::$variant(rk) => Some(rk),
-                _ => None
-            }
-        }
-
-        pub fn $to(self) -> Option<$specific> {
-            match self {
-                Self::$variant(rk) => Some(rk),
-                _ => None
-            }
-        }
-    };
-}
-
-impl ClientRequestKind {
-    crk_get_variant!(is_start, get_start, get_mut_start, to_start, Start, StartRequest);
-    crk_get_variant!(is_info, get_info, get_mut_info, to_info, Info, InfoRequest);
-    crk_get_variant!(is_stop, get_stop, get_mut_stop, to_stop, Stop, StopRequest);
-    crk_get_variant!(is_lap, get_lap, get_mut_lap, to_lap, Lap, LapRequest);
-    crk_get_variant!(is_pause, get_pause, get_mut_pause, to_pause, Pause, PauseRequest);
-    crk_get_variant!(is_play, get_play, get_mut_play, to_play, Play, PlayRequest);
-    crk_get_variant!(is_delete, get_delete, get_mut_delete, to_delete, Delete, DeleteRequest);
-
-    pub fn is_default(&self) -> bool {
-        matches!(self, ClientRequestKind::Default)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientRequest {
     pub identifiers: Vec<Identifier>,
