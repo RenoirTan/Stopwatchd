@@ -14,7 +14,9 @@ use stopwatchd::{
         info::InfoReply,
         stop::StopReply,
         lap::LapReply,
-        pause::PauseReply, play::PlayReply
+        pause::PauseReply,
+        play::PlayReply,
+        delete::DeleteReply
     },
     traits::Codecable
 };
@@ -73,6 +75,7 @@ async fn main() {
         ServerReply::Lap(l) => handle_lap(l).await,
         ServerReply::Pause(p) => handle_pause(p).await,
         ServerReply::Play(p) => handle_play(p).await,
+        ServerReply::Delete(d) => handle_delete(d).await,
         ServerReply::Default => panic!("should not be ServerReply::Default")
     }
 
@@ -121,6 +124,14 @@ async fn handle_pause(pause_reply: PauseReply) {
 
 async fn handle_play(play_reply: PlayReply) {
     if play_reply.errored.len() > 0 {
+        println!("errors occurred");
+    } else {
+        println!("successful query");
+    }
+}
+
+async fn handle_delete(delete_reply: DeleteReply) {
+    if delete_reply.errored.len() > 0 {
         println!("errors occurred");
     } else {
         println!("successful query");

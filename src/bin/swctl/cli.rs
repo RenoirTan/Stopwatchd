@@ -26,7 +26,10 @@ pub enum Subcommands {
     Pause(Pause),
 
     /// Continue the current lap for each stopwatch
-    Play(Play)
+    Play(Play),
+
+    /// Delete a stopwatch from the daemon
+    Delete(Delete)
 }
 
 #[derive(Args, Clone, Debug)]
@@ -86,6 +89,17 @@ pub struct Pause {
 #[derive(Args, Clone, Debug)]
 pub struct Play {
     /// List of stopwatches to play.
+    /// Must specify more than 1 stopwatch.
+    pub identifiers: Vec<String>,
+
+    /// Display detailed information
+    #[arg(short, long)]
+    pub verbose: bool
+}
+
+#[derive(Args, Clone, Debug)]
+pub struct Delete {
+    /// List of stopwatches to delete.
     /// Must specify more than 1 stopwatch.
     pub identifiers: Vec<String>,
 

@@ -1,4 +1,5 @@
 pub mod client_message;
+pub mod delete;
 pub mod details;
 pub mod info;
 pub mod lap;

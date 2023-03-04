@@ -9,7 +9,8 @@ use stopwatchd::{
         stop::{StopRequest, StopSuccess, StopReply},
         lap::{LapRequest, LapReply, LapSuccess},
         pause::{PauseRequest, PauseReply, PauseSuccess},
-        play::{PlayRequest, PlayReply, PlaySuccess}
+        play::{PlayRequest, PlayReply, PlaySuccess},
+        delete::{DeleteRequest, DeleteReply, DeleteSuccess}
     },
     models::stopwatch::Stopwatch,
     error::FindStopwatchError,
@@ -135,6 +136,20 @@ impl Manager {
             None => Err(FindStopwatchError {
                 identifier: identifier.clone(),
                 duplicates: vec![]
+            })
+        }
+    }
+
+    pub fn take_stopwatch_by_identifier(
+        &mut self,
+        identifier: &Identifier
+    ) -> Result<Stopwatch, FindStopwatchError> {
+        let ao_index = self.find_ao_index(identifier)?;
+        let uuid_name = self.access_order.remove(ao_index);
+        match self.stopwatches.remove(&uuid_name.id) {
+            Some(sw) => Ok(sw),
+            None => Err(FindStopwatchError {
+                identifier: identifier.clone(), duplicates: vec![]
             })
         }
     }
@@ -351,6 +366,27 @@ async fn play(manager: &mut Manager, res_tx: &ResponseSender, req: PlayRequest) 
     }
 }
 
+async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: DeleteRequest) {
+    trace!("got request for delete");
+    let mut reply = DeleteReply::new();
+    for identifier in &req.identifiers {
+        match manager.take_stopwatch_by_identifier(&identifier) {
+            Ok(sw) => {
+                reply.add_success(DeleteSuccess::from_stopwatch(&sw, req.verbose));
+            },
+            Err(e) => {
+                reply.add_error(e);
+            }
+        }
+    }
+    let response = Response { output: reply.into() };
+    if let Err(e) = res_tx.send(response) {
+        error!("{}", e);
+    } else {
+        trace!("sent stop back to user");
+    }
+}
+
 async fn default(res_tx: &ResponseSender) {
     let response = Response { output: ServerReply::Default };
     trace!("manage is sending response back for default");
@@ -371,6 +407,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
             Lap(lap_req) => lap(&mut manager, &message.res_tx, lap_req).await,
             Pause(pause_req) => pause(&mut manager, &message.res_tx, pause_req).await,
             Play(play_req) => play(&mut manager, &message.res_tx, play_req).await,
+            Delete(delete_req) => delete(&mut manager, &message.res_tx, delete_req).await,
             Default => default(&message.res_tx).await
         }
     }
