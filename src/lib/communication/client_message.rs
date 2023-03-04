@@ -2,7 +2,7 @@ use std::{process, io};
 
 use serde::{Serialize, Deserialize};
 
-use crate::traits::Codecable;
+use crate::{traits::Codecable, identifiers::Identifier};
 
 use super::{
     start::StartRequest,
@@ -15,7 +15,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ClientRequest {
+pub enum ClientRequestKind {
     Start(StartRequest),
     Info(InfoRequest),
     Stop(StopRequest),
@@ -24,6 +24,82 @@ pub enum ClientRequest {
     Play(PlayRequest),
     Delete(DeleteRequest),
     #[default] Default
+}
+
+macro_rules! crk_get_variant {
+    ($is:ident, $get:ident, $get_mut:ident, $to:ident, $variant:ident, $specific:ty) => {
+        pub fn $is(&self) -> bool {
+            self.$get().is_some()
+        }
+
+        pub fn $get(&self) -> Option<&$specific> {
+            match self {
+                Self::$variant(rk) => Some(rk),
+                _ => None
+            }
+        }
+
+        pub fn $get_mut(&mut self) -> Option<&mut $specific> {
+            match self {
+                Self::$variant(rk) => Some(rk),
+                _ => None
+            }
+        }
+
+        pub fn $to(self) -> Option<$specific> {
+            match self {
+                Self::$variant(rk) => Some(rk),
+                _ => None
+            }
+        }
+    };
+}
+
+impl ClientRequestKind {
+    crk_get_variant!(is_start, get_start, get_mut_start, to_start, Start, StartRequest);
+    crk_get_variant!(is_info, get_info, get_mut_info, to_info, Info, InfoRequest);
+    crk_get_variant!(is_stop, get_stop, get_mut_stop, to_stop, Stop, StopRequest);
+    crk_get_variant!(is_lap, get_lap, get_mut_lap, to_lap, Lap, LapRequest);
+    crk_get_variant!(is_pause, get_pause, get_mut_pause, to_pause, Pause, PauseRequest);
+    crk_get_variant!(is_play, get_play, get_mut_play, to_play, Play, PlayRequest);
+    crk_get_variant!(is_delete, get_delete, get_mut_delete, to_delete, Delete, DeleteRequest);
+
+    pub fn is_default(&self) -> bool {
+        matches!(self, ClientRequestKind::Default)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClientRequest {
+    pub identifiers: Vec<Identifier>,
+    pub verbose: bool,
+    pub specific_args: ClientRequestKind
+}
+
+impl ClientRequest {
+    pub fn new<I, T>(identifiers: I, verbose: bool, specific_args: ClientRequestKind) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<Identifier>
+    {
+        Self {
+            identifiers: identifiers.into_iter().map(Into::into).collect(),
+            verbose,
+            specific_args
+        }
+    }
+}
+
+impl Codecable<'_> for ClientRequest { }
+
+impl Default for ClientRequest {
+    fn default() -> Self {
+        Self {
+            identifiers: vec![],
+            verbose: false,
+            specific_args: Default::default()
+        }
+    }
 }
 
 impl Into<ClientMessage> for ClientRequest {
@@ -68,7 +144,7 @@ mod test {
     use crate::{
         communication::{
             start::StartRequest,
-            client_message::ClientRequest
+            client_message::{ClientRequestKind, ClientRequest}
         },
         traits::Codecable, models::stopwatch::Name
     };
@@ -77,10 +153,8 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let request = ClientRequest::Start(StartRequest {
-            name: Name::default(),
-            verbose: false
-        });
+        let specific = ClientRequestKind::Start(StartRequest);
+        let request = ClientRequest::new([Name::default()], false, specific);
         let cm = ClientMessage {
             pid: 100,
             request
@@ -94,10 +168,8 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let request = ClientRequest::Start(StartRequest {
-            name: Name::new("random"),
-            verbose: true
-        });
+        let specific = ClientRequestKind::Start(StartRequest);
+        let request = ClientRequest::new(["random"], true, specific);
         let cm = ClientMessage {
             pid: 0x87654321,
             request

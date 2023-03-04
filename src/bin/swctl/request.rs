@@ -1,76 +1,34 @@
-use stopwatchd::{
-    communication::{
-        client_message::ClientRequest,
-        start::StartRequest,
-        info::InfoRequest,
-        stop::StopRequest,
-        lap::LapRequest,
-        pause::PauseRequest,
-        play::PlayRequest,
-        delete::DeleteRequest
-    },
-    models::stopwatch::Name, identifiers::Identifier
+use stopwatchd::communication::{
+    client_message::ClientRequest,
+    start::StartRequest,
+    info::InfoRequest,
+    stop::StopRequest,
+    lap::LapRequest,
+    pause::PauseRequest,
+    play::PlayRequest,
+    delete::DeleteRequest
 };
 
 use crate::cli::{self, Subcommands};
 
 pub fn args_to_request(args: cli::Cli) -> ClientRequest {
-    match args.action {
-        Subcommands::Start(start_args) => start_args_to_request(start_args),
-        Subcommands::Info(info_args) => info_args_to_request(info_args),
-        Subcommands::Stop(stop_args) => stop_args_to_request(stop_args),
-        Subcommands::Lap(lap_args) => lap_args_to_request(lap_args),
-        Subcommands::Pause(pause_args) => pause_args_to_request(pause_args),
-        Subcommands::Play(play_args) => play_args_to_request(play_args),
-        Subcommands::Delete(delete_args) => delete_args_to_request(delete_args)
-    }
+    let (identifiers, verbose, specific) = match args.action {
+        Subcommands::Start(args) => return start_args_to_request(args),
+        Subcommands::Info(args) => (args.identifiers, args.verbose, InfoRequest.into()),
+        Subcommands::Stop(args) => (args.identifiers, args.verbose, StopRequest.into()),
+        Subcommands::Lap(args) => (args.identifiers, args.verbose, LapRequest.into()),
+        Subcommands::Pause(args) => (args.identifiers, args.verbose, PauseRequest.into()),
+        Subcommands::Play(args) => (args.identifiers, args.verbose, PlayRequest.into()),
+        Subcommands::Delete(args) => (args.identifiers, args.verbose, DeleteRequest.into())
+    };
+    ClientRequest::new(identifiers, verbose, specific)
 }
 
 fn start_args_to_request(args: cli::Start) -> ClientRequest {
-    StartRequest {
-        name: Name::from(args.identifier),
-        verbose: args.verbose
-    }.into()
-}
-
-fn info_args_to_request(args: cli::Info) -> ClientRequest {
-    InfoRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
-}
-
-fn stop_args_to_request(args: cli::Stop) -> ClientRequest {
-    StopRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
-}
-
-fn lap_args_to_request(args: cli::Lap) -> ClientRequest {
-    LapRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
-}
-
-fn pause_args_to_request(args: cli::Pause) -> ClientRequest {
-    PauseRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
-}
-
-fn play_args_to_request(args: cli::Play) -> ClientRequest {
-    PlayRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
-}
-
-fn delete_args_to_request(args: cli::Delete) -> ClientRequest {
-    DeleteRequest {
-        identifiers: args.identifiers.into_iter().map(Identifier::new).collect(),
-        verbose: args.verbose
-    }.into()
+    let identifiers = match args.identifier {
+        Some(i) => vec![i],
+        None => vec![]
+    };
+    let verbose = args.verbose;
+    ClientRequest::new(identifiers, verbose, StartRequest.into())
 }

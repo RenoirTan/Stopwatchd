@@ -10,28 +10,19 @@ use crate::{
 };
 
 use super::{
-    client_message::{ClientRequest, ClientMessage},
     server_message::{ServerReply, ServerMessage},
-    details::StopwatchDetails
+    details::StopwatchDetails,
+    client_message::ClientRequestKind
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DeleteRequest {
-    pub identifiers: Vec<Identifier>,
-    pub verbose: bool
-}
+pub struct DeleteRequest;
 
 impl Codecable<'_> for DeleteRequest { }
 
-impl Into<ClientRequest> for DeleteRequest {
-    fn into(self) -> ClientRequest {
-        ClientRequest::Delete(self)
-    }
-}
-
-impl Into<ClientMessage> for DeleteRequest {
-    fn into(self) -> ClientMessage {
-        ClientMessage::create(self.into())
+impl Into<ClientRequestKind> for DeleteRequest {
+    fn into(self) -> ClientRequestKind {
+        ClientRequestKind::Delete(self)
     }
 }
 

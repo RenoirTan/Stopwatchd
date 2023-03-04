@@ -4,15 +4,15 @@ use stopwatchd::{
     communication::{
         client_message::ClientRequest,
         server_message::ServerReply,
-        start::{StartSuccess, StartRequest, StartReply},
-        info::{InfoRequest, InfoReply, InfoSuccess},
-        stop::{StopRequest, StopSuccess, StopReply},
-        lap::{LapRequest, LapReply, LapSuccess},
-        pause::{PauseRequest, PauseReply, PauseSuccess},
-        play::{PlayRequest, PlayReply, PlaySuccess},
-        delete::{DeleteRequest, DeleteReply, DeleteSuccess}
+        start::{StartSuccess, StartReply},
+        info::{InfoReply, InfoSuccess},
+        stop::{StopSuccess, StopReply},
+        lap::{LapReply, LapSuccess},
+        pause::{PauseReply, PauseSuccess},
+        play::{PlayReply, PlaySuccess},
+        delete::{DeleteReply, DeleteSuccess}, details::StopwatchDetails
     },
-    models::stopwatch::Stopwatch,
+    models::stopwatch::{Stopwatch, Name},
     error::FindStopwatchError,
     identifiers::{UNMatchKind, UuidName, Identifier},
     traits::{FromStopwatch, FromStopwatches}
@@ -69,7 +69,7 @@ impl Manager {
             return None;
         }
         for (_, stopwatch) in self.stopwatches.iter() {
-            if *stopwatch.name == identifier {
+            if &*stopwatch.name == identifier {
                 return Some(stopwatch.get_uuid_name());
             }
         }
@@ -205,23 +205,26 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
     }
 }
 
-async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest) {
-    // Start stopwatch first, delete if need be
-    let stopwatch = Stopwatch::start(Some(req.name.clone()));
+async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+    let identifier = req.identifiers.first().cloned().unwrap_or_default();
+    let name = Name::new(&*identifier);
 
-    if let Some(uuid_name) = manager.has_uuid_or_name(&req.name) {
+    // Start stopwatch first, delete if need be
+    let stopwatch = Stopwatch::start(Some(name.clone()));
+
+    if let Some(uuid_name) = manager.has_uuid_or_name(&name) {
         trace!("stopwatch with the same name or uuid already exists");
         let reply = StartReply {
             start: Err(FindStopwatchError {
-                identifier: Identifier::new((*req.name).clone()),
+                identifier,
                 duplicates: vec![uuid_name]
             })
         };
         let response = Response { output: reply.into() };
         if let Err(e) = res_tx.send(response) {
             error!("{}", e);
-            return; // Exit before the bad stopwatch gets added
         }
+        return;
     }
 
     let reply = StartSuccess::from(&stopwatch).into();
@@ -234,37 +237,62 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: StartRequest
     println!("stopwatches: {:?}", manager.stopwatches);
 }
 
-async fn info(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
-    trace!("got request for info");
-    // If an identifier given, search for just that one stopwatch
-    if req.identifiers.len() > 0 {
-        info_specified(manager, res_tx, req).await
-    } else {
-        info_all(manager, res_tx, req).await
-    }
-}
-
-async fn info_specified(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
-    trace!("info_specified");
-    let mut reply = InfoReply::new();
+async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+    let mut details = HashMap::<Identifier, StopwatchDetails>::new();
+    let mut errored = HashMap::<Identifier, FindStopwatchError>::new();
     for identifier in &req.identifiers {
-        match manager.get_stopwatch_by_identifier(identifier) {
+        let identifier = identifier.clone();
+        match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
-                let success = InfoSuccess::from_stopwatch(sw, req.verbose);
-                reply.add_success(success);
+                if req.specific_args.is_info() {
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                } else if req.specific_args.is_stop() {
+                    sw.end();
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                } else if req.specific_args.is_lap() {
+                    sw.new_lap(true);
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                } else if req.specific_args.is_pause() {
+                    sw.pause();
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                } else if req.specific_args.is_play() {
+                    sw.play();
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                }
             },
-            Err(fse) => reply.add_error(fse)
+            Err(e) => {
+                errored.insert(identifier, e);
+            }
         }
     }
-    let response = Response { output: reply.into() };
+
+    let reply: ServerReply = if req.specific_args.is_info() {
+        let success = details.into_iter().map(|(k, v)| (k, InfoSuccess::from(v))).collect();
+        InfoReply { success, errored }.into()
+    } else if req.specific_args.is_stop() {
+        let success = details.into_iter().map(|(k, v)| (k, StopSuccess::from(v))).collect();
+        StopReply { success, errored }.into()
+    } else if req.specific_args.is_lap() {
+        let success = details.into_iter().map(|(k, v)| (k, LapSuccess::from(v))).collect();
+        LapReply { success, errored }.into()
+    } else if req.specific_args.is_pause() {
+        let success = details.into_iter().map(|(k, v)| (k, PauseSuccess::from(v))).collect();
+        PauseReply { success, errored }.into()
+    } else if req.specific_args.is_play() {
+        let success = details.into_iter().map(|(k, v)| (k, PlaySuccess::from(v))).collect();
+        PlayReply { success, errored }.into()
+    } else {
+        ServerReply::Default
+    };
+    let response = Response { output: reply };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
-        trace!("sent info back to user");
+        trace!("sent result back to user");
     }
 }
 
-async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: InfoRequest) {
+async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     trace!("info_all");
     let reply = InfoReply::from_stopwatches(manager.stopwatches_by_access_order(), req.verbose)
         .into();
@@ -278,95 +306,7 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: InfoReque
     }
 }
 
-async fn stop(manager: &mut Manager, res_tx: &ResponseSender, req: StopRequest) {
-    trace!("got request for stop");
-    let mut reply = StopReply::new();
-    for identifier in &req.identifiers {
-        match manager.get_stopwatch_by_identifier(&identifier) {
-            Ok(sw) => {
-                sw.end();
-                reply.add_success(StopSuccess::from_stopwatch(sw, req.verbose));
-            },
-            Err(e) => {
-                reply.add_error(e);
-            }
-        }
-    }
-    let response = Response { output: reply.into() };
-    if let Err(e) = res_tx.send(response) {
-        error!("{}", e);
-    } else {
-        trace!("sent stop back to user");
-    }
-}
-
-async fn lap(manager: &mut Manager, res_tx: &ResponseSender, req: LapRequest) {
-    trace!("got request for lap");
-    let mut reply = LapReply::new();
-    for identifier in &req.identifiers {
-        match manager.get_stopwatch_by_identifier(&identifier) {
-            Ok(sw) => {
-                sw.new_lap(true);
-                reply.add_success(LapSuccess::from_stopwatch(sw, req.verbose));
-            },
-            Err(e) => {
-                reply.add_error(e);
-            }
-        }
-    }
-    let response = Response { output: reply.into() };
-    if let Err(e) = res_tx.send(response) {
-        error!("{}", e);
-    } else {
-        trace!("sent stop back to user");
-    }
-}
-
-async fn pause(manager: &mut Manager, res_tx: &ResponseSender, req: PauseRequest) {
-    trace!("got request for pause");
-    let mut reply = PauseReply::new();
-    for identifier in &req.identifiers {
-        match manager.get_stopwatch_by_identifier(&identifier) {
-            Ok(sw) => {
-                sw.pause();
-                reply.add_success(PauseSuccess::from_stopwatch(sw, req.verbose));
-            },
-            Err(e) => {
-                reply.add_error(e);
-            }
-        }
-    }
-    let response = Response { output: reply.into() };
-    if let Err(e) = res_tx.send(response) {
-        error!("{}", e);
-    } else {
-        trace!("sent stop back to user");
-    }
-}
-
-async fn play(manager: &mut Manager, res_tx: &ResponseSender, req: PlayRequest) {
-    trace!("got request for pause");
-    let mut reply = PlayReply::new();
-    for identifier in &req.identifiers {
-        match manager.get_stopwatch_by_identifier(&identifier) {
-            Ok(sw) => {
-                sw.play();
-                reply.add_success(PlaySuccess::from_stopwatch(sw, req.verbose));
-            },
-            Err(e) => {
-                reply.add_error(e);
-            }
-        }
-    }
-    let response = Response { output: reply.into() };
-    if let Err(e) = res_tx.send(response) {
-        error!("{}", e);
-    } else {
-        trace!("sent stop back to user");
-    }
-}
-
-async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: DeleteRequest) {
+async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     trace!("got request for delete");
     let mut reply = DeleteReply::new();
     for identifier in &req.identifiers {
@@ -399,16 +339,17 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
     debug!("start manage");
     while let Some(message) = req_rx.recv().await {
         trace!("manage received message");
-        use ClientRequest::*;
-        match message.action {
-            Start(start_req) => start(&mut manager, &message.res_tx, start_req).await,
-            Info(info_req) => info(&mut manager, &message.res_tx, info_req).await,
-            Stop(stop_req) => stop(&mut manager, &message.res_tx, stop_req).await,
-            Lap(lap_req) => lap(&mut manager, &message.res_tx, lap_req).await,
-            Pause(pause_req) => pause(&mut manager, &message.res_tx, pause_req).await,
-            Play(play_req) => play(&mut manager, &message.res_tx, play_req).await,
-            Delete(delete_req) => delete(&mut manager, &message.res_tx, delete_req).await,
-            Default => default(&message.res_tx).await
+        let request = message.action;
+        if request.specific_args.is_start() {
+            start(&mut manager, &message.res_tx, &request).await;
+        } else if request.specific_args.is_info() && request.identifiers.len() == 0 {
+            info_all(&mut manager, &message.res_tx, &request).await;
+        } else if request.specific_args.is_default() {
+            default(&message.res_tx).await;
+        } else if request.specific_args.is_delete() {
+            delete(&mut manager, &message.res_tx, &request).await;
+        } else {
+            all(&mut manager, &message.res_tx, &request).await;
         }
     }
     debug!("stop manage");

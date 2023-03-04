@@ -10,27 +10,18 @@ use crate::{
 };
 
 use super::{
-    client_message::{ClientMessage, ClientRequest},
-    server_message::{ServerReply, ServerMessage}
+    server_message::{ServerReply, ServerMessage},
+    client_message::ClientRequestKind
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StartRequest {
-    pub name: Name,
-    pub verbose: bool
-}
+pub struct StartRequest;
 
 impl Codecable<'_> for StartRequest { }
 
-impl Into<ClientRequest> for StartRequest {
-    fn into(self) -> ClientRequest {
-        ClientRequest::Start(self)
-    }
-}
-
-impl Into<ClientMessage> for StartRequest {
-    fn into(self) -> ClientMessage {
-        ClientMessage::create(self.into())
+impl Into<ClientRequestKind> for StartRequest {
+    fn into(self) -> ClientRequestKind {
+        ClientRequestKind::Start(self)
     }
 }
 

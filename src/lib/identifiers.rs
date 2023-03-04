@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Deref};
 
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
@@ -12,8 +12,8 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub fn new(raw: String) -> Self {
-        let mut me = Self { raw, possible_node: None };
+    pub fn new<S: Into<String>>(raw: S) -> Self {
+        let mut me = Self { raw: raw.into(), possible_node: None };
         me.calculate_node();
         me
     }
@@ -24,7 +24,7 @@ impl Identifier {
             let raw = format!("{:X}", uuid);
             Self { raw, possible_node: Some(uuid) }
         } else {
-            Self::new((*uuid_name.name).clone())
+            Self::new((*uuid_name.name).to_string())
         }
     }
 
@@ -58,6 +58,20 @@ impl Identifier {
     }
 }
 
+impl Default for Identifier {
+    fn default() -> Self {
+        Self::new("")
+    }
+}
+
+impl Deref for Identifier {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.raw
+    }
+}
+
 impl<T: AsRef<str>> From<T> for Identifier {
     fn from(raw: T) -> Self {
         Self::new(raw.as_ref().to_string())
@@ -85,12 +99,6 @@ impl PartialEq<Identifier> for Identifier {
 impl<T: AsRef<str>> PartialEq<T> for Identifier {
     fn eq(&self, other: &T) -> bool {
         self.raw == other.as_ref()
-    }
-}
-
-impl PartialEq<Name> for Identifier {
-    fn eq(&self, other: &Name) -> bool {
-        self.raw == **other
     }
 }
 
