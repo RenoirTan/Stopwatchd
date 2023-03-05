@@ -9,14 +9,7 @@ use stopwatchd::{
     runtime::server_socket_path,
     communication::{
         client_message::ClientMessage,
-        server_message::{ServerMessage, ServerReply},
-        start::StartReply,
-        info::InfoReply,
-        stop::StopReply,
-        lap::LapReply,
-        pause::PauseReply,
-        play::PlayReply,
-        delete::DeleteReply
+        server_message::{ServerMessage, ServerReplyKind}
     },
     traits::Codecable
 };
@@ -68,72 +61,10 @@ async fn main() {
     let reply = ServerMessage::from_bytes(&braw).unwrap();
     println!("{:?}", reply);
 
-    match reply.reply {
-        ServerReply::Start(s) => handle_start(s).await,
-        ServerReply::Info(i) => handle_info(i).await,
-        ServerReply::Stop(s) => handle_stop(s).await,
-        ServerReply::Lap(l) => handle_lap(l).await,
-        ServerReply::Pause(p) => handle_pause(p).await,
-        ServerReply::Play(p) => handle_play(p).await,
-        ServerReply::Delete(d) => handle_delete(d).await,
-        ServerReply::Default => panic!("should not be ServerReply::Default")
+    match reply.reply.specific_answer {
+        ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
+        _ => { }
     }
 
     info!("exiting");
-}
-
-async fn handle_start(start_reply: StartReply) {
-    if start_reply.start.is_ok() {
-        println!("successfully started");
-    } else {
-        println!("error occurred");
-    }
-}
-
-async fn handle_info(info_reply: InfoReply) {
-    if info_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
-}
-
-async fn handle_stop(stop_reply: StopReply) {
-    if stop_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
-}
-
-async fn handle_lap(lap_reply: LapReply) {
-    if lap_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
-}
-
-async fn handle_pause(pause_reply: PauseReply) {
-    if pause_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
-}
-
-async fn handle_play(play_reply: PlayReply) {
-    if play_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
-}
-
-async fn handle_delete(delete_reply: DeleteReply) {
-    if delete_reply.errored.len() > 0 {
-        println!("errors occurred");
-    } else {
-        println!("successful query");
-    }
 }

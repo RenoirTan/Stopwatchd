@@ -2,7 +2,7 @@ use std::{process, io, fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{traits::Codecable, error::FindStopwatchError};
+use crate::{traits::Codecable, error::FindStopwatchError, identifiers::Identifier};
 
 use super::{
     start::StartReply,
@@ -12,7 +12,8 @@ use super::{
     pause::PauseReply,
     play::PlayReply,
     delete::DeleteReply,
-    details::StopwatchDetails
+    details::StopwatchDetails,
+    client_message::ClientRequestKind
 };
 
 pub fn details_map_into<I, K, V>(iter: I) -> HashMap<K, V>
@@ -25,7 +26,7 @@ where
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ServerReply {
+pub enum ServerReplyKind {
     Start(StartReply),
     Info(InfoReply),
     Stop(StopReply),
@@ -36,9 +37,20 @@ pub enum ServerReply {
     #[default] Default
 }
 
-impl Into<ServerMessage> for ServerReply {
-    fn into(self) -> ServerMessage {
-        ServerMessage::create(self)
+impl From<&ClientRequestKind> for ServerReplyKind {
+    fn from(crk: &ClientRequestKind) -> Self {
+        use ClientRequestKind as C;
+        use ServerReplyKind as S;
+        match crk {
+            C::Start(_) => S::Start(StartReply),
+            C::Info(_) => S::Info(InfoReply),
+            C::Stop(_) => S::Stop(StopReply),
+            C::Lap(_) => S::Lap(LapReply),
+            C::Pause(_) => S::Pause(PauseReply),
+            C::Play(_) => S::Play(PlayReply),
+            C::Delete(_) => S::Delete(DeleteReply),
+            C::Default => S::Default
+        }
     }
 }
 
@@ -48,6 +60,16 @@ pub enum ServerError {
     Other(String)
 }
 
+impl ServerError {
+    pub fn get_identifier(&self) -> Option<&Identifier> {
+        use ServerError::*;
+        match self {
+            FindStopwatchError(fse) => Some(&fse.identifier),
+            Other(_) => None
+        }
+    }
+}
+
 impl fmt::Display for ServerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ServerError::*;
@@ -55,6 +77,105 @@ impl fmt::Display for ServerError {
             FindStopwatchError(fse) => write!(f, "{}", fse.diagnose()),
             Other(s) => write!(f, "{}", s)
         }
+    }
+}
+
+impl std::error::Error for ServerError { }
+
+impl From<FindStopwatchError> for ServerError {
+    fn from(fse: FindStopwatchError) -> Self {
+        Self::FindStopwatchError(fse)
+    }
+}
+
+impl From<String> for ServerError {
+    fn from(error: String) -> Self {
+        Self::Other(error)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerReply {
+    pub successful: HashMap<Identifier, StopwatchDetails>,
+    pub errors: HashMap<Option<Identifier>, Vec<ServerError>>,
+    pub specific_answer: ServerReplyKind
+}
+
+impl ServerReply {
+    pub fn new(specific_answer: ServerReplyKind) -> Self {
+        let successful = HashMap::new();
+        let errors = HashMap::new();
+        Self { successful, errors, specific_answer }
+    }
+
+    pub fn add_successful<I>(&mut self, successful: I)
+    where
+        I: IntoIterator<Item = StopwatchDetails>
+    {
+        self.extend_successful(successful.into_iter().map(|d| (d.get_identifier(), d)))
+    }
+
+    pub fn extend_successful<I>(&mut self, successful: I)
+    where
+        I: IntoIterator<Item = (Identifier, StopwatchDetails)>
+    {
+        self.successful.extend(successful);
+    }
+
+    pub fn add_errors<I>(&mut self, errors: I)
+    where
+        I: IntoIterator<Item = ServerError>
+    {
+        self.extend_uncollected_errors(
+            errors.into_iter().map(|e| (e.get_identifier().cloned(), e))
+        );
+    }
+
+    pub fn extend_uncollected_errors<I>(&mut self, errors: I)
+    where
+        I: IntoIterator<Item = (Option<Identifier>, ServerError)>
+    {
+        for (identifier, error) in errors {
+            match self.errors.get_mut(&identifier) {
+                Some(current_errors) => {
+                    current_errors.push(error);
+                },
+                None => {
+                    self.errors.insert(identifier, vec![error]);
+                }
+            }
+        }
+    }
+
+    pub fn extend_errors<I>(&mut self, errors: I)
+    where
+        I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>
+    {
+        for (identifier, my_errors) in errors {
+            match self.errors.get_mut(&identifier) {
+                Some(current_errors) => {
+                    current_errors.extend(my_errors);
+                },
+                None => {
+                    self.errors.insert(identifier, my_errors);
+                }
+            }
+        }
+    }
+}
+
+impl Codecable<'_> for ServerReply { }
+
+impl Default for ServerReply {
+    fn default() -> Self {
+        let specific = ServerReplyKind::default();
+        Self::new(specific)
+    }
+}
+
+impl Into<ServerMessage> for ServerReply {
+    fn into(self) -> ServerMessage {
+        ServerMessage::create(self)
     }
 }
 

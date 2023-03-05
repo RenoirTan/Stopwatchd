@@ -2,12 +2,10 @@ use std::io;
 
 use stopwatchd::{
     communication::{
-        start::StartSuccess,
         client_message::ClientMessage,
         server_message::{ServerMessage, ServerReply}
     },
-    traits::Codecable,
-    models::stopwatch::Stopwatch
+    traits::Codecable
 };
 use tokio::net::UnixStream;
 
@@ -40,33 +38,13 @@ pub async fn handle_client(client: UnixStream, req_tx: RequestSender) -> io::Res
         },
         None => {
             error!("no error from manager");
-            ServerMessage::create(ServerReply::Default)
+            ServerMessage::create(ServerReply::default())
         }
     };
 
     client.writable().await?;
     client.try_write(&reply.to_bytes()?)?;
     debug!("sent reply back to client");
-
-    Ok(())
-}
-
-#[allow(dead_code)]
-async fn start_stopwatch(client: &UnixStream) -> io::Result<()> {
-    debug!("creating stopwatch");
-    let mut stopwatch = Stopwatch::start(None);
-
-    let reply: ServerMessage = StartSuccess::from(&stopwatch).into();
-    let message = reply.to_bytes()?;
-
-    trace!("waiting to send message to client");
-    client.writable().await?;
-    client.try_write(&message)?;
-    trace!("message sent to client");
-
-    stopwatch.end();
-    trace!("stopwatch stopped");
-    println!("{:?}", stopwatch);
 
     Ok(())
 }

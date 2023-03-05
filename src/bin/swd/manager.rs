@@ -3,20 +3,15 @@ use std::collections::HashMap;
 use stopwatchd::{
     communication::{
         client_message::{ClientRequest, ClientRequestKind},
-        server_message::{ServerReply, details_map_into},
-        start::{StartSuccess, StartReply},
+        server_message::{ServerReplyKind, ServerReply, ServerError},
+        start::StartReply,
         info::InfoReply,
-        stop::StopReply,
-        lap::LapReply,
-        pause::PauseReply,
-        play::{PlayReply, PlaySuccess},
-        delete::{DeleteReply, DeleteSuccess},
+        delete::DeleteReply,
         details::StopwatchDetails
     },
     models::stopwatch::{Stopwatch, Name},
     error::FindStopwatchError,
-    identifiers::{UNMatchKind, UuidName, Identifier},
-    traits::{FromStopwatch, FromStopwatches}
+    identifiers::{UNMatchKind, UuidName, Identifier}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
@@ -207,41 +202,40 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
-    let identifier = req.identifiers.first().cloned().unwrap_or_default();
-    let name = Name::new(&*identifier);
+    let given_identifier = req.identifiers.first().cloned();
+    let name = given_identifier.clone().map(Name::new);
 
     // Start stopwatch first, delete if need be
-    let stopwatch = Stopwatch::start(Some(name.clone()));
+    let stopwatch = Stopwatch::start(name.clone());
+    let sw_identifier = &stopwatch.get_uuid_name().as_identifier();
 
-    if let Some(uuid_name) = manager.has_uuid_or_name(&name) {
+    let mut reply = ServerReply::new(StartReply.into());
+
+    if let Some(uuid_name) = manager.has_uuid_or_name(&sw_identifier) {
         trace!("stopwatch with the same name or uuid already exists");
-        let reply = StartReply {
-            start: Err(FindStopwatchError {
-                identifier,
-                duplicates: vec![uuid_name]
-            })
+        let error = FindStopwatchError {
+            identifier: sw_identifier.clone(),
+            duplicates: vec![uuid_name]
         };
-        let response = Response { output: reply.into() };
-        if let Err(e) = res_tx.send(response) {
-            error!("{}", e);
-        }
-        return;
+        let mut reply = ServerReply::new(StartReply.into());
+        reply.extend_uncollected_errors([(given_identifier, error.into())]);
+    } else {
+        let details = StopwatchDetails::from_stopwatch(&stopwatch, req.verbose);
+        manager.add_stopwatch(stopwatch);
+        reply.extend_successful([(sw_identifier.clone(), details)]);
     }
 
-    let reply = StartSuccess::from(&stopwatch).into();
-    manager.add_stopwatch(stopwatch);
-    let response = Response { output: ServerReply::Start(reply) };
+    let response = Response { output: reply.into() };
     trace!("manage is sending response back for start");
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     }
-    println!("stopwatches: {:?}", manager.stopwatches);
 }
 
 async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     let specific_args = &req.specific_args;
     let mut details = HashMap::<Identifier, StopwatchDetails>::new();
-    let mut errored = HashMap::<Identifier, FindStopwatchError>::new();
+    let mut errored = HashMap::<Option<Identifier>, ServerError>::new();
     for identifier in &req.identifiers {
         let identifier = identifier.clone();
         match manager.get_stopwatch_by_identifier(&identifier) {
@@ -268,37 +262,17 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
                 _ => { }
             },
             Err(e) => {
-                errored.insert(identifier, e);
+                errored.insert(Some(identifier), e.into());
             }
         }
     }
 
-    let reply: ServerReply = match specific_args {
-        ClientRequestKind::Info(_) => {
-            let success = details_map_into(details);
-            InfoReply { success, errored }.into()
-        },
-        ClientRequestKind::Stop(_) => {
-            let success = details_map_into(details);
-            StopReply { success, errored }.into()
-        },
-        ClientRequestKind::Lap(_) => {
-            let success = details_map_into(details);
-            LapReply { success, errored }.into()
-        },
-        ClientRequestKind::Pause(_) => {
-            let success = details_map_into(details);
-            PauseReply { success, errored }.into()
-        },
-        ClientRequestKind::Play(_) => {
-            let success = details.into_iter().map(|(k, v)| (k, PlaySuccess::from(v))).collect();
-            PlayReply { success, errored }.into()
-        },
-        _ => {
-            ServerReply::Default
-        }
-    };
-    let response = Response { output: reply };
+    let specific_reply = ServerReplyKind::from(specific_args);
+    let mut reply = ServerReply::new(specific_reply);
+    reply.extend_successful(details);
+    reply.extend_uncollected_errors(errored);
+
+    let response = Response { output: reply.into() };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
@@ -308,8 +282,10 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
 
 async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     trace!("info_all");
-    let reply = InfoReply::from_stopwatches(manager.stopwatches_by_access_order(), req.verbose)
-        .into();
+    let mut reply = ServerReply::new(InfoReply.into());
+    let details = manager.stopwatches_by_access_order()
+        .map(|s| StopwatchDetails::from_stopwatch(s, req.verbose));
+    reply.add_successful(details);
     let response = Response {
         output: reply
     };
@@ -322,14 +298,17 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRe
 
 async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     trace!("got request for delete");
-    let mut reply = DeleteReply::new();
+    let mut reply = ServerReply::new(DeleteReply.into());
     for identifier in &req.identifiers {
         match manager.take_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
-                reply.add_success(DeleteSuccess::from_stopwatch(&sw, req.verbose));
+                reply.extend_successful([(
+                    identifier.clone(),
+                    StopwatchDetails::from_stopwatch(&sw, req.verbose)
+                )]);
             },
             Err(e) => {
-                reply.add_error(e);
+                reply.extend_uncollected_errors([(Some(identifier.clone()), e.into())]);
             }
         }
     }
@@ -342,7 +321,7 @@ async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequ
 }
 
 async fn default(res_tx: &ResponseSender) {
-    let response = Response { output: ServerReply::Default };
+    let response = Response { output: ServerReply::default() };
     trace!("manage is sending response back for default");
     if let Err(e) = res_tx.send(response) {
         error!("{}", e)
