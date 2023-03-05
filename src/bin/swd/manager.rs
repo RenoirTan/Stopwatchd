@@ -234,12 +234,34 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientReque
     }
 }
 
+async fn good_or_bad(
+    identifier: Identifier,
+    stopwatch: &Stopwatch,
+    verbose: bool,
+    details: &mut HashMap<Identifier, StopwatchDetails>,
+    errored: &mut HashMap<Option<Identifier>, ServerError>,
+    error_condition: bool
+) {
+    if error_condition {
+        let state = stopwatch.state();
+        errored.insert(Some(identifier.clone()), InvalidState { identifier, state }.into());
+    } else {
+        details.insert(
+            identifier,
+            StopwatchDetails::from_stopwatch(stopwatch, verbose)
+        );
+    }
+}
+
 async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     let specific_args = &req.specific_args;
     let mut details = HashMap::<Identifier, StopwatchDetails>::new();
     let mut errored = HashMap::<Option<Identifier>, ServerError>::new();
+    let verbose = req.verbose;
     for identifier in &req.identifiers {
         let identifier = identifier.clone();
+        let deets = &mut details;
+        let errs = &mut errored;
         match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => match specific_args {
                 ClientRequestKind::Info(_) => {
@@ -247,59 +269,21 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
                 },
                 ClientRequestKind::Stop(_) => {
                     let state = sw.end();
-                    if state.ended() {
-                        errored.insert(
-                            Some(identifier.clone()),
-                            InvalidState { identifier, state }.into()
-                        );
-                    } else {
-                        details.insert(
-                            identifier,
-                            StopwatchDetails::from_stopwatch(sw, req.verbose)
-                        );
-                    }
+                    good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
                 ClientRequestKind::Lap(_) => {
                     let state = sw.new_lap(true);
-                    if state.ended() {
-                        errored.insert(
-                            Some(identifier.clone()),
-                            InvalidState { identifier, state }.into()
-                        );
-                    } else {
-                        details.insert(
-                            identifier,
-                            StopwatchDetails::from_stopwatch(sw, req.verbose)
-                        );
-                    }
+                    good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
                 ClientRequestKind::Pause(_) => {
                     let state = sw.pause();
-                    if matches!(state, State::Ended | State::Paused) {
-                        errored.insert(
-                            Some(identifier.clone()),
-                            InvalidState { identifier, state }.into()
-                        );
-                    } else {
-                        details.insert(
-                            identifier,
-                            StopwatchDetails::from_stopwatch(sw, req.verbose)
-                        );
-                    }
+                    let condition = matches!(state, State::Ended | State::Paused);
+                    good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
                 },
                 ClientRequestKind::Play(_) => {
                     let state = sw.play();
-                    if matches!(state, State::Ended | State::Playing) {
-                        errored.insert(
-                            Some(identifier.clone()),
-                            InvalidState { identifier, state }.into()
-                        );
-                    } else {
-                        details.insert(
-                            identifier,
-                            StopwatchDetails::from_stopwatch(sw, req.verbose)
-                        );
-                    }
+                    let condition = matches!(state, State::Ended | State::Playing);
+                    good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
                 }
                 _ => { }
             },
