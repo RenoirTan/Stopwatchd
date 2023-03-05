@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
-use crate::identifiers::{Identifier, UuidName};
+use crate::{identifiers::{Identifier, UuidName}, models::stopwatch::State};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindStopwatchError {
@@ -47,3 +47,17 @@ impl fmt::Display for FindStopwatchError {
 }
 
 impl std::error::Error for FindStopwatchError { }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvalidState {
+    pub identifier: Identifier,
+    pub state: State
+}
+
+impl fmt::Display for InvalidState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} is currently {}", self.identifier, self.state)
+    }
+}
+
+impl std::error::Error for InvalidState { }

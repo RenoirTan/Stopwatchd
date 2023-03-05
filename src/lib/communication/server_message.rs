@@ -2,7 +2,11 @@ use std::{process, io, fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{traits::Codecable, error::FindStopwatchError, identifiers::Identifier};
+use crate::{
+    traits::Codecable,
+    error::{FindStopwatchError, InvalidState},
+    identifiers::Identifier
+};
 
 use super::{
     start::StartReply,
@@ -39,6 +43,7 @@ pub enum ServerReplyKind {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ServerError {
     FindStopwatchError(FindStopwatchError),
+    InvalidState(InvalidState),
     Other(String)
 }
 
@@ -47,6 +52,7 @@ impl ServerError {
         use ServerError::*;
         match self {
             FindStopwatchError(fse) => Some(&fse.identifier),
+            InvalidState(is) => Some(&is.identifier),
             Other(_) => None
         }
     }
@@ -57,6 +63,7 @@ impl fmt::Display for ServerError {
         use ServerError::*;
         match self {
             FindStopwatchError(fse) => write!(f, "{}", fse.diagnose()),
+            InvalidState(is) => write!(f, "{}", is),
             Other(s) => write!(f, "{}", s)
         }
     }
@@ -67,6 +74,12 @@ impl std::error::Error for ServerError { }
 impl From<FindStopwatchError> for ServerError {
     fn from(fse: FindStopwatchError) -> Self {
         Self::FindStopwatchError(fse)
+    }
+}
+
+impl From<InvalidState> for ServerError {
+    fn from(is: InvalidState) -> Self {
+        Self::InvalidState(is)
     }
 }
 

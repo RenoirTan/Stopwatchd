@@ -1,6 +1,7 @@
 use std::{
     time::{Duration, SystemTime},
-    ops::Deref
+    ops::Deref,
+    fmt
 };
 
 use serde::{Serialize, Deserialize};
@@ -91,6 +92,17 @@ impl State {
     }
 }
 
+impl fmt::Display for State {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use State::*;
+        write!(f, "{}", match self {
+            Playing => "playing",
+            Paused => "paused",
+            Ended => "ended"
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct Stopwatch {
     pub id: Uuid,
@@ -115,16 +127,32 @@ impl Stopwatch {
     }
 
     /// Starts the stopwatch.
-    pub fn play(&mut self) {
+    pub fn play(&mut self) -> State {
         if let Some(ref mut lap) = self.current_lap {
+            let state = if lap.playing() {
+                State::Playing
+            } else {
+                State::Paused
+            };
             lap.play();
+            state
+        } else {
+            State::Ended
         }
     }
 
     /// Pauses the stopwatch.
-    pub fn pause(&mut self) {
+    pub fn pause(&mut self) -> State {
         if let Some(ref mut lap) = self.current_lap {
+            let state = if lap.playing() {
+                State::Playing
+            } else {
+                State::Paused
+            };
             lap.pause();
+            state
+        } else {
+            State::Ended
         }
     }
 
@@ -189,9 +217,17 @@ impl Stopwatch {
         laps
     }
 
-    pub fn end(&mut self) {
+    pub fn end(&mut self) -> State {
         if let Some(prev_lap) = self.current_lap.take() {
+            let state = if prev_lap.playing() {
+                State::Playing
+            } else {
+                State::Paused
+            };
             self.finished_laps.push(prev_lap.end());
+            state
+        } else {
+            State::Ended
         }
     }
 

@@ -9,8 +9,8 @@ use stopwatchd::{
         delete::DeleteReply,
         details::StopwatchDetails
     },
-    models::stopwatch::{Stopwatch, Name},
-    error::FindStopwatchError,
+    models::stopwatch::{Stopwatch, Name, State},
+    error::{FindStopwatchError, InvalidState},
     identifiers::{UNMatchKind, UuidName, Identifier}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
@@ -246,25 +246,65 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
                     details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
                 },
                 ClientRequestKind::Stop(_) => {
-                    sw.end();
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                    let state = sw.end();
+                    if state.ended() {
+                        errored.insert(
+                            Some(identifier.clone()),
+                            InvalidState { identifier, state }.into()
+                        );
+                    } else {
+                        details.insert(
+                            identifier,
+                            StopwatchDetails::from_stopwatch(sw, req.verbose)
+                        );
+                    }
                 },
                 ClientRequestKind::Lap(_) => {
-                    sw.new_lap(true);
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                    let state = sw.new_lap(true);
+                    if state.ended() {
+                        errored.insert(
+                            Some(identifier.clone()),
+                            InvalidState { identifier, state }.into()
+                        );
+                    } else {
+                        details.insert(
+                            identifier,
+                            StopwatchDetails::from_stopwatch(sw, req.verbose)
+                        );
+                    }
                 },
                 ClientRequestKind::Pause(_) => {
-                    sw.pause();
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                    let state = sw.pause();
+                    if matches!(state, State::Ended | State::Paused) {
+                        errored.insert(
+                            Some(identifier.clone()),
+                            InvalidState { identifier, state }.into()
+                        );
+                    } else {
+                        details.insert(
+                            identifier,
+                            StopwatchDetails::from_stopwatch(sw, req.verbose)
+                        );
+                    }
                 },
                 ClientRequestKind::Play(_) => {
-                    sw.play();
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                    let state = sw.play();
+                    if matches!(state, State::Ended | State::Playing) {
+                        errored.insert(
+                            Some(identifier.clone()),
+                            InvalidState { identifier, state }.into()
+                        );
+                    } else {
+                        details.insert(
+                            identifier,
+                            StopwatchDetails::from_stopwatch(sw, req.verbose)
+                        );
+                    }
                 }
                 _ => { }
             },
-            Err(e) => {
-                errored.insert(Some(identifier), e.into());
+            Err(fse) => {
+                errored.insert(Some(identifier), fse.into());
             }
         }
     }
