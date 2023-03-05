@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand, Args};
 
-/// Interact with the swd daemon that manages your stopwatches.
 #[derive(Parser, Clone, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about)]
 pub struct Cli {
     #[command(subcommand)]
     pub action: Subcommands
@@ -10,25 +9,34 @@ pub struct Cli {
 
 #[derive(Subcommand, Clone, Debug)]
 pub enum Subcommands {
-    /// Create and start a new stopwatch
+    /// Create and start a new stopwatch.
+    #[command(visible_aliases = ["s", "new", "n"])]
     Start(Start),
 
-    /// Get information about the specified stopwatches
+    /// Get information about the specified stopwatches.
+    #[command(visible_aliases = ["i", "get", "g"])]
     Info(Info),
 
-    /// End the specified stopwatches, preventing them from starting again
+    /// End the specified stopwatches, preventing them from starting again.
+    #[command(visible_aliases = ["end", "e", "terminate", "term", "t"])]
     Stop(Stop),
 
-    /// Start a new lap for the specified stopwatches
+    /// Start a new lap for the specified stopwatches.
+    #[command(visible_aliases = ["l"])]
     Lap(Lap),
 
-    /// Pause the current lap for each stopwatch
+    /// Pause the current lap for each stopwatch.
+    /// 
+    /// Aliases: pause
     Pause(Pause),
 
-    /// Continue the current lap for each stopwatch
+    /// Continue the current lap for each stopwatch.
+    /// 
+    /// Aliases: play
     Play(Play),
 
-    /// Delete a stopwatch from the daemon
+    /// Delete a stopwatch from the daemon.
+    #[command(visible_aliases = ["d", "remove", "rm", "r"])]
     Delete(Delete)
 }
 
