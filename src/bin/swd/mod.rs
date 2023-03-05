@@ -25,6 +25,7 @@ mod handlers;
 mod manager;
 mod signal;
 mod socket;
+mod utils;
 
 #[tokio::main]
 async fn main() {

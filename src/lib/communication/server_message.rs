@@ -12,8 +12,7 @@ use super::{
     pause::PauseReply,
     play::PlayReply,
     delete::DeleteReply,
-    details::StopwatchDetails,
-    client_message::ClientRequestKind
+    details::StopwatchDetails
 };
 
 pub fn details_map_into<I, K, V>(iter: I) -> HashMap<K, V>
@@ -35,23 +34,6 @@ pub enum ServerReplyKind {
     Play(PlayReply),
     Delete(DeleteReply),
     #[default] Default
-}
-
-impl From<&ClientRequestKind> for ServerReplyKind {
-    fn from(crk: &ClientRequestKind) -> Self {
-        use ClientRequestKind as C;
-        use ServerReplyKind as S;
-        match crk {
-            C::Start(_) => S::Start(StartReply),
-            C::Info(_) => S::Info(InfoReply),
-            C::Stop(_) => S::Stop(StopReply),
-            C::Lap(_) => S::Lap(LapReply),
-            C::Pause(_) => S::Pause(PauseReply),
-            C::Play(_) => S::Play(PlayReply),
-            C::Delete(_) => S::Delete(DeleteReply),
-            C::Default => S::Default
-        }
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

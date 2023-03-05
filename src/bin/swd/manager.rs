@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use stopwatchd::{
     communication::{
         client_message::{ClientRequest, ClientRequestKind},
-        server_message::{ServerReplyKind, ServerReply, ServerError},
+        server_message::{ServerReply, ServerError},
         start::StartReply,
-        info::InfoReply,
+        info::{InfoReply, InfoAll},
         delete::DeleteReply,
         details::StopwatchDetails
     },
@@ -15,6 +15,8 @@ use stopwatchd::{
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
+
+use crate::utils::crk_to_srk;
 
 #[derive(Clone, Debug)]
 pub struct Request {
@@ -267,7 +269,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
         }
     }
 
-    let specific_reply = ServerReplyKind::from(specific_args);
+    let specific_reply = crk_to_srk(specific_args);
     let mut reply = ServerReply::new(specific_reply);
     reply.extend_successful(details);
     reply.extend_uncollected_errors(errored);
@@ -282,9 +284,15 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
 
 async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
     trace!("info_all");
-    let mut reply = ServerReply::new(InfoReply.into());
-    let details = manager.stopwatches_by_access_order()
-        .map(|s| StopwatchDetails::from_stopwatch(s, req.verbose));
+    let mut access_order = vec![];
+    let mut details = vec![];
+
+    for sw in manager.stopwatches_by_access_order() {
+        access_order.push(sw.get_uuid_name().as_identifier().clone());
+        details.push(StopwatchDetails::from_stopwatch(sw, req.verbose));
+    }
+
+    let mut reply = ServerReply::new(InfoReply::All(InfoAll { access_order }).into());
     reply.add_successful(details);
     let response = Response {
         output: reply
