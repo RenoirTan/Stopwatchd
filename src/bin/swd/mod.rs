@@ -30,11 +30,10 @@ mod utils;
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
-    let interval: u64 = cli.interval.unwrap_or(10);
-    println!("interval: {}", interval);
+    let log_level = cli.log_level.into();
 
     let pid = process::id();
-    logging::setup(&format!("swd.{}", pid), None).unwrap();
+    logging::setup(&format!("swd.{}", pid), Some(log_level)).unwrap();
     info!("logging started");
 
     // Filesystem
