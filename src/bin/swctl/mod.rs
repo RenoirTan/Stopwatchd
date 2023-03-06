@@ -3,7 +3,7 @@ use std::process;
 #[macro_use]
 extern crate log;
 use clap::Parser;
-use formatted::{BasicStopwatchDetailsBuilder, DEFAULT_TIME_FORMAT};
+use formatted::{BasicStopwatchDetailsBuilder, DEFAULT_DATETIME_FORMAT};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
@@ -18,7 +18,7 @@ use stopwatchd::{
 use tabled::Table;
 use tokio::net::UnixStream;
 
-use crate::formatted::BasicStopwatchDetails;
+use crate::formatted::{BasicStopwatchDetails, DEFAULT_DURATION_FORMAT};
 
 mod cli;
 mod formatted;
@@ -79,7 +79,10 @@ async fn main() {
 async fn generic_print(request: ClientRequest, mut reply: ServerReply) {
     let details: Vec<BasicStopwatchDetails> = {
         let mut d = vec![];
-        let builder = BasicStopwatchDetailsBuilder::new(DEFAULT_TIME_FORMAT).unwrap();
+        let builder = BasicStopwatchDetailsBuilder::new(
+            DEFAULT_DATETIME_FORMAT,
+            DEFAULT_DURATION_FORMAT
+        );
         for identifier in request.identifiers {
             let success = match reply.successful.remove(&identifier) {
                 Some(s) => s,
@@ -101,7 +104,10 @@ async fn info_all_print(_request: ClientRequest, mut reply: ServerReply) {
 
     let details: Vec<BasicStopwatchDetails> = {
         let mut d = vec![];
-        let builder = BasicStopwatchDetailsBuilder::new(DEFAULT_TIME_FORMAT).unwrap();
+        let builder = BasicStopwatchDetailsBuilder::new(
+            DEFAULT_DATETIME_FORMAT,
+            DEFAULT_DURATION_FORMAT
+        );
         for identifier in all.access_order {
             let success = match reply.successful.remove(&identifier) {
                 Some(s) => s,

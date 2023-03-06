@@ -39,6 +39,7 @@ name = "swctl"
 path = "src/bin/swctl/mod.rs"
 
 [dependencies]
+chrono = "0.4.23"
 ciborium = "0.2.0"
 clap = { version = "4.1.4", features = ["derive"] }
 futures = "0.3.26"
@@ -48,6 +49,5 @@ signal-hook = "0.3.14"
 signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
 syslog = "6.0.1"
 tabled = { version = "0.10.0", features = ["color"] }
-time = { version = "0.3.20", features = ["formatting"] }
 tokio = { version = "1.25.0", features = ["rt", "macros", "rt-multi-thread", "net", "sync", "io-util"] }
 uuid = { version = "1.3.0", features = ["v4", "serde"] }
