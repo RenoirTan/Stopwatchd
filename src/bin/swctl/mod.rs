@@ -3,19 +3,25 @@ use std::process;
 #[macro_use]
 extern crate log;
 use clap::Parser;
+use formatted::{BasicStopwatchDetailsBuilder, DEFAULT_TIME_FORMAT};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
     runtime::server_socket_path,
     communication::{
-        client_message::ClientMessage,
-        server_message::{ServerMessage, ServerReplyKind}
+        client_message::{ClientMessage, ClientRequest},
+        server_message::{ServerMessage, ServerReplyKind, ServerReply},
+        info::InfoReply
     },
     traits::Codecable
 };
+use tabled::Table;
 use tokio::net::UnixStream;
 
+use crate::formatted::BasicStopwatchDetails;
+
 mod cli;
+mod formatted;
 mod request;
 
 #[tokio::main]
@@ -59,12 +65,52 @@ async fn main() {
     stream.try_read_buf(&mut braw).unwrap();
 
     let reply = ServerMessage::from_bytes(&braw).unwrap();
-    println!("{:?}", reply);
 
     match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
-        _ => { }
+        ServerReplyKind::Info(InfoReply::All(_)) =>
+            info_all_print(message.request, reply.reply).await,
+        _ => generic_print(message.request, reply.reply).await
     }
 
     info!("exiting");
+}
+
+async fn generic_print(request: ClientRequest, mut reply: ServerReply) {
+    let details: Vec<BasicStopwatchDetails> = {
+        let mut d = vec![];
+        let builder = BasicStopwatchDetailsBuilder::new(DEFAULT_TIME_FORMAT).unwrap();
+        for identifier in request.identifiers {
+            let success = match reply.successful.remove(&identifier) {
+                Some(s) => s,
+                None => continue
+            };
+            d.push(builder.get_details(success));
+        }
+        d
+    };
+    let details_table = Table::new(details).to_string();
+    println!("{}", details_table);
+}
+
+async fn info_all_print(_request: ClientRequest, mut reply: ServerReply) {
+    let all = match reply.specific_answer {
+        ServerReplyKind::Info(InfoReply::All(all)) => all,
+        _ => panic!("match didn't work for InfoReply::All")
+    };
+
+    let details: Vec<BasicStopwatchDetails> = {
+        let mut d = vec![];
+        let builder = BasicStopwatchDetailsBuilder::new(DEFAULT_TIME_FORMAT).unwrap();
+        for identifier in all.access_order {
+            let success = match reply.successful.remove(&identifier) {
+                Some(s) => s,
+                None => continue
+            };
+            d.push(builder.get_details(success));
+        }
+        d
+    };
+    let details_table = Table::new(details).to_string();
+    println!("{}", details_table);
 }
