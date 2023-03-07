@@ -5,10 +5,27 @@ use stopwatchd::{
     communication::details::StopwatchDetails,
     util::get_uuid_node
 };
-use tabled::Tabled;
+use tabled::{Tabled, Table, builder::Builder};
 
 pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 pub const DEFAULT_DURATION_FORMAT: &'static str = "%H:%M:%S.%3f";
+
+pub const BASIC_DETAILS_HEADERS_SHOWDT: [&'static str; 6] = [
+    "id",
+    "name",
+    "state",
+    "start time", // index 3
+    "total time",
+    "laps count"
+];
+
+pub const BASIC_DETAILS_HEADERS_NODT: [&'static str; 5] = [
+    "id",
+    "name",
+    "state",
+    "total time",
+    "laps count"
+];
 
 #[derive(Tabled, Clone, Debug)]
 pub struct BasicStopwatchDetails {
@@ -18,6 +35,56 @@ pub struct BasicStopwatchDetails {
     pub start_time: String,
     pub total_time: String,
     pub laps_count: String
+}
+
+impl BasicStopwatchDetails {
+    pub fn to_table<I>(bsd_iter: I, show_dt: bool) -> Table
+    where
+        I: IntoIterator<Item = BasicStopwatchDetails>
+    {
+        let mut builder = Builder::default();
+        if show_dt {
+            Self::to_table_with_dt(&mut builder, bsd_iter);
+        } else {
+            Self::to_table_no_dt(&mut builder, bsd_iter);
+        }
+        builder.build()
+    }
+
+    fn to_table_with_dt<I>(builder: &mut Builder, bsd_iter: I)
+    where
+        I: IntoIterator<Item = BasicStopwatchDetails>
+    {
+        builder.set_columns(BASIC_DETAILS_HEADERS_SHOWDT);
+        for bsd in bsd_iter {
+            let record: [String; 6] = [
+                bsd.id,
+                bsd.name,
+                bsd.state,
+                bsd.start_time,
+                bsd.total_time,
+                bsd.laps_count
+            ];
+            builder.add_record(record);
+        }
+    }
+
+    fn to_table_no_dt<I>(builder: &mut Builder, bsd_iter: I)
+    where
+        I: IntoIterator<Item = BasicStopwatchDetails>
+    {
+        builder.set_columns(BASIC_DETAILS_HEADERS_NODT);
+        for bsd in bsd_iter {
+            let record: [String; 5] = [
+                bsd.id,
+                bsd.name,
+                bsd.state,
+                bsd.total_time,
+                bsd.laps_count
+            ];
+            builder.add_record(record);
+        }
+    }
 }
 
 pub struct BasicStopwatchDetailsBuilder {

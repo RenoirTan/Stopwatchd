@@ -14,7 +14,6 @@ use stopwatchd::{
     },
     traits::Codecable
 };
-use tabled::Table;
 use tokio::net::UnixStream;
 
 use crate::formatted::{BasicStopwatchDetails, BasicStopwatchDetailsBuilder};
@@ -88,7 +87,8 @@ async fn generic_print(args: &cli::Cli, request: ClientRequest, mut reply: Serve
         }
         d
     };
-    let details_table = Table::new(details).to_string();
+    let details_table = BasicStopwatchDetails::to_table(details, args.show_datetime_info)
+        .to_string();
     println!("{}", details_table);
 }
 
@@ -110,6 +110,7 @@ async fn info_all_print(args: &cli::Cli, _request: ClientRequest, mut reply: Ser
         }
         d
     };
-    let details_table = Table::new(details).to_string();
+    let details_table = BasicStopwatchDetails::to_table(details, args.show_datetime_info)
+        .to_string();
     println!("{}", details_table);
 }
