@@ -10,21 +10,25 @@ use tabled::{Tabled, Table, builder::Builder};
 pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 pub const DEFAULT_DURATION_FORMAT: &'static str = "%H:%M:%S.%3f";
 
-pub const BASIC_DETAILS_HEADERS_SHOWDT: [&'static str; 6] = [
+const BDHS: usize = 7;
+pub const BASIC_DETAILS_HEADERS_SHOWDT: [&'static str; BDHS] = [
     "id",
     "name",
     "state",
     "start time", // index 3
     "total time",
-    "laps count"
+    "laps count",
+    "lap time"
 ];
 
-pub const BASIC_DETAILS_HEADERS_NODT: [&'static str; 5] = [
+const BDHN: usize = 6;
+pub const BASIC_DETAILS_HEADERS_NODT: [&'static str; BDHN] = [
     "id",
     "name",
     "state",
     "total time",
-    "laps count"
+    "laps count",
+    "lap time"
 ];
 
 #[derive(Tabled, Clone, Debug)]
@@ -34,7 +38,8 @@ pub struct BasicStopwatchDetails {
     pub state: String,
     pub start_time: String,
     pub total_time: String,
-    pub laps_count: String
+    pub laps_count: String,
+    pub current_lap_time: String
 }
 
 impl BasicStopwatchDetails {
@@ -57,13 +62,14 @@ impl BasicStopwatchDetails {
     {
         builder.set_columns(BASIC_DETAILS_HEADERS_SHOWDT);
         for bsd in bsd_iter {
-            let record: [String; 6] = [
+            let record: [String; BDHS] = [
                 bsd.id,
                 bsd.name,
                 bsd.state,
                 bsd.start_time,
                 bsd.total_time,
-                bsd.laps_count
+                bsd.laps_count,
+                bsd.current_lap_time
             ];
             builder.add_record(record);
         }
@@ -75,12 +81,13 @@ impl BasicStopwatchDetails {
     {
         builder.set_columns(BASIC_DETAILS_HEADERS_NODT);
         for bsd in bsd_iter {
-            let record: [String; 5] = [
+            let record: [String; BDHN] = [
                 bsd.id,
                 bsd.name,
                 bsd.state,
                 bsd.total_time,
-                bsd.laps_count
+                bsd.laps_count,
+                bsd.current_lap_time
             ];
             builder.add_record(record);
         }
@@ -127,7 +134,18 @@ impl BasicStopwatchDetailsBuilder {
         };
         let total_time = self.format_duration(std_duration_to_naive(details.total_time));
         let laps_count = format!("{}", details.laps_count());
-        BasicStopwatchDetails { id, name, state, start_time, total_time, laps_count }
+        let current_lap_time = self.format_duration(
+            std_duration_to_naive(details.current_lap_time())
+        );
+        BasicStopwatchDetails {
+            id,
+            name,
+            state,
+            start_time,
+            total_time,
+            laps_count,
+            current_lap_time
+        }
     }
 }
 

@@ -20,6 +20,7 @@ pub struct StopwatchDetails {
     pub start_time: Option<SystemTime>,
     pub total_time: Duration,
     laps_count: usize,
+    current_lap_time: Duration,
     pub verbose_info: Option<VerboseDetails>
 }
 
@@ -31,6 +32,7 @@ impl StopwatchDetails {
         let start_time = stopwatch.start_time();
         let total_time = stopwatch.total_time();
         let laps_count = stopwatch.laps();
+        let current_lap_time = stopwatch.last_lap().unwrap().duration;
         let verbose_info = if verbose {
             Some(VerboseDetails::from_stopwatch(stopwatch))
         } else {
@@ -43,6 +45,7 @@ impl StopwatchDetails {
             start_time,
             total_time,
             laps_count,
+            current_lap_time,
             verbose_info
         }
     }
@@ -60,6 +63,13 @@ impl StopwatchDetails {
         match &self.verbose_info {
             Some(vi) => vi.laps.len(),
             None => self.laps_count
+        }
+    }
+
+    pub fn current_lap_time(&self) -> Duration {
+        match &self.verbose_info {
+            Some(vi) => vi.laps.last().unwrap().duration,
+            None => self.current_lap_time
         }
     }
 
