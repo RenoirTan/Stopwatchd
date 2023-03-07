@@ -1,10 +1,42 @@
 use clap::{Parser, Subcommand, Args};
 
+use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT};
+
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about)]
 pub struct Cli {
     #[command(subcommand)]
-    pub action: Subcommands
+    pub action: Subcommands,
+
+    /// Display detailed information
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
+
+    /// Strftime format for durations
+    #[arg(
+        short = 'd',
+        long = "dur-fmt",
+        global = true,
+        default_value_t = DEFAULT_DURATION_FORMAT.to_string()
+    )]
+    pub duration_fmt: String,
+
+    /// Show date-time information. This can refer to the times when a stopwatch
+    /// or its laps were started.
+    #[arg(
+        long = "show-dt",
+        global = true
+    )]
+    pub show_datetime_info: bool,
+
+    /// Strftime format for date-time fields
+    #[arg(
+        short = 'D',
+        long = "dt-fmt",
+        global = true,
+        default_value_t = DEFAULT_DATETIME_FORMAT.to_string()
+    )]
+    pub datetime_fmt: String
 }
 
 #[derive(Subcommand, Clone, Debug)]
@@ -43,75 +75,47 @@ pub enum Subcommands {
 #[derive(Args, Clone, Debug)]
 pub struct Start {
     /// Name of the new stopwatch
-    pub identifier: Option<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifier: Option<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Info {
     /// List of stopwatches you want information about.
     /// Leave blank to query all stopwatches
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Stop {
     /// List of stopwatches to stop.
     /// Must specify more than 1 stopwatch
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Lap {
     /// List stopwatches to start a new lap for.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Pause {
     /// List stopwatches to pause.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Play {
     /// List of stopwatches to play.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Delete {
     /// List of stopwatches to delete.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>,
-
-    /// Display detailed information
-    #[arg(short, long)]
-    pub verbose: bool
+    pub identifiers: Vec<String>
 }

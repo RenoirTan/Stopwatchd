@@ -3,7 +3,6 @@ use std::process;
 #[macro_use]
 extern crate log;
 use clap::Parser;
-use formatted::{BasicStopwatchDetailsBuilder, DEFAULT_DATETIME_FORMAT};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
@@ -18,7 +17,7 @@ use stopwatchd::{
 use tabled::Table;
 use tokio::net::UnixStream;
 
-use crate::formatted::{BasicStopwatchDetails, DEFAULT_DURATION_FORMAT};
+use crate::formatted::{BasicStopwatchDetails, BasicStopwatchDetailsBuilder};
 
 mod cli;
 mod formatted;
@@ -52,7 +51,7 @@ async fn main() {
     trace!("checking if can write to server");
     stream.writable().await.unwrap();
 
-    let message: ClientMessage = request::args_to_request(cli).into();
+    let message: ClientMessage = request::args_to_request(&cli).into();
     let message_bytes = message.to_bytes().unwrap();
 
     info!("writing message to server");
@@ -69,26 +68,23 @@ async fn main() {
     match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
         ServerReplyKind::Info(InfoReply::All(_)) =>
-            info_all_print(message.request, reply.reply).await,
-        _ => generic_print(message.request, reply.reply).await
+            info_all_print(&cli, message.request, reply.reply).await,
+        _ => generic_print(&cli, message.request, reply.reply).await
     }
 
     info!("exiting");
 }
 
-async fn generic_print(request: ClientRequest, mut reply: ServerReply) {
+async fn generic_print(args: &cli::Cli, request: ClientRequest, mut reply: ServerReply) {
     let details: Vec<BasicStopwatchDetails> = {
         let mut d = vec![];
-        let builder = BasicStopwatchDetailsBuilder::new(
-            DEFAULT_DATETIME_FORMAT,
-            DEFAULT_DURATION_FORMAT
-        );
+        let builder = BasicStopwatchDetailsBuilder::new(&args.datetime_fmt, &args.duration_fmt);
         for identifier in request.identifiers {
             let success = match reply.successful.remove(&identifier) {
                 Some(s) => s,
                 None => continue
             };
-            d.push(builder.get_details(success));
+            d.push(builder.get_details(success, args.show_datetime_info));
         }
         d
     };
@@ -96,7 +92,7 @@ async fn generic_print(request: ClientRequest, mut reply: ServerReply) {
     println!("{}", details_table);
 }
 
-async fn info_all_print(_request: ClientRequest, mut reply: ServerReply) {
+async fn info_all_print(args: &cli::Cli, _request: ClientRequest, mut reply: ServerReply) {
     let all = match reply.specific_answer {
         ServerReplyKind::Info(InfoReply::All(all)) => all,
         _ => panic!("match didn't work for InfoReply::All")
@@ -104,16 +100,13 @@ async fn info_all_print(_request: ClientRequest, mut reply: ServerReply) {
 
     let details: Vec<BasicStopwatchDetails> = {
         let mut d = vec![];
-        let builder = BasicStopwatchDetailsBuilder::new(
-            DEFAULT_DATETIME_FORMAT,
-            DEFAULT_DURATION_FORMAT
-        );
+        let builder = BasicStopwatchDetailsBuilder::new(&args.datetime_fmt, &args.duration_fmt);
         for identifier in all.access_order {
             let success = match reply.successful.remove(&identifier) {
                 Some(s) => s,
                 None => continue
             };
-            d.push(builder.get_details(success));
+            d.push(builder.get_details(success, args.show_datetime_info));
         }
         d
     };

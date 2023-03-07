@@ -47,13 +47,17 @@ impl BasicStopwatchDetailsBuilder {
         time.format(&self.duration_format).to_string()
     }
 
-    pub fn get_details(&self, details: StopwatchDetails) -> BasicStopwatchDetails {
+    pub fn get_details(&self, details: StopwatchDetails, show_dt: bool) -> BasicStopwatchDetails {
         let id = format!("{:x}", get_uuid_node(&details.sw_id));
         let name = details.name.to_string();
         let state = format!("{}", details.state);
-        let start_time = details.start_time
-            .map(|st| self.format_datetime(st))
-            .unwrap_or("none".to_string());
+        let start_time = if show_dt {
+            details.start_time
+                .map(|st| self.format_datetime(st))
+                .unwrap_or("none".to_string())
+        } else {
+            String::new()
+        };
         let total_time = self.format_duration(std_duration_to_naive(details.total_time));
         let laps_count = format!("{}", details.laps_count());
         BasicStopwatchDetails { id, name, state, start_time, total_time, laps_count }
