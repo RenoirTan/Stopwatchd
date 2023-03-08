@@ -3,6 +3,7 @@ use std::process;
 #[macro_use]
 extern crate log;
 use clap::Parser;
+use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_table_builder};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
@@ -10,13 +11,13 @@ use stopwatchd::{
     communication::{
         client_message::{ClientMessage, ClientRequest},
         server_message::{ServerMessage, ServerReplyKind, ServerReply},
-        info::InfoReply
+        info::InfoReply, details::StopwatchDetails
     },
     traits::Codecable
 };
 use tokio::net::UnixStream;
 
-use crate::formatted::{BasicStopwatchDetails, DetailsBuilder, VerboseDetails};
+use crate::formatted::DetailsBuilder;
 
 mod cli;
 mod formatted;
@@ -64,13 +65,11 @@ async fn main() {
 
     let reply = ServerMessage::from_bytes(&braw).unwrap();
 
-    let details_builder = DetailsBuilder::new(&cli.datetime_fmt, &cli.duration_fmt);
-
     match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
         ServerReplyKind::Info(InfoReply::All(_)) =>
-            info_all_print(&cli, &details_builder, message.request, reply.reply).await,
-        _ => generic_print(&cli, &details_builder, message.request, reply.reply).await
+            info_all_print(&cli, message.request, reply.reply).await,
+        _ => generic_print(&cli, message.request, reply.reply).await
     }
 
     info!("exiting");
@@ -78,30 +77,22 @@ async fn main() {
 
 async fn generic_print(
     args: &cli::Cli,
-    details_builder: &DetailsBuilder,
     request: ClientRequest,
     mut reply: ServerReply
 ) {
-    let details: Vec<VerboseDetails> = {
-        let mut d = vec![];
-        for identifier in request.identifiers {
-            let success = match reply.successful.remove(&identifier) {
-                Some(s) => s,
-                None => continue
-            };
-            d.push(
-                VerboseDetails::from_details(success, args.show_datetime_info, &details_builder)
-            );
+    let mut details = Vec::with_capacity(reply.successful.len());
+    
+    for identifier in &request.identifiers {
+        if let Some(d) = reply.successful.remove(&identifier) {
+            details.push(d);
         }
-        d
-    };
+    }
 
-    print_verbose_details(details, args);
+    println!("{}", generate_output(args, details));
 }
 
 async fn info_all_print(
     args: &cli::Cli,
-    details_builder: &DetailsBuilder,
     _request: ClientRequest,
     mut reply: ServerReply
 ) {
@@ -110,34 +101,40 @@ async fn info_all_print(
         _ => panic!("match didn't work for InfoReply::All")
     };
 
-    let details: Vec<VerboseDetails> = {
-        let mut d = vec![];
-        for identifier in all.access_order {
-            let success = match reply.successful.remove(&identifier) {
-                Some(s) => s,
-                None => continue
-            };
-            d.push(
-                VerboseDetails::from_details(success, args.show_datetime_info, &details_builder)
-            );
+    let mut details = Vec::with_capacity(reply.successful.len());
+    
+    for identifier in &all.access_order {
+        if let Some(d) = reply.successful.remove(&identifier) {
+            details.push(d);
         }
-        d
-    };
+    }
 
-    print_verbose_details(details, args);
+    println!("{}", generate_output(args, details));
 }
 
-fn print_verbose_details(details: Vec<VerboseDetails>, args: &cli::Cli) {
+fn generate_output<I>(args: &cli::Cli, details: I) -> String
+where
+    I: IntoIterator<Item = StopwatchDetails>
+{
+    let formatter = DetailsBuilder::new(&args.datetime_fmt, &args.duration_fmt);
     if args.verbose {
-        for d in details {
-            let (basic, verbose) = d.to_basic_and_verbose(args.show_datetime_info);
-            println!("{}\n{}", basic.to_string(), verbose.to_string());
+        let mut out = String::new();
+        let basic = get_basic_single_builder(args.show_datetime_info);
+        let verbose = get_verbose_table_builder(args.show_datetime_info);
+        let builders = formatter
+            .from_details_verbose(basic, verbose, details, args.show_datetime_info);
+        for (b, v) in builders {
+            if out.len() != 0 {
+                out.push('\n');
+            }
+            out.push_str(&b.build().to_string());
+            out.push('\n');
+            out.push_str(&v.build().to_string());
         }
+        out
     } else {
-        let table = BasicStopwatchDetails::to_table(
-            details.into_iter().map(|d| d.basic),
-            args.show_datetime_info
-        );
-        println!("{}", table.to_string());
+        let mut builder = get_basic_table_builder(args.show_datetime_info);
+        formatter.from_details(&mut builder, details, args.show_datetime_info);
+        builder.build().to_string()
     }
 }

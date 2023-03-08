@@ -5,7 +5,7 @@ use stopwatchd::{
     communication::details::StopwatchDetails,
     util::get_uuid_node, models::lap::FinishedLap
 };
-use tabled::{Tabled, Table, builder::Builder};
+use tabled::builder::Builder;
 use uuid::Uuid;
 
 pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
@@ -38,7 +38,7 @@ impl DetailsBuilder {
         time.format(&self.duration_format).to_string()
     }
 
-    pub fn get_basic(&self, details: StopwatchDetails, show_dt: bool) -> BasicStopwatchDetails {
+    pub fn get_basic(&self, details: StopwatchDetails, show_dt: bool) -> BasicRecord {
         let id = format!("{:x}", get_uuid_node(&details.sw_id));
         let name = details.name.to_string();
         let state = format!("{}", details.state);
@@ -54,7 +54,8 @@ impl DetailsBuilder {
         let current_lap_time = self.format_duration(
             std_duration_to_naive(details.current_lap_time())
         );
-        BasicStopwatchDetails {
+
+        [
             id,
             name,
             state,
@@ -62,10 +63,10 @@ impl DetailsBuilder {
             total_time,
             laps_count,
             current_lap_time
-        }
+        ]
     }
 
-    pub fn get_verbose_lap(&self, lap: FinishedLap, show_dt: bool) -> VerboseLap {
+    pub fn get_verbose_lap(&self, lap: FinishedLap, show_dt: bool) -> VerboseRecord {
         let id = lap.id
             .as_hyphenated()
             .encode_lower(&mut Uuid::encode_buffer())
@@ -77,12 +78,49 @@ impl DetailsBuilder {
             String::new()
         };
         let duration = self.format_duration(std_duration_to_naive(lap.duration));
-        VerboseLap { id, sw_id, start, duration }
+        [ id, sw_id, start, duration ]
+    }
+
+    pub fn from_details<I>(&self, builder: &mut Builder, details: I, show_dt: bool)
+    where
+        I: IntoIterator<Item = StopwatchDetails>
+    {
+        for d in details {
+            let record = self.get_basic(d, show_dt);
+            add_basic_record_to_builder(builder, record, show_dt);
+        }
+    }
+
+    pub fn from_details_verbose<'s, I>(
+        &'s self,
+        basic: Builder<'s>,
+        verbose: Builder<'s>,
+        details: I,
+        show_dt: bool
+    ) -> impl Iterator<Item = (Builder, Builder)>
+    where
+        I: IntoIterator<Item = StopwatchDetails> + 's
+    {
+        details.into_iter().map(move |d| {
+            let mut basic = basic.clone();
+            let mut verbose = verbose.clone();
+            if let Some(ref vi) = d.verbose_info {
+                for lap in &vi.laps {
+                    let lap = lap.clone();
+                    let record = self.get_verbose_lap(lap, show_dt);
+                    add_verbose_record_to_builder(&mut verbose, record, show_dt);
+                }
+            }
+            let basic_record = self.get_basic(d, show_dt);
+            add_basic_to_verbose_builder(&mut basic, basic_record, show_dt);
+            (basic, verbose)
+        })
     }
 }
 
-const BDHS: usize = 7;
-pub const BASIC_DETAILS_HEADERS_SHOWDT: [&'static str; BDHS] = [
+pub type BasicRecord = [String; BDH_COUNT];
+pub const BDH_COUNT: usize = 7;
+pub const BASIC_DETAILS_HEADERS: [&'static str; BDH_COUNT] = [
     "id",
     "name",
     "state",
@@ -91,207 +129,84 @@ pub const BASIC_DETAILS_HEADERS_SHOWDT: [&'static str; BDHS] = [
     "laps count",
     "lap time"
 ];
+pub const BDH_SDI_COUNT: usize = 1;
+pub const BDH_SHOWDT_INDICES: [usize; BDH_SDI_COUNT] = [3];
 
-const BDHN: usize = 6;
-pub const BASIC_DETAILS_HEADERS_NODT: [&'static str; BDHN] = [
-    "id",
-    "name",
-    "state",
-    "total time",
-    "laps count",
-    "lap time"
-];
-
-#[derive(Tabled, Clone, Debug)]
-pub struct BasicStopwatchDetails {
-    pub id: String,
-    pub name: String,
-    pub state: String,
-    pub start_time: String,
-    pub total_time: String,
-    pub laps_count: String,
-    pub current_lap_time: String
-}
-
-impl BasicStopwatchDetails {
-    pub fn to_array_with_dt(self) -> [String; BDHS] {
-        [
-            self.id,
-            self.name,
-            self.state,
-            self.start_time,
-            self.total_time,
-            self.laps_count,
-            self.current_lap_time
-        ]
-    }
-
-    pub fn to_array_no_dt(self) -> [String; BDHN] {
-        [
-            self.id,
-            self.name,
-            self.state,
-            self.total_time,
-            self.laps_count,
-            self.current_lap_time
-        ]
-    }
-
-    pub fn add_to_builder(self, show_dt: bool, builder: &mut Builder) {
-        if show_dt {
-            let record = self.to_array_with_dt();
-            for (bdhs_header, field) in BASIC_DETAILS_HEADERS_SHOWDT.into_iter().zip(record) {
-                builder.add_record([bdhs_header.to_string(), field]);
-            }
-        } else {
-            let record = self.to_array_no_dt();
-            for (bdhn_header, field) in BASIC_DETAILS_HEADERS_NODT.into_iter().zip(record) {
-                builder.add_record([bdhn_header.to_string(), field]);
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn to_record(self, show_dt: bool) -> Table {
-        let mut builder = Builder::default();
-        self.add_to_builder(show_dt, &mut builder);
-        builder.build()
-    }
-
-    pub fn to_table<I>(bsd_iter: I, show_dt: bool) -> Table
-    where
-        I: IntoIterator<Item = BasicStopwatchDetails>
-    {
-        let mut builder = Builder::default();
-        if show_dt {
-            Self::to_table_with_dt(&mut builder, bsd_iter);
-        } else {
-            Self::to_table_no_dt(&mut builder, bsd_iter);
-        }
-        builder.build()
-    }
-
-    fn to_table_with_dt<I>(builder: &mut Builder, bsd_iter: I)
-    where
-        I: IntoIterator<Item = BasicStopwatchDetails>
-    {
-        builder.set_columns(BASIC_DETAILS_HEADERS_SHOWDT);
-        for bsd in bsd_iter {
-            let record = bsd.to_array_with_dt();
-            builder.add_record(record);
-        }
-    }
-
-    fn to_table_no_dt<I>(builder: &mut Builder, bsd_iter: I)
-    where
-        I: IntoIterator<Item = BasicStopwatchDetails>
-    {
-        builder.set_columns(BASIC_DETAILS_HEADERS_NODT);
-        for bsd in bsd_iter {
-            let record = bsd.to_array_no_dt();
-            builder.add_record(record);
-        }
-    }
-}
-
-const VLHS: usize = 4;
-pub const VERBOSELAP_HEADERS_SHOWDT: [&'static str; VLHS] = [
+pub type VerboseRecord = [String; VLH_COUNT];
+pub const VLH_COUNT: usize = 4;
+pub const VERBOSELAP_HEADERS: [&'static str; VLH_COUNT] = [
     "id",
     "stopwatch id",
-    "start",
+    "start", // index 2
     "duration"
 ];
-
-const VLHN: usize = 3;
-pub const VERBOSELAP_HEADERS_NODT: [&'static str; VLHN] = [
-    "id",
-    "stopwatch id",
-    "duration"
-];
-
-#[derive(Tabled, Clone, Debug)]
-pub struct VerboseLap {
-    pub id: String,
-    pub sw_id: String,
-    pub start: String,
-    pub duration: String
-}
-
-impl VerboseLap {
-    pub fn to_array_with_dt(self) -> [String; VLHS] {
-        [
-            self.id,
-            self.sw_id,
-            self.start,
-            self.duration
-        ]
-    }
-
-    pub fn to_array_no_dt(self) -> [String; VLHN] {
-        [
-            self.id,
-            self.sw_id,
-            self.duration
-        ]
-    }
-
-    pub fn add_to_builder(self, builder: &mut Builder, show_dt: bool) {
-        if show_dt {
-            builder.add_record(self.to_array_with_dt());
-        } else {
-            builder.add_record(self.to_array_no_dt());
-        }
-    }
-}
-
-pub struct VerboseDetails {
-    pub basic: BasicStopwatchDetails,
-    pub verbose: Vec<VerboseLap>
-}
-
-impl VerboseDetails {
-    pub fn from_details(
-        details: StopwatchDetails,
-        show_dt: bool,
-        builder: &DetailsBuilder
-    ) -> Self {
-        let verbose = match details.verbose_info {
-            Some(ref vi) => {
-                vi.laps.iter().map(|l| builder.get_verbose_lap(l.clone(), show_dt)).collect()
-            },
-            None => vec![]
-        };
-        let basic = builder.get_basic(details, show_dt);
-        Self { basic, verbose }
-    }
-    
-    pub fn add_to_builder(
-        self,
-        show_dt: bool,
-        basic_builder: &mut Builder,
-        verbose_builder: &mut Builder
-    ) {
-        self.basic.add_to_builder(show_dt, basic_builder);
-        for lap in self.verbose {
-            lap.add_to_builder(verbose_builder, show_dt);
-        }
-    }
-
-    pub fn to_basic_and_verbose(self, show_dt: bool) -> (Table, Table) {
-        let mut basic_builder = Builder::default();
-        let mut verbose_builder = Builder::default();
-        if show_dt {
-            verbose_builder.set_columns(VERBOSELAP_HEADERS_SHOWDT);
-        } else {
-            verbose_builder.set_columns(VERBOSELAP_HEADERS_NODT);
-        }
-        self.add_to_builder(show_dt, &mut basic_builder, &mut verbose_builder);
-        (basic_builder.build(), verbose_builder.build())
-    }
-}
+pub const VLH_SDI_COUNT: usize = 1;
+pub const VLH_SHOWDT_INDICES: [usize; VLH_SDI_COUNT] = [2];
 
 pub fn std_duration_to_naive(duration: Duration) -> NaiveTime {
     NaiveTime::from_hms_opt(0, 0, 0).unwrap()
         + chrono::Duration::from_std(duration).unwrap_or_else(|_| chrono::Duration::max_value())
+}
 
+pub fn get_basic_table_builder<'b>(show_dt: bool) -> Builder<'b> {
+    let mut builder = Builder::default();
+    if show_dt {
+        builder.set_columns(BASIC_DETAILS_HEADERS);
+    } else {
+        builder.set_columns(all_except_indices(BASIC_DETAILS_HEADERS, &BDH_SHOWDT_INDICES));
+    }
+    builder
+}
+
+pub fn get_basic_single_builder<'b>(_show_dt: bool) -> Builder<'b> {
+    let builder = Builder::default();
+    builder
+}
+
+pub fn get_verbose_table_builder<'b>(show_dt: bool) -> Builder<'b> {
+    let mut builder = Builder::default();
+    if show_dt {
+        builder.set_columns(VERBOSELAP_HEADERS);
+    } else {
+        builder.set_columns(all_except_indices(VERBOSELAP_HEADERS, &VLH_SHOWDT_INDICES));
+    }
+    builder
+}
+
+pub fn add_basic_record_to_builder(builder: &mut Builder, record: BasicRecord, show_dt: bool) {
+    if show_dt {
+        builder.add_record(record);
+    } else {
+        builder.add_record(all_except_indices(record, &BDH_SHOWDT_INDICES));
+    }
+}
+
+pub fn add_basic_to_verbose_builder(builder: &mut Builder, record: BasicRecord, show_dt: bool) {
+    let iter = if show_dt {
+        all_except_indices(0..BDH_COUNT, &[])
+    } else {
+        all_except_indices(0..BDH_COUNT, &BDH_SHOWDT_INDICES)
+    };
+    for index in iter {
+        let header = BASIC_DETAILS_HEADERS[index].to_string();
+        let field = record[index].clone();
+        builder.add_record([header, field]);
+    }
+}
+
+pub fn add_verbose_record_to_builder(builder: &mut Builder, record: VerboseRecord, show_dt: bool) {
+    if show_dt {
+        builder.add_record(record);
+    } else {
+        builder.add_record(all_except_indices(record, &VLH_SHOWDT_INDICES));
+    }
+}
+
+fn all_except_indices<'i, I, V>(iter: I, indices: &'i [usize]) -> impl Iterator<Item = V> + 'i
+where
+    I: IntoIterator<Item = V> + 'i
+{
+    iter.into_iter()
+        .enumerate()
+        .filter_map(|(i, v)| if indices.contains(&i) { None } else { Some(v) })
 }
