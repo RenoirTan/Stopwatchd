@@ -219,7 +219,6 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientReque
             identifier: sw_identifier.clone(),
             duplicates: vec![uuid_name]
         };
-        let mut reply = ServerReply::new(StartReply.into());
         reply.extend_uncollected_errors([(given_identifier, error.into())]);
     } else {
         let details = StopwatchDetails::from_stopwatch(&stopwatch, req.verbose);
