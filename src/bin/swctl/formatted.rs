@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use chrono::{Local, DateTime, NaiveTime};
 use stopwatchd::{
-    communication::details::StopwatchDetails,
-    util::get_uuid_node, models::lap::FinishedLap
+    communication::{details::StopwatchDetails, server_message::ServerError},
+    util::get_uuid_node, models::lap::FinishedLap, identifiers::Identifier
 };
 use tabled::builder::Builder;
 use uuid::Uuid;
@@ -81,6 +81,20 @@ impl Formatter {
         [ id, sw_id, start, duration ]
     }
 
+    pub fn get_errors<I>(
+        &self,
+        identifier: Option<Identifier>,
+        errors: I,
+        _show_dt: bool
+    ) -> ErrorRecord
+    where
+        I: IntoIterator<Item = ServerError>
+    {
+        let mut record = vec![identifier.unwrap_or_default().to_string()];
+        record.extend(errors.into_iter().map(|e| format!("{}", e)));
+        record
+    }
+
     pub fn from_details<I>(&self, builder: &mut Builder, details: I, show_dt: bool)
     where
         I: IntoIterator<Item = StopwatchDetails>
@@ -143,6 +157,8 @@ pub const VERBOSELAP_HEADERS: [&'static str; VLH_COUNT] = [
 pub const VLH_SDI_COUNT: usize = 1;
 pub const VLH_SHOWDT_INDICES: [usize; VLH_SDI_COUNT] = [2];
 
+pub type ErrorRecord = Vec<String>;
+
 pub fn std_duration_to_naive(duration: Duration) -> NaiveTime {
     NaiveTime::from_hms_opt(0, 0, 0).unwrap()
         + chrono::Duration::from_std(duration).unwrap_or_else(|_| chrono::Duration::max_value())
@@ -173,6 +189,10 @@ pub fn get_verbose_table_builder<'b>(show_dt: bool) -> Builder<'b> {
     builder
 }
 
+pub fn get_error_table_builder<'b>(_show_dt: bool) -> Builder<'b> {
+    Builder::default()
+}
+
 pub fn add_basic_record_to_builder(builder: &mut Builder, record: BasicRecord, show_dt: bool) {
     if show_dt {
         builder.add_record(record);
@@ -199,6 +219,16 @@ pub fn add_verbose_record_to_builder(builder: &mut Builder, record: VerboseRecor
         builder.add_record(record);
     } else {
         builder.add_record(all_except_indices(record, &VLH_SHOWDT_INDICES));
+    }
+}
+
+pub fn add_errors_to_builder(builder: &mut Builder, record: ErrorRecord, _show_dt: bool) {
+    for (index, item) in record.into_iter().enumerate() {
+        if index == 0 {
+            builder.add_record(["identifier".to_string(), item]);
+        } else {
+            builder.add_record([index.to_string(), item]);
+        }
     }
 }
 
