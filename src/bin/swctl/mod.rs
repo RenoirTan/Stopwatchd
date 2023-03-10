@@ -89,6 +89,8 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
 
     if good.len() > 0 {
         println!("{}", good);
+    } else {
+        println!("Found nothing");
     }
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
