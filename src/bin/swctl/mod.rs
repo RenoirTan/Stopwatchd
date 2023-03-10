@@ -1,4 +1,4 @@
-use std::process;
+use std::process::{self, exit};
 
 #[macro_use]
 extern crate log;
@@ -83,11 +83,12 @@ async fn main() {
     }
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
+        info!("exiting without errors");
     } else {
         println!("ALL OK");
+        info!("exiting with errors");
+        exit(1);
     }
-
-    info!("exiting");
 }
 
 fn get_details_errors(
