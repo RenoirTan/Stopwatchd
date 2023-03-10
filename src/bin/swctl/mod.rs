@@ -107,6 +107,10 @@ fn get_details_errors(
         None => request.identifiers.iter()
     };
 
+    /* 
+        TODO: Make sure that successes/errors that didn't match any `identifier`
+        eventually get printed out somewhere
+    */
     for identifier in ao {
         if let Some(d) = reply.successful.remove(&identifier) {
             details.push(d);
@@ -115,6 +119,9 @@ fn get_details_errors(
         if let Some(e) = reply.errors.remove(&o_id) {
             errors.push((o_id, e));
         }
+    }
+    if let Some(e) = reply.errors.remove(&None) {
+        errors.insert(0, (None, e));
     }
 
     (details, errors)
