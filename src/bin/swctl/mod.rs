@@ -17,7 +17,7 @@ use stopwatchd::{
 };
 use tokio::net::UnixStream;
 
-use crate::formatted::DetailsBuilder;
+use crate::formatted::Formatter;
 
 mod cli;
 mod formatted;
@@ -116,7 +116,7 @@ fn generate_output<I>(args: &cli::Cli, details: I) -> String
 where
     I: IntoIterator<Item = StopwatchDetails>
 {
-    let formatter = DetailsBuilder::new(&args.datetime_fmt, &args.duration_fmt);
+    let formatter = Formatter::new(&args.datetime_fmt, &args.duration_fmt);
     if args.verbose {
         let mut out = String::new();
         let basic = get_basic_single_builder(args.show_datetime_info);

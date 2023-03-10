@@ -11,12 +11,12 @@ use uuid::Uuid;
 pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 pub const DEFAULT_DURATION_FORMAT: &'static str = "%H:%M:%S.%3f";
 
-pub struct DetailsBuilder {
+pub struct Formatter {
     pub datetime_format: String,
     pub duration_format: String
 }
 
-impl DetailsBuilder {
+impl Formatter {
     pub fn new(datetime_format: &str, duration_format: &str) -> Self {
         let datetime_format = datetime_format.to_string();
         let duration_format = duration_format.to_string();
