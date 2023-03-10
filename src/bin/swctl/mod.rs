@@ -66,53 +66,48 @@ async fn main() {
     let reply = ServerMessage::from_bytes(&braw).unwrap();
     println!("{:?}", reply);
 
-    match reply.reply.specific_answer {
+    let (details, errors) = match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
-        ServerReplyKind::Info(InfoReply::All(_)) =>
-            info_all_print(&cli, message.request, reply.reply).await,
-        _ => generic_print(&cli, message.request, reply.reply).await
+        ServerReplyKind::Info(InfoReply::All(ref all)) => {
+            let ao = all.access_order.clone();
+            get_details_errors(&message.request, reply.reply, Some(&ao))
+        },
+        _ => get_details_errors(&message.request, reply.reply, None)
+    };
+
+    let formatter = Formatter::new(&cli.datetime_fmt, &cli.duration_fmt);
+
+    let good = generate_output(&cli, details, &formatter);
+    let bad = generate_errors(&cli, errors, &formatter);
+
+    if good.len() > 0 {
+        println!("{}", good);
+    }
+    if bad.len() > 0 {
+        println!("!! ERRORS:\n{}", bad);
+    } else {
+        println!("ALL OK");
     }
 
     info!("exiting");
 }
 
-async fn generic_print(
-    args: &cli::Cli,
-    request: ClientRequest,
-    mut reply: ServerReply
-) {
+fn get_details_errors(
+    request: &ClientRequest,
+    mut reply: ServerReply,
+    access_order: Option<&Vec<Identifier>>
+) -> (Vec<StopwatchDetails>, Vec<(Option<Identifier>, Vec<ServerError>)>) {
     let mut details = Vec::with_capacity(reply.successful.len());
     let mut errors = Vec::with_capacity(reply.errors.len());
-    
-    for identifier in &request.identifiers {
-        if let Some(d) = reply.successful.remove(&identifier) {
-            details.push(d);
-        }
-        let o_id = Some(identifier.clone());
-        if let Some(e) = reply.errors.remove(&o_id) {
-            errors.push((o_id, e));
-        }
-    }
 
-    let formatter = Formatter::new(&args.datetime_fmt, &args.duration_fmt);
-    println!("{}", generate_output(args, details, &formatter));
-    println!("{}", generate_errors(args, errors, &formatter));
-}
-
-async fn info_all_print(
-    args: &cli::Cli,
-    _request: ClientRequest,
-    mut reply: ServerReply
-) {
-    let all = match reply.specific_answer {
-        ServerReplyKind::Info(InfoReply::All(all)) => all,
-        _ => panic!("match didn't work for InfoReply::All")
+    // If InfoAll, then an access order would have been provided, used that instead.
+    // Otherwise, use the cmd args as the access order.
+    let ao = match access_order {
+        Some(ao) => ao.iter(),
+        None => request.identifiers.iter()
     };
 
-    let mut details = Vec::with_capacity(reply.successful.len());
-    let mut errors = Vec::with_capacity(reply.errors.len());
-    
-    for identifier in &all.access_order {
+    for identifier in ao {
         if let Some(d) = reply.successful.remove(&identifier) {
             details.push(d);
         }
@@ -122,9 +117,7 @@ async fn info_all_print(
         }
     }
 
-    let formatter = Formatter::new(&args.datetime_fmt, &args.duration_fmt);
-    println!("{}", generate_output(args, details, &formatter));
-    println!("{}", generate_errors(args, errors, &formatter));
+    (details, errors)
 }
 
 fn generate_output<I>(args: &cli::Cli, details: I, formatter: &Formatter) -> String
