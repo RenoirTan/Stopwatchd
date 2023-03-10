@@ -148,8 +148,12 @@ where
         out
     } else {
         let mut builder = get_basic_table_builder(args.show_datetime_info);
-        formatter.from_details(&mut builder, details, args.show_datetime_info);
-        builder.build().to_string()
+        let row_count = formatter.from_details(&mut builder, details, args.show_datetime_info);
+        if row_count == 0 {
+            String::new()
+        } else {
+            builder.build().to_string()
+        }
     }
 }
 
@@ -165,7 +169,6 @@ where
         if out.len() != 0 {
             out.push('\n');
         }
-        out.push('\n');
         out.push_str(&builder.build().to_string());
     }
     out

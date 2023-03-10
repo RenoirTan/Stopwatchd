@@ -95,14 +95,17 @@ impl Formatter {
         record
     }
 
-    pub fn from_details<I>(&self, builder: &mut Builder, details: I, show_dt: bool)
+    pub fn from_details<I>(&self, builder: &mut Builder, details: I, show_dt: bool) -> usize
     where
         I: IntoIterator<Item = StopwatchDetails>
     {
+        let mut count = 0;
         for d in details {
             let record = self.get_basic(d, show_dt);
             add_basic_record_to_builder(builder, record, show_dt);
+            count += 1;
         }
+        count
     }
 
     pub fn from_details_verbose<'s, I>(
