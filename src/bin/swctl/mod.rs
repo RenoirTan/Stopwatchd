@@ -95,11 +95,11 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
         info!("exiting without errors");
-        Ok(0)
+        Ok(1)
     } else {
         println!("ALL OK");
         info!("exiting with errors");
-        Ok(1)
+        Ok(0)
     }
 }
 
