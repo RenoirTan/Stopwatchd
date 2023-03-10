@@ -26,7 +26,6 @@ mod request;
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
-    println!("{:?}", cli);
 
     let pid = process::id();
     logging::setup(&format!("swctl.{}", pid), None).unwrap();
@@ -64,7 +63,6 @@ async fn main() {
     stream.try_read_buf(&mut braw).unwrap();
 
     let reply = ServerMessage::from_bytes(&braw).unwrap();
-    println!("{:?}", reply);
 
     let (details, errors) = match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
