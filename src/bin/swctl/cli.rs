@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, Args};
 
-use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT};
+use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT, Styles};
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about)]
@@ -36,7 +36,11 @@ pub struct Cli {
         global = true,
         default_value_t = DEFAULT_DATETIME_FORMAT.to_string()
     )]
-    pub datetime_fmt: String
+    pub datetime_fmt: String,
+
+    /// Table appearance
+    #[arg(short = 's', long = "style", global = true, default_value_t = Styles::default())]
+    pub table_style: Styles
 }
 
 #[derive(Subcommand, Clone, Debug)]

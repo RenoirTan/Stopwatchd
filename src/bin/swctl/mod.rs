@@ -3,7 +3,7 @@ use std::process::{self, exit};
 #[macro_use]
 extern crate log;
 use clap::Parser;
-use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_table_builder, get_error_table_builder, add_errors_to_builder};
+use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_table_builder, get_error_table_builder, add_errors_to_builder, Styles};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
@@ -84,8 +84,8 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
 
     let formatter = Formatter::new(&cli.datetime_fmt, &cli.duration_fmt);
 
-    let good = generate_output(&cli, details, &formatter);
-    let bad = generate_errors(&cli, errors, &formatter);
+    let good = generate_output(&cli, details, &formatter, cli.table_style);
+    let bad = generate_errors(&cli, errors, &formatter, cli.table_style);
 
     if good.len() > 0 {
         println!("{}", good);
@@ -138,7 +138,7 @@ fn get_details_errors(
     (details, errors)
 }
 
-fn generate_output<I>(args: &cli::Cli, details: I, formatter: &Formatter) -> String
+fn generate_output<I>(args: &cli::Cli, details: I, formatter: &Formatter, style: Styles) -> String
 where
     I: IntoIterator<Item = StopwatchDetails>
 {
@@ -152,9 +152,17 @@ where
             if out.len() != 0 {
                 out.push('\n');
             }
-            out.push_str(&b.build().to_string());
+        
+            // TODO: Add styles to tables
+            // Whatever this means:
+            // https://doc.rust-lang.org/nomicon/subtyping.html
+            let mut btable = b.build();
+            // style.style_table(&mut btable);
+            out.push_str(&btable.to_string());
             out.push('\n');
-            out.push_str(&v.build().to_string());
+            let mut vtable = v.build();
+            // style.style_table(&mut vtable);
+            out.push_str(&vtable.to_string());
         }
         out
     } else {
@@ -163,12 +171,14 @@ where
         if row_count == 0 {
             String::new()
         } else {
-            builder.build().to_string()
+            let mut table = builder.build();
+            style.style_table(&mut table);
+            table.to_string()
         }
     }
 }
 
-fn generate_errors<I>(args: &cli::Cli, iter: I, formatter: &Formatter) -> String
+fn generate_errors<I>(args: &cli::Cli, iter: I, formatter: &Formatter, style: Styles) -> String
 where
     I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>
 {
@@ -180,7 +190,9 @@ where
         if out.len() != 0 {
             out.push('\n');
         }
-        out.push_str(&builder.build().to_string());
+        let mut table = builder.build();
+        style.style_table(&mut table);
+        out.push_str(&table.to_string());
     }
     out
 }

@@ -1,12 +1,70 @@
-use std::time::Duration;
+use std::{time::Duration, fmt};
 
 use chrono::{Local, DateTime, NaiveTime};
+use clap::ValueEnum;
 use stopwatchd::{
     communication::{details::StopwatchDetails, server_message::ServerError},
     util::get_uuid_node, models::lap::FinishedLap, identifiers::Identifier
 };
-use tabled::builder::Builder;
+use tabled::{builder::Builder, Table, Style};
 use uuid::Uuid;
+
+#[derive(Copy, Clone, Debug, Default, ValueEnum)]
+#[non_exhaustive]
+pub enum Styles {
+    #[default] Blank,
+    Empty,
+    Ascii,
+    AsciiRounded,
+    Psql,
+    Markdown,
+    Modern,
+    Sharp,
+    Rounded,
+    Extended,
+    Dots,
+    Rest // RestructuredText
+}
+
+impl Styles {
+    pub fn style_table(self, table: &mut Table) {
+        use Styles::*;
+        match self {
+            Blank => table.with(Style::blank()),
+            Empty => table.with(Style::empty()),
+            Ascii => table.with(Style::ascii()),
+            AsciiRounded => table.with(Style::ascii_rounded()),
+            Psql => table.with(Style::psql()),
+            Markdown => table.with(Style::markdown()),
+            Modern => table.with(Style::modern()),
+            Sharp => table.with(Style::sharp()),
+            Rounded => table.with(Style::rounded()),
+            Extended => table.with(Style::extended()),
+            Dots => table.with(Style::dots()),
+            Rest => table.with(Style::re_structured_text())
+        };
+    }
+}
+
+impl fmt::Display for Styles {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Styles::*;
+        write!(f, "{}", match self {
+            Blank => "blank",
+            Empty => "empty",
+            Ascii => "ascii",
+            AsciiRounded => "ascii_rounded",
+            Psql => "psql",
+            Markdown => "markdown",
+            Modern => "modern",
+            Sharp => "sharp",
+            Rounded => "rounded",
+            Extended => "extended",
+            Dots => "dots",
+            Rest => "rest"
+        })
+    }
+}
 
 pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
 pub const DEFAULT_DURATION_FORMAT: &'static str = "%H:%M:%S.%3f";
