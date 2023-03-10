@@ -26,14 +26,23 @@ mod request;
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
+    match run(cli).await {
+        Ok(code) => exit(code),
+        Err(e) => {
+            panic!("{}", e);
+        }
+    }
+}
 
+/// Actual function that does stuff
+async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
     let pid = process::id();
-    logging::setup(&format!("swctl.{}", pid), None).unwrap();
+    logging::setup(&format!("swctl.{}", pid), None)?;
     debug!("swctl has started outputting logs");
 
     let swd_pid = {
-        let mut pidfile = open_pidfile(false).unwrap();
-        get_swd_pid(&mut pidfile).unwrap()
+        let mut pidfile = open_pidfile(false)?;
+        get_swd_pid(&mut pidfile)?
     };
     debug!("swd_pid is {}", swd_pid);
 
@@ -44,25 +53,25 @@ async fn main() {
         panic!("{:?} does not exist", ssock_path);
     }
     trace!("connecting to {:?}", ssock_path);
-    let stream = UnixStream::connect(&ssock_path).await.unwrap();
+    let stream = UnixStream::connect(&ssock_path).await?;
     trace!("connected to {:?}", ssock_path);
 
     trace!("checking if can write to server");
-    stream.writable().await.unwrap();
+    stream.writable().await?;
 
     let message: ClientMessage = request::args_to_request(&cli).into();
-    let message_bytes = message.to_bytes().unwrap();
+    let message_bytes = message.to_bytes()?;
 
     info!("writing message to server");
-    stream.try_write(&message_bytes).unwrap();
+    stream.try_write(&message_bytes)?;
 
     trace!("checking if can read from server");
-    stream.readable().await.unwrap();
+    stream.readable().await?;
     let mut braw = Vec::with_capacity(4096);
     info!("reading response from server");
-    stream.try_read_buf(&mut braw).unwrap();
+    stream.try_read_buf(&mut braw)?;
 
-    let reply = ServerMessage::from_bytes(&braw).unwrap();
+    let reply = ServerMessage::from_bytes(&braw)?;
 
     let (details, errors) = match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
@@ -84,10 +93,11 @@ async fn main() {
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
         info!("exiting without errors");
+        Ok(0)
     } else {
         println!("ALL OK");
         info!("exiting with errors");
-        exit(1);
+        Ok(1)
     }
 }
 
