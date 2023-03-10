@@ -166,30 +166,23 @@ impl Formatter {
         count
     }
 
-    pub fn from_details_verbose<'s, I>(
-        &'s self,
-        basic: Builder<'s>,
-        verbose: Builder<'s>,
-        details: I,
+    /// Rest in peace original function: https://doc.rust-lang.org/nomicon/subtyping.html
+    pub fn from_verbose(
+        &self,
+        basic: &mut Builder,
+        verbose: &mut Builder,
+        details: StopwatchDetails,
         show_dt: bool
-    ) -> impl Iterator<Item = (Builder, Builder)>
-    where
-        I: IntoIterator<Item = StopwatchDetails> + 's
-    {
-        details.into_iter().map(move |d| {
-            let mut basic = basic.clone();
-            let mut verbose = verbose.clone();
-            if let Some(ref vi) = d.verbose_info {
-                for lap in &vi.laps {
-                    let lap = lap.clone();
-                    let record = self.get_verbose_lap(lap, show_dt);
-                    add_verbose_record_to_builder(&mut verbose, record, show_dt);
-                }
+    ) {
+        if let Some(ref vi) = details.verbose_info {
+            for lap in &vi.laps {
+                let lap = lap.clone();
+                let record = self.get_verbose_lap(lap, show_dt);
+                add_verbose_record_to_builder(verbose, record, show_dt);
             }
-            let basic_record = self.get_basic(d, show_dt);
-            add_basic_to_verbose_builder(&mut basic, basic_record, show_dt);
-            (basic, verbose)
-        })
+        }
+        let basic_record = self.get_basic(details, show_dt);
+        add_basic_to_verbose_builder(basic, basic_record, show_dt);
     }
 }
 

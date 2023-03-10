@@ -146,22 +146,22 @@ where
         let mut out = String::new();
         let basic = get_basic_single_builder(args.show_datetime_info);
         let verbose = get_verbose_table_builder(args.show_datetime_info);
-        let builders = formatter
-            .from_details_verbose(basic, verbose, details, args.show_datetime_info);
-        for (b, v) in builders {
+        for d in details {
+            let mut b = basic.clone();
+            let mut v = verbose.clone();
+
+            formatter.from_verbose(&mut b, &mut v, d, args.show_datetime_info);
+
             if out.len() != 0 {
                 out.push('\n');
             }
-        
-            // TODO: Add styles to tables
-            // Whatever this means:
-            // https://doc.rust-lang.org/nomicon/subtyping.html
+
             let mut btable = b.build();
-            // style.style_table(&mut btable);
+            style.style_table(&mut btable);
             out.push_str(&btable.to_string());
             out.push('\n');
             let mut vtable = v.build();
-            // style.style_table(&mut vtable);
+            style.style_table(&mut vtable);
             out.push_str(&vtable.to_string());
         }
         out
