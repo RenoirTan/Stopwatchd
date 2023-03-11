@@ -265,6 +265,7 @@ impl Stopwatch {
     }
 }
 
+/*
 pub fn _simulate_stopwatch(duration: Duration) {
     debug!("_simulating stopwatch");
     let mut stopwatch = Stopwatch::new(None);
@@ -288,3 +289,4 @@ pub fn _simulate_stopwatch(duration: Duration) {
     println!("Stopwatch {} done!", stopwatch.id);
     debug!("stopwatch _simulation done");
 }
+*/

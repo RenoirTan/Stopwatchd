@@ -21,7 +21,7 @@ pub async fn handle_client(client: UnixStream, req_tx: RequestSender) -> io::Res
     debug!("received {} bytes from client", bytes_read);
 
     let message = ClientMessage::from_bytes(&braw)?;
-    println!("{:?}", message);
+    // println!("{:?}", message);
 
     let (res_tx, mut res_rx) = make_response_channels();
     let request = Request { action: message.request, res_tx };

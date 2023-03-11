@@ -97,7 +97,6 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
         info!("exiting without errors");
         Ok(1)
     } else {
-        println!("ALL OK");
         info!("exiting with errors");
         Ok(0)
     }
