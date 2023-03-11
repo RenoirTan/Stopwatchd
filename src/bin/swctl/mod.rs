@@ -117,10 +117,12 @@ fn get_details_errors(
         None => request.identifiers.iter()
     };
 
-    /* 
-        TODO: Make sure that successes/errors that didn't match any `identifier`
-        eventually get printed out somewhere
-    */
+    // Errors associated with `None` identifier are likely more serious and
+    // should therefore be bubbled to the top
+    if let Some(e) = reply.errors.remove(&None) {
+        errors.push((None, e));
+    }
+    // Add stuff that has an identifier in access order
     for identifier in ao {
         if let Some(d) = reply.successful.remove(&identifier) {
             details.push(d);
@@ -130,9 +132,9 @@ fn get_details_errors(
             errors.push((o_id, e));
         }
     }
-    if let Some(e) = reply.errors.remove(&None) {
-        errors.insert(0, (None, e));
-    }
+    // Then drain everything else into their respective vectors
+    details.extend(reply.successful.drain().map(|(_k, v)| v));
+    errors.extend(reply.errors.drain());
 
     (details, errors)
 }
