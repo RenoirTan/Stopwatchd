@@ -2,6 +2,10 @@
 
 Command-line stopwatch daemon and controller for Unix-like systems.
 
+## Building
+
+See [BUILD.md](BUILD.md) for more information.
+
 ## Usage
 
 ### `swd`
