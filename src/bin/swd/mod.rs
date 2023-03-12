@@ -16,7 +16,8 @@ use tokio::sync::mpsc::unbounded_channel;
 use crate::{
     cleanup::Cleanup,
     signal::{handle_signals, get_signals},
-    socket::{clear_socket, create_socket, listen_to_socket}, manager::{Manager, make_request_channels, manage}
+    socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
+    manager::{Manager, make_request_channels, manage}
 };
 
 mod cleanup;
@@ -66,6 +67,7 @@ async fn main() {
     let ssock_path = server_socket_path(Some(pid));
     clear_socket(&ssock_path).unwrap();
     let socket = create_socket(&ssock_path).unwrap();
+    set_socket_perms(&ssock_path).unwrap();
 
     // Application
     listen_to_socket(&socket, signal_rx, req_tx).await;

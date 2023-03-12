@@ -1,12 +1,14 @@
 use std::{
     path::Path,
     io,
-    fs::remove_file
+    fs::{remove_file, self}
 };
 
 use tokio::net::UnixListener;
 
 use crate::{signal::SignalReceiver, handlers::handle_client, manager::RequestSender};
+
+pub const SOCK_MODE: i32 = 0o550;
 
 pub fn clear_socket<P: AsRef<Path>>(path: &P) -> io::Result<()> {
     let path = path.as_ref();
@@ -19,6 +21,13 @@ pub fn clear_socket<P: AsRef<Path>>(path: &P) -> io::Result<()> {
 pub fn create_socket<P: AsRef<Path>>(path: &P) -> io::Result<UnixListener> {
     let path = path.as_ref();
     UnixListener::bind(path)
+}
+
+pub fn set_socket_perms<P: AsRef<Path>>(path: &P) -> io::Result<i32> {
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_readonly(false);
+    fs::set_permissions(path, perms)?;
+    Ok(SOCK_MODE)
 }
 
 pub async fn listen_to_socket(
