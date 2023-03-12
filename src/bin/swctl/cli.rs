@@ -77,7 +77,7 @@ pub enum Subcommands {
     Play(Play),
 
     /// Delete a stopwatch from the daemon.
-    #[command(visible_aliases = ["d", "remove", "rm", "r"])]
+    #[command(visible_aliases = ["d", "del", "remove", "rm", "r"])]
     Delete(Delete)
 }
 
