@@ -1,0 +1,8 @@
+[Unit]
+Description=Stopwatchd Daemon Server
+Wants=
+
+[Service]
+ExecStart=<PREFIX>/bin/swd
+Type=simple
+WorkingDirectory=/
