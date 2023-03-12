@@ -12,7 +12,7 @@ depends = "systemd"
 section = "utility"
 
 [package.metadata.deb.systemd-units]
-unit-scripts = "res/init/systemd"
+unit-scripts = "out"
 unit-name = "stopwatchd"
 # enable = false
 # start = false

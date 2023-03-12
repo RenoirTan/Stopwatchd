@@ -1,0 +1,36 @@
+#!/bin/bash
+
+source "$(dirname $0)/_common"
+
+_serviceoutpath="stopwatchd.service"
+
+while getopts "o:p:" option; do
+    case "${option}" in
+        o)
+            echo "Specified intermediate output directory: ${OPTARG}"
+            outdir="${OPTARG}"
+            ;;
+        p)
+            echo "Specified prefix: ${OPTARG}"
+            prefix="${OPTARG}"
+            ;;
+        ?)
+            echo "Usage: $(basename $0) [-o outdir]"
+            echo ""
+            echo "Options:"
+            echo " -o outdir: Set the intermediate output directory."
+            echo "          : '$(pwd)/out' by default."
+            exit 1
+            ;;
+    esac
+done
+
+cd_src
+
+if [ ! -f "${_servicepath}" ]; then
+    echo "${_servicepath} does not exist. It may have been deleted or moved."
+    exit 1
+fi
+
+install -Dm 644 "${_servicepath}" "${outdir}/${_serviceoutpath}"
+sed -i "s|<PREFIX>|${prefix}|" "${outdir}/${_serviceoutpath}"
