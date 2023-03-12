@@ -3,6 +3,8 @@ use std::{process, panic, backtrace::Backtrace};
 use log::{SetLoggerError, LevelFilter};
 use syslog::{Formatter3164, Facility, BasicLogger};
 
+pub mod cli;
+
 // If debug
 #[cfg(debug_assertions)]
 pub const DEFAULT_LOGGER_LEVEL: LevelFilter = LevelFilter::Trace;
