@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand, Args};
+use stopwatchd::logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL};
 
 use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT, Styles};
 
-#[derive(Parser, Clone, Debug)]
+#[derive(Parser, Clone)]
 #[command(author, version, about)]
 pub struct Cli {
     #[command(subcommand)]
@@ -40,7 +41,11 @@ pub struct Cli {
 
     /// Table appearance
     #[arg(short = 's', long = "style", global = true, default_value_t = Styles::default())]
-    pub table_style: Styles
+    pub table_style: Styles,
+
+    /// Set the log level for the daemon.
+    #[arg(short, long, default_value_t = DEFAULT_LOGGER_LEVEL.into(), value_enum)]
+    pub log_level: LogLevel
 }
 
 #[derive(Subcommand, Clone, Debug)]

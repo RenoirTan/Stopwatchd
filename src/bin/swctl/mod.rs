@@ -37,7 +37,7 @@ async fn main() {
 /// Actual function that does stuff
 async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
     let pid = process::id();
-    logging::setup(&format!("swctl.{}", pid), None)?;
+    logging::setup(&format!("swctl.{}", pid), Some(cli.log_level.into()))?;
     debug!("swctl has started outputting logs");
 
     let swd_pid = {
@@ -94,10 +94,10 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
     }
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
-        info!("exiting without errors");
+        info!("exiting with errors");
         Ok(1)
     } else {
-        info!("exiting with errors");
+        info!("exiting without errors");
         Ok(0)
     }
 }
