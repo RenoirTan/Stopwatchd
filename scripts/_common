@@ -1,0 +1,14 @@
+#!/hint/bash
+
+pkgdir="$(pwd)/pkg"
+outdir="$(pwd)/out"
+prefix="/usr"
+_reldir="./target/release"
+_swdpath="${_reldir}/swd"
+_swctlpath="${_reldir}/swctl"
+_servicepath="./res/init/systemd/stopwatchd.service"
+
+# cd to project root
+cd_src() {
+    cd "$(dirname $0)/.."
+}

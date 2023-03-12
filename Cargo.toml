@@ -6,6 +6,19 @@ authors = ["RenoirTan"]
 description = "Stopwatch daemon in the terminal."
 readme = "README.md"
 
+[package.metadata.deb]
+name = "stopwatchd"
+depends = "systemd"
+section = "utility"
+
+[package.metadata.deb.systemd-units]
+unit-scripts = "out"
+unit-name = "stopwatchd"
+# enable = false
+# start = false
+# restart-after-upgrade = false
+# stop-on-upgrade = true
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]

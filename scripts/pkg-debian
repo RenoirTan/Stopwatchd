@@ -1,0 +1,9 @@
+#!/bin/bash
+
+source "$(dirname $0)/_common"
+
+cd_src
+
+scripts/mk-systemd-service -p '/usr'
+mkdir -p pkg
+cargo deb --output pkg
