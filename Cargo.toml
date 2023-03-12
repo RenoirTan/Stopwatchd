@@ -8,8 +8,12 @@ readme = "README.md"
 
 [package.metadata.deb]
 name = "stopwatchd"
+maintainer = "RenoirTan"
 depends = "systemd"
+extended-description-file = "README.md"
+revision = 1
 section = "utility"
+priority = "optional"
 
 [package.metadata.deb.systemd-units]
 unit-scripts = "out"
