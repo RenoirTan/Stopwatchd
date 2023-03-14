@@ -7,7 +7,7 @@ use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_t
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid},
-    runtime::server_socket_path,
+    runtime::{server_socket_path, DEFAULT_PIDFILE_PATH},
     communication::{
         client_message::{ClientMessage, ClientRequest},
         server_message::{ServerMessage, ServerReplyKind, ServerReply, ServerError},
@@ -26,52 +26,52 @@ mod request;
 #[tokio::main]
 async fn main() {
     let cli = cli::Cli::parse();
-    match run(cli).await {
-        Ok(code) => exit(code),
-        Err(e) => {
-            panic!("{}", e);
-        }
-    }
+    exit(run(cli).await);
 }
 
 /// Actual function that does stuff
-async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
+async fn run(cli: cli::Cli) -> i32 {
     let pid = process::id();
-    logging::setup(&format!("swctl.{}", pid), Some(cli.log_level.into()))?;
+    logging::setup(&format!("swctl.{}", pid), Some(cli.log_level.into()))
+        .expect("could not setup logging");
     debug!("swctl has started outputting logs");
 
     let swd_pid = {
-        let mut pidfile = open_pidfile(false)?;
-        get_swd_pid(&mut pidfile)?
+        let mut pidfile = open_pidfile(false)
+            .expect(&format!("could not open pidfile: {}", DEFAULT_PIDFILE_PATH));
+        get_swd_pid(&mut pidfile)
+            .expect(&format!("could not get swd PID from {}", DEFAULT_PIDFILE_PATH))
     };
     debug!("swd_pid is {}", swd_pid);
 
     let ssock_path = server_socket_path(Some(swd_pid));
-    if ssock_path.exists() {
-        debug!("{:?} exists", ssock_path);
-    } else {
-        panic!("{:?} does not exist", ssock_path);
-    }
+    let ssock_path_str = ssock_path.to_string_lossy();
     trace!("connecting to {:?}", ssock_path);
-    let stream = UnixStream::connect(&ssock_path).await?;
+    let stream = UnixStream::connect(&ssock_path).await
+        .expect(&format!("could not connect to {}", ssock_path_str));
     trace!("connected to {:?}", ssock_path);
 
     trace!("checking if can write to server");
-    stream.writable().await?;
+    stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
 
     let message: ClientMessage = request::args_to_request(&cli).into();
-    let message_bytes = message.to_bytes()?;
+    let message_bytes = message.to_bytes()
+        .expect("could not convert request into message");
 
     info!("writing message to server");
-    stream.try_write(&message_bytes)?;
+    stream.try_write(&message_bytes)
+        .expect(&format!("could not write request message to {}", ssock_path_str));
 
     trace!("checking if can read from server");
-    stream.readable().await?;
+    stream.readable().await
+        .expect(&format!("{} is not readable", ssock_path_str));
     let mut braw = Vec::with_capacity(4096);
     info!("reading response from server");
-    stream.try_read_buf(&mut braw)?;
+    stream.try_read_buf(&mut braw)
+        .expect(&format!("could not read reply message from {}", ssock_path_str));
 
-    let reply = ServerMessage::from_bytes(&braw)?;
+    let reply = ServerMessage::from_bytes(&braw)
+        .expect(&format!("could not convert message to reply"));
 
     let (details, errors) = match reply.reply.specific_answer {
         ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
@@ -95,10 +95,10 @@ async fn run(cli: cli::Cli) -> Result<i32, Box<dyn std::error::Error>> {
     if bad.len() > 0 {
         println!("!! ERRORS:\n{}", bad);
         info!("exiting with errors");
-        Ok(1)
+        1
     } else {
         info!("exiting without errors");
-        Ok(0)
+        0
     }
 }
 
