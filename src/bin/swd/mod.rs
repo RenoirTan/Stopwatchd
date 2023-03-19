@@ -3,7 +3,6 @@ use std::{
     process
 };
 
-use clap::Parser;
 #[macro_use]
 extern crate log;
 use stopwatchd::{
@@ -17,11 +16,11 @@ use crate::{
     cleanup::Cleanup,
     signal::{handle_signals, get_signals},
     socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
-    manager::{Manager, make_request_channels, manage}
+    manager::{Manager, make_request_channels, manage}, config::DEFAULT_CONFIG_PATH
 };
 
 mod cleanup;
-mod cli;
+mod config;
 mod handlers;
 mod manager;
 mod signal;
@@ -30,8 +29,8 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
-    let cli = cli::Cli::parse();
-    let log_level = cli.log_level.into();
+    let cli = config::Cli::collect(DEFAULT_CONFIG_PATH).unwrap();
+    let log_level = cli.log_level().into();
 
     let pid = process::id();
     logging::setup(&format!("swd.{}", pid), Some(log_level)).unwrap();
