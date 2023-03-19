@@ -22,26 +22,7 @@ pub struct Cli {
 impl Cli {
     pub fn collect(config_path: &str) -> Result<Self, io::Error> {
         let mut cli = Self::parse();
-
-        let mut config_file = match OpenOptions::new()
-            .read(true)
-            .open(config_path)
-        {
-            Ok(f) => f,
-            Err(e) => {
-                println!("skipping config file, '{}' could not be opened: {}", config_path, e);
-                return Ok(cli)
-            }
-        };
-        let mut config_raw = String::new();
-        config_file.read_to_string(&mut config_raw)?;
-        let table = config_raw.parse::<Table>()
-            .map_err(|e| io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("could not parse {}: {}", config_path, e)
-            ))?;
-        cli.supplement_toml(table)?;
-
+        cli.supplement_file(config_path)?;
         Ok(cli)
     }
 
@@ -62,6 +43,29 @@ impl Cli {
                 ))
             };
         }
+        Ok(self)
+    }
+
+    pub fn supplement_file(&mut self, config_path: &str) -> Result<&mut Self, io::Error> {
+        let mut config_file = match OpenOptions::new()
+            .read(true)
+            .open(config_path)
+        {
+            Ok(f) => f,
+            Err(e) => {
+                println!("skipping config file, '{}' could not be opened: {}", config_path, e);
+                return Ok(self)
+            }
+        };
+        let mut config_raw = String::new();
+        config_file.read_to_string(&mut config_raw)?;
+        let table = config_raw.parse::<Table>()
+            .map_err(|e| io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("could not parse {}: {}", config_path, e)
+            ))?;
+        self.supplement_toml(table)?;
+
         Ok(self)
     }
 }
