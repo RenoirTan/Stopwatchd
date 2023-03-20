@@ -3,9 +3,11 @@ use std::{
     process,
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering}
+        atomic::AtomicBool
     }
 };
+#[cfg(feature = "swd-config")]
+use std::sync::atomic::Ordering;
 
 #[macro_use]
 extern crate log;
@@ -15,13 +17,13 @@ use stopwatchd::{
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
     logging
 };
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::net::UnixListener;
 
 use crate::{
     cleanup::Cleanup,
-    signal::{handle_signals, get_signals},
+    signal::{make_signal_handler, close_signal_handler},
     socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
-    manager::{Manager, make_request_channels, manage},
+    manager::{Manager, make_request_channels, manage, RequestSender},
 };
 #[cfg(feature = "swd-config")]
 use crate::config::DEFAULT_CONFIG_PATH;
@@ -73,24 +75,7 @@ async fn main() {
     let socket = create_socket(&ssock_path).unwrap();
     set_socket_perms(&ssock_path).unwrap();
 
-    let restart = Arc::new(AtomicBool::new(true));
-    // Application
-    while restart.load(Ordering::Relaxed) {
-        debug!("restarting after signal");
-        // Setup interrupt handling
-        let (signal_tx, signal_rx) = unbounded_channel();
-        let signals = get_signals().unwrap();
-        let handle = signals.handle();
-        let signals_task = tokio::spawn(handle_signals(signals, signal_tx, restart.clone()));
-
-        // * START OF MAIN LOGIC *
-        listen_to_socket(&socket, signal_rx, req_tx.clone()).await;
-
-        // Signal handling
-        debug!("closing signals");
-        handle.close();
-        signals_task.await.unwrap();
-    }
+    run(&socket, &req_tx).await;
 
     // Clean up manager
     debug!("cleaning up manager");
@@ -101,4 +86,36 @@ async fn main() {
     info!("cleaning up swd");
     Cleanup {remove_pidfile: true, remove_sockfile: Some(&ssock_path)}.cleanup().unwrap();
     info!("going under!");
+}
+
+#[cfg(not(feature = "swd-config"))]
+async fn run(socket: &UnixListener, req_tx: &RequestSender) {
+    // Setup interrupt handling
+    let restart = Arc::new(AtomicBool::new(true)); // Useless
+    let (handle, signals_task, signal_rx) = make_signal_handler(restart);
+
+    // * START OF MAIN LOGIC *
+    listen_to_socket(&socket, signal_rx, req_tx.clone()).await;
+
+    // Signal handling
+    debug!("closing signals");
+    close_signal_handler(handle, signals_task).await;
+}
+
+#[cfg(feature = "swd-config")]
+async fn run(socket: &UnixListener, req_tx: &RequestSender) {
+    let restart = Arc::new(AtomicBool::new(true));
+    // Application
+    while restart.load(Ordering::Relaxed) {
+        debug!("restarting after signal");
+        // Setup interrupt handling
+        let (handle, signals_task, signal_rx) = make_signal_handler(restart.clone());
+
+        // * START OF MAIN LOGIC *
+        listen_to_socket(&socket, signal_rx, req_tx.clone()).await;
+
+        // Signal handling
+        debug!("closing signals");
+        close_signal_handler(handle, signals_task).await;
+    }
 }
