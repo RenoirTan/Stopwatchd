@@ -117,5 +117,13 @@ async fn run(socket: &UnixListener, req_tx: &RequestSender) {
         // Signal handling
         debug!("closing signals");
         close_signal_handler(handle, signals_task).await;
+
+        // Why we need do whiles
+        if restart.load(Ordering::Relaxed) {
+            let mut cli = config::Cli::default();
+            cli.supplement_file(DEFAULT_CONFIG_PATH).unwrap();
+            log::set_max_level(cli.log_level().into());
+            info!("logging started");
+        }
     }
 }
