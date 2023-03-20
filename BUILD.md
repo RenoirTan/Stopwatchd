@@ -20,7 +20,13 @@ to get a `.deb` package. This package contains a systemd `.service` file and so 
 
 ## Arch Linux
 
-PKGBUILD is WIP.
+Clone the PKGBUILDs from [StopwatchdABS](https://github.com/RenoirTan/StopwatchdABS) and then run `makepkg` in the appropriate directory (depending on if you want the release or git version).
+
+```bash
+git clone https://github.com/RenoirTan/StopwatchdABS.git
+cd StopwatchdABS/stopwatchd # or stopwatchd-git
+makepkg -si # make and then install the package
+```
 
 ## Other systemd distributions
 
@@ -38,4 +44,12 @@ scripts/mk-systemd-service
 
 to create `out/stopwatchd.service`.
 
-Then, copy all of the built files to your `/bin` and `/lib/systemd/system` folders where necessary.
+Then, copy the following files to their respective destinations:
+
+```bash
+install target/debug/swd /usr/bin/swd 755
+install target/debug/swctl /usr/bin/swctl 755
+install README.md /usr/share/doc/stopwatchd/README.md 644
+install out/stopwatchd.service /lib/systemd/system/stopwatchd.service 644
+install res/conf/swd.conf /etc/stopwatchd/swd.conf 644
+```
