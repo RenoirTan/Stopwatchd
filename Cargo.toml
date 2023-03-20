@@ -15,9 +15,17 @@ extended-description-file = "README.md"
 revision = "1"
 section = "utility"
 priority = "optional"
+assets = [
+    # Ideally, I should only have to specify swd.conf's install location
+    # Probably a feature suggestion for kornelski/cargo-deb
+    ["target/release/swd", "usr/bin/swd", "755"],
+    ["target/release/swctl", "usr/bin/swctl", "755"],
+    ["res/conf/swd.conf", "etc/stopwatchd/swd.conf", "644"],
+    ["README.md", "usr/share/doc/stopwatchd/README.md", "644"]
+]
 
 [package.metadata.deb.systemd-units]
-unit-scripts = "out"
+unit-scripts = "out/" # Search the out/ directory for the generated .service files
 unit-name = "stopwatchd"
 enable = false
 start = false
