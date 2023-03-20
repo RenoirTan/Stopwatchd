@@ -41,7 +41,7 @@ name = "swctl"
 path = "src/bin/swctl/mod.rs"
 
 [features]
-default = []
+default = ["swd-config"]
 swd-config = ["dep:toml"]
 
 [dependencies]
