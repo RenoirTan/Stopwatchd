@@ -1,6 +1,10 @@
 use std::{
     fs::create_dir_all,
-    process
+    process,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering}
+    }
 };
 
 #[macro_use]
@@ -53,12 +57,6 @@ async fn main() {
     let (req_tx, req_rx) = make_request_channels();
     let manager_handle = tokio::spawn(manage(manager, req_rx));
 
-    // Setup interrupt handling
-    let (signal_tx, signal_rx) = unbounded_channel();
-    let signals = get_signals().unwrap();
-    let handle = signals.handle();
-    let signals_task = tokio::spawn(handle_signals(signals, signal_tx));
-
     { // PID File
         debug!("setting up pidfile");
         let mut pidfile = open_pidfile(true).unwrap();
@@ -75,15 +73,29 @@ async fn main() {
     let socket = create_socket(&ssock_path).unwrap();
     set_socket_perms(&ssock_path).unwrap();
 
+    let restart = Arc::new(AtomicBool::new(true));
     // Application
-    listen_to_socket(&socket, signal_rx, req_tx).await;
+    while restart.load(Ordering::Relaxed) {
+        debug!("restarting after signal");
+        // Setup interrupt handling
+        let (signal_tx, signal_rx) = unbounded_channel();
+        let signals = get_signals().unwrap();
+        let handle = signals.handle();
+        let signals_task = tokio::spawn(handle_signals(signals, signal_tx, restart.clone()));
+
+        // * START OF MAIN LOGIC *
+        listen_to_socket(&socket, signal_rx, req_tx.clone()).await;
+
+        // Signal handling
+        debug!("closing signals");
+        handle.close();
+        signals_task.await.unwrap();
+    }
 
     // Clean up manager
+    debug!("cleaning up manager");
+    drop(req_tx); // Force close manager_handle
     manager_handle.await.unwrap();
-
-    // Signal handling
-    handle.close();
-    signals_task.await.unwrap();
     
     // Clean up
     info!("cleaning up swd");
