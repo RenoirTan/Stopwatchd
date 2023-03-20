@@ -20,7 +20,11 @@ pub const DEFAULT_CONFIG_PATH: &'static str = "/etc/stopwatchd/swd.toml";
 pub struct Cli {
     /// Set the log level for the daemon.
     #[arg(short, long, value_enum, help = "Set log level")]
-    pub log_level: Option<LogLevel>
+    pub log_level: Option<LogLevel>,
+
+    #[cfg(feature = "swd-config")]
+    #[arg(short = 'c', long = "config", default_value_t = DEFAULT_CONFIG_PATH.to_string())]
+    pub config_path: String
 }
 
 impl Cli {
@@ -46,7 +50,8 @@ impl Cli {
     }
 
     #[cfg(feature = "swd-config")]
-    pub fn supplement_file(&mut self, config_path: &str) -> Result<&mut Self, io::Error> {
+    pub fn supplement_file(&mut self, config_path: Option<&str>) -> Result<&mut Self, io::Error> {
+        let config_path = config_path.unwrap_or(&self.config_path);
         let mut config_file = match OpenOptions::new()
             .read(true)
             .open(config_path)
@@ -72,6 +77,13 @@ impl Cli {
 
 impl Default for Cli {
     fn default() -> Self {
-        Self { log_level: None }
+        // `return` because rust doesn't know how to deal with expressions with
+        // cfg yet
+
+        #[cfg(not(feature = "swd-config"))]
+        return Self { log_level: None };
+
+        #[cfg(feature = "swd-config")]
+        return Self { log_level: None, config_path: DEFAULT_CONFIG_PATH.to_string() };
     }
 }

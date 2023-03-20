@@ -25,8 +25,6 @@ use crate::{
     socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
     manager::{Manager, make_request_channels, manage, RequestSender},
 };
-#[cfg(feature = "swd-config")]
-use crate::config::DEFAULT_CONFIG_PATH;
 
 mod cleanup;
 mod config;
@@ -41,7 +39,7 @@ async fn main() {
     #[allow(unused_mut)]
     let mut cli = config::Cli::parse();
     #[cfg(feature = "swd-config")]
-    cli.supplement_file(DEFAULT_CONFIG_PATH).unwrap();
+    cli.supplement_file(None).unwrap();
 
     let log_level = cli.log_level().into();
 
@@ -75,7 +73,11 @@ async fn main() {
     let socket = create_socket(&ssock_path).unwrap();
     set_socket_perms(&ssock_path).unwrap();
 
+    #[cfg(not(feature = "swd-config"))]
     run(&socket, &req_tx).await;
+
+    #[cfg(feature = "swd-config")]
+    run(&socket, &req_tx, &cli.config_path).await;
 
     // Clean up manager
     debug!("cleaning up manager");
@@ -103,7 +105,7 @@ async fn run(socket: &UnixListener, req_tx: &RequestSender) {
 }
 
 #[cfg(feature = "swd-config")]
-async fn run(socket: &UnixListener, req_tx: &RequestSender) {
+async fn run(socket: &UnixListener, req_tx: &RequestSender, config_path: &str) {
     let restart = Arc::new(AtomicBool::new(true));
     // Application
     while restart.load(Ordering::Relaxed) {
@@ -121,7 +123,7 @@ async fn run(socket: &UnixListener, req_tx: &RequestSender) {
         // Why we need do whiles
         if restart.load(Ordering::Relaxed) {
             let mut cli = config::Cli::default();
-            cli.supplement_file(DEFAULT_CONFIG_PATH).unwrap();
+            cli.supplement_file(Some(config_path)).unwrap();
             log::set_max_level(cli.log_level().into());
             info!("logging started");
         }
