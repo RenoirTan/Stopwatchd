@@ -47,9 +47,9 @@ to create `out/stopwatchd.service`.
 Then, copy the following files to their respective destinations:
 
 ```bash
-install target/debug/swd /usr/bin/swd 755
-install target/debug/swctl /usr/bin/swctl 755
-install README.md /usr/share/doc/stopwatchd/README.md 644
-install out/stopwatchd.service /lib/systemd/system/stopwatchd.service 644
-install res/conf/swd.conf /etc/stopwatchd/swd.conf 644
+install -Dm 755 target/debug/swd /usr/bin/swd
+install -Dm 755 target/debug/swctl /usr/bin/swctl
+install -Dm 644 README.md /usr/share/doc/stopwatchd/README.md
+install -Dm 644 out/stopwatchd.service /lib/systemd/system/stopwatchd.service
+install -Dm 644 res/conf/swd.conf /etc/stopwatchd/swd.conf
 ```

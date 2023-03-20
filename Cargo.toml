@@ -20,7 +20,7 @@ assets = [
     # Probably a feature suggestion for kornelski/cargo-deb
     ["target/release/swd", "usr/bin/swd", "755"],
     ["target/release/swctl", "usr/bin/swctl", "755"],
-    ["res/conf/swd.conf", "etc/stopwatchd/swd.conf", "644"],
+    ["res/conf/swd.toml", "etc/stopwatchd/swd.toml", "644"],
     ["README.md", "usr/share/doc/stopwatchd/README.md", "644"]
 ]
 
