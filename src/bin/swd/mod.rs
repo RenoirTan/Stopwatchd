@@ -5,6 +5,7 @@ use std::{
 
 #[macro_use]
 extern crate log;
+use clap::Parser;
 use stopwatchd::{
     pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
     runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
@@ -16,8 +17,10 @@ use crate::{
     cleanup::Cleanup,
     signal::{handle_signals, get_signals},
     socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
-    manager::{Manager, make_request_channels, manage}, config::DEFAULT_CONFIG_PATH
+    manager::{Manager, make_request_channels, manage},
 };
+#[cfg(feature = "swd-config")]
+use crate::config::DEFAULT_CONFIG_PATH;
 
 mod cleanup;
 mod config;
@@ -29,7 +32,11 @@ mod utils;
 
 #[tokio::main]
 async fn main() {
-    let cli = config::Cli::collect(DEFAULT_CONFIG_PATH).unwrap();
+    #[allow(unused_mut)]
+    let mut cli = config::Cli::parse();
+    #[cfg(feature = "swd-config")]
+    cli.supplement_file(DEFAULT_CONFIG_PATH).unwrap();
+
     let log_level = cli.log_level().into();
 
     let pid = process::id();

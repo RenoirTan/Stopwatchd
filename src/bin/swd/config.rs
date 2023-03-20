@@ -1,3 +1,4 @@
+#[cfg(feature = "swd-config")]
 use std::{
     io::{self, Read},
     str::FromStr,
@@ -5,10 +6,13 @@ use std::{
 };
 
 use clap::Parser;
+#[cfg(feature = "swd-config")]
 use log::LevelFilter;
 use stopwatchd::logging::{DEFAULT_LOGGER_LEVEL, cli::LogLevel};
+#[cfg(feature = "swd-config")]
 use toml::{Table, Value};
 
+#[cfg(feature = "swd-config")]
 pub const DEFAULT_CONFIG_PATH: &'static str = "/etc/stopwatchd/swd.toml";
 
 #[derive(Parser)]
@@ -20,16 +24,11 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn collect(config_path: &str) -> Result<Self, io::Error> {
-        let mut cli = Self::parse();
-        cli.supplement_file(config_path)?;
-        Ok(cli)
-    }
-
     pub fn log_level(&self) -> LogLevel {
         self.log_level.unwrap_or(DEFAULT_LOGGER_LEVEL.into())
     }
 
+    #[cfg(feature = "swd-config")]
     pub fn supplement_toml(&mut self, table: Table) -> Result<&mut Self, io::Error> {
         if let None = self.log_level {
             self.log_level = match table.get("log_level") {
@@ -46,6 +45,7 @@ impl Cli {
         Ok(self)
     }
 
+    #[cfg(feature = "swd-config")]
     pub fn supplement_file(&mut self, config_path: &str) -> Result<&mut Self, io::Error> {
         let mut config_file = match OpenOptions::new()
             .read(true)
