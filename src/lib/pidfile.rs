@@ -1,17 +1,23 @@
 use std::{
     fs::{File, OpenOptions, remove_file},
     io::{Result, Read, Write, Error, ErrorKind},
-    process
+    process,
+    path::PathBuf
 };
 
-use crate::runtime::DEFAULT_PIDFILE_PATH;
+use crate::runtime::runtime_dir;
 
-pub fn open_pidfile(is_daemon: bool) -> Result<File> {
+pub fn pidfile_path(uid: Option<u32>) -> PathBuf {
+    runtime_dir(uid).join("pidfile")
+}
+
+pub fn open_pidfile(is_daemon: bool, uid: Option<u32>) -> Result<File> {
+    let ppath = pidfile_path(uid);
     OpenOptions::new()
         .create(is_daemon)
         .read(true)
         .write(is_daemon)
-        .open(DEFAULT_PIDFILE_PATH)
+        .open(ppath)
 }
 
 pub fn get_swd_pid(pidfile: &mut File) -> Result<u32> {
@@ -31,6 +37,6 @@ pub fn write_pidfile(pidfile: &mut File) -> Result<usize> {
     pidfile.write(pidfile_content.as_bytes())
 }
 
-pub fn remove_pidfile() -> Result<()> {
-    remove_file(DEFAULT_PIDFILE_PATH)
+pub fn remove_pidfile(uid: Option<u32>) -> Result<()> {
+    remove_file(pidfile_path(uid))
 }

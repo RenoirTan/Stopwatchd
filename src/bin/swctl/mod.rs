@@ -6,8 +6,8 @@ use clap::Parser;
 use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_table_builder, get_error_table_builder, add_errors_to_builder, Styles};
 use stopwatchd::{
     logging,
-    pidfile::{open_pidfile, get_swd_pid},
-    runtime::{server_socket_path, DEFAULT_PIDFILE_PATH},
+    pidfile::{open_pidfile, get_swd_pid, pidfile_path},
+    runtime::{server_socket_path, get_uid},
     communication::{
         client_message::{ClientMessage, ClientRequest},
         server_message::{ServerMessage, ServerReplyKind, ServerReply, ServerError},
@@ -36,15 +36,21 @@ async fn run(cli: cli::Cli) -> i32 {
         .expect("could not setup logging");
     debug!("swctl has started outputting logs");
 
+    #[cfg(not(feature = "users"))]
+    let uid = get_uid();
+    #[cfg(feature = "users")]
+    let uid = if cli.root_swd { None } else { get_uid() };
+
     let swd_pid = {
-        let mut pidfile = open_pidfile(false)
-            .expect(&format!("could not open pidfile: {}", DEFAULT_PIDFILE_PATH));
+        let ppath = pidfile_path(uid);
+        let mut pidfile = open_pidfile(false, uid)
+            .expect(&format!("could not open pidfile: {:?}", ppath));
         get_swd_pid(&mut pidfile)
-            .expect(&format!("could not get swd PID from {}", DEFAULT_PIDFILE_PATH))
+            .expect(&format!("could not get swd PID from {:?}", ppath))
     };
     debug!("swd_pid is {}", swd_pid);
 
-    let ssock_path = server_socket_path(Some(swd_pid));
+    let ssock_path = server_socket_path(Some(swd_pid), uid);
     let ssock_path_str = ssock_path.to_string_lossy();
     trace!("connecting to {:?}", ssock_path);
     let stream = UnixStream::connect(&ssock_path).await

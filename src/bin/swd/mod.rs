@@ -13,8 +13,8 @@ use std::sync::atomic::Ordering;
 extern crate log;
 use clap::Parser;
 use stopwatchd::{
-    pidfile::{open_pidfile, pidfile_is_empty, write_pidfile},
-    runtime::{DEFAULT_RUNTIME_PATH, DEFAULT_PIDFILE_PATH, server_socket_path},
+    pidfile::{open_pidfile, pidfile_is_empty, write_pidfile, pidfile_path},
+    runtime::{runtime_dir, get_uid, server_socket_path},
     logging
 };
 use tokio::net::UnixListener;
@@ -43,13 +43,16 @@ async fn main() {
 
     let log_level = cli.log_level().into();
 
+    let uid = get_uid();
+
     let pid = process::id();
     logging::setup(&format!("swd.{}", pid), Some(log_level)).unwrap();
     info!("logging started");
 
     // Filesystem
-    debug!("setting up runtime directory: {}", DEFAULT_RUNTIME_PATH);
-    create_dir_all(DEFAULT_RUNTIME_PATH).unwrap();
+    let rt_dir = runtime_dir(uid);
+    debug!("setting up runtime directory: {:?}", rt_dir);
+    create_dir_all(rt_dir).unwrap();
 
     // Start stopwatch manager
     // Must come before interrupt handler for some reason
@@ -59,23 +62,23 @@ async fn main() {
 
     { // PID File
         debug!("setting up pidfile");
-        let mut pidfile = open_pidfile(true).unwrap();
+        let mut pidfile = open_pidfile(true, uid).unwrap();
         if pidfile_is_empty(&mut pidfile).unwrap() {
             write_pidfile(&mut pidfile).unwrap();
         } else {
-            panic!("{} exists. Please delete it if no other swd is running", DEFAULT_PIDFILE_PATH)
+            panic!("{:?} exists. Please delete it if no other swd is running", pidfile_path(uid))
         }
     }
 
     // Handle sockets
-    let ssock_path = server_socket_path(Some(pid));
+    let ssock_path = server_socket_path(Some(pid), uid);
     clear_socket(&ssock_path).unwrap();
     let socket = create_socket(&ssock_path).unwrap();
     set_socket_perms(&ssock_path).unwrap();
 
+
     #[cfg(not(feature = "swd-config"))]
     run(&socket, &req_tx).await;
-
     #[cfg(feature = "swd-config")]
     run(&socket, &req_tx, &cli.config_path).await;
 
@@ -86,7 +89,7 @@ async fn main() {
     
     // Clean up
     info!("cleaning up swd");
-    Cleanup {remove_pidfile: true, remove_sockfile: Some(&ssock_path)}.cleanup().unwrap();
+    Cleanup { uid, remove_pidfile: true, remove_sockfile: Some(&ssock_path) }.cleanup().unwrap();
     info!("going under!");
 }
 
