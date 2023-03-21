@@ -11,3 +11,8 @@
  - Added cargo feature `swd-config` which enables:
    - Allow `swd` to read from a configuration file (by default in `/etc/stopwatchd/swd.conf`).
    - Make `swd` respond to `SIGHUP` to reload the configuration file.
+
+## v0.3.0
+
+ - Allow each user to have their own `swd` session.
+ - `swctl` can choose to either communicate with the user-started `swd` or the public/root `swd` using the `--root` flag.
