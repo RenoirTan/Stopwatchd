@@ -36,7 +36,10 @@ async fn run(cli: cli::Cli) -> i32 {
         .expect("could not setup logging");
     debug!("swctl has started outputting logs");
 
+    #[cfg(not(feature = "users"))]
     let uid = get_uid();
+    #[cfg(feature = "users")]
+    let uid = if cli.root_swd { None } else { get_uid() };
 
     let swd_pid = {
         let ppath = pidfile_path(uid);
