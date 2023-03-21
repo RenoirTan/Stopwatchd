@@ -1,9 +1,12 @@
 #[cfg(feature = "swd-config")]
 use std::{
     io::{self, Read},
+    path::PathBuf,
     str::FromStr,
     fs::OpenOptions
 };
+#[cfg(all(feature = "swd-config", feature = "users"))]
+use std::env;
 
 use clap::Parser;
 #[cfg(feature = "swd-config")]
@@ -11,9 +14,40 @@ use log::LevelFilter;
 use stopwatchd::logging::{DEFAULT_LOGGER_LEVEL, cli::LogLevel};
 #[cfg(feature = "swd-config")]
 use toml::{Table, Value};
+#[cfg(feature = "users")]
+use users::{get_user_by_uid, get_current_uid};
 
 #[cfg(feature = "swd-config")]
-pub const DEFAULT_CONFIG_PATH: &'static str = "/etc/stopwatchd/swd.toml";
+pub const SYSTEM_CONFIG_PATH: &'static str = "/etc/stopwatchd/swd.toml";
+
+#[cfg(all(feature = "swd-config", feature = "users"))]
+pub fn user_config_path(config_home: Option<String>) -> Result<PathBuf, env::VarError> {
+    // $HOME/.config/stopwatchd/swd.toml
+    let config_home = env::var("XDG_CONFIG_HOME")
+        .or_else(|_| env::var("HOME").map(|s| s + "/.config"))
+        .or_else(|_| config_home.ok_or_else(|| env::VarError::NotPresent))?; // Fallback
+    Ok(PathBuf::from(config_home).join("stopwatchd/swd.toml"))
+}
+
+#[cfg(all(feature = "swd-config", feature = "users"))]
+pub fn calculate_config_path() -> PathBuf {
+    match get_current_uid() {
+        0 => PathBuf::from(SYSTEM_CONFIG_PATH),
+        uid => {
+            let username = get_user_by_uid(uid).unwrap().name().to_str().unwrap().to_string();
+            user_config_path(Some(username)).unwrap()
+        }
+    }
+}
+
+#[cfg(feature = "swd-config")]
+pub fn get_config_path() -> PathBuf {
+    #[cfg(not(feature = "users"))]
+    return PathBuf::from(SYSTEM_CONFIG_PATH);
+    
+    #[cfg(feature = "users")]
+    return calculate_config_path();
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -23,7 +57,11 @@ pub struct Cli {
     pub log_level: Option<LogLevel>,
 
     #[cfg(feature = "swd-config")]
-    #[arg(short = 'c', long = "config", default_value_t = DEFAULT_CONFIG_PATH.to_string())]
+    #[arg(
+        short = 'c',
+        long = "config",
+        default_value_t = get_config_path().to_str().unwrap().to_string()
+    )]
     pub config_path: String
 }
 
@@ -84,6 +122,6 @@ impl Default for Cli {
         return Self { log_level: None };
 
         #[cfg(feature = "swd-config")]
-        return Self { log_level: None, config_path: DEFAULT_CONFIG_PATH.to_string() };
+        return Self { log_level: None, config_path: SYSTEM_CONFIG_PATH.to_string() };
     }
 }
