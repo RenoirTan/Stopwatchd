@@ -49,7 +49,7 @@ name = "swctl"
 path = "src/bin/swctl/mod.rs"
 
 [features]
-default = ["swd-config"]
+default = ["swd-config", "users"]
 swd-config = ["dep:toml"]
 users = ["dep:users"]
 
