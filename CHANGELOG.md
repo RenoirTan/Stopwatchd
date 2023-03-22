@@ -15,5 +15,5 @@
 ## v0.3.0
 
  - Allow each user to have their own `swd` session.
- - `swctl` can choose to either communicate with the user-started `swd` or the public/root `swd` using the `--root` flag.
+ - `swctl` can choose to either communicate with the user-started `swd` or the system `swd` using the `--root` flag.
  - Add Debian maintainer scripts

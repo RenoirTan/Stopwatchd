@@ -39,7 +39,7 @@ async fn run(cli: cli::Cli) -> i32 {
     #[cfg(not(feature = "users"))]
     let uid = get_uid();
     #[cfg(feature = "users")]
-    let uid = if cli.root_swd { None } else { get_uid() };
+    let uid = if cli.system_swd { None } else { get_uid() };
 
     let swd_pid = {
         let ppath = pidfile_path(uid);

@@ -47,10 +47,10 @@ pub struct Cli {
     #[arg(short, long, default_value_t = DEFAULT_LOGGER_LEVEL.into(), value_enum)]
     pub log_level: LogLevel,
 
-    /// Whether to communicate with root swd instead of user-started swd.
+    /// Whether to communicate with system swd instead of user-started swd.
     #[cfg(feature = "users")]
-    #[arg(long = "root", global = true)]
-    pub root_swd: bool
+    #[arg(long = "system", global = true)]
+    pub system_swd: bool
 }
 
 #[derive(Subcommand, Clone, Debug)]
