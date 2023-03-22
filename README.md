@@ -2,6 +2,13 @@
 
 Command-line stopwatch daemon and controller for Unix-like systems.
 
+## Contents
+
+ - [Building](#building)
+ - [Usage](#usage)
+ - [Configuring](#configuring)
+ - [Cargo Features](#cargo-features)
+
 ## Building
 
 See [BUILD.md](BUILD.md) for more information.
@@ -142,3 +149,22 @@ sw attach bcdefg
 ```
 
 Live interaction with a stopwatch is also possible by attaching your console to the stopwatch using the `sw-attach` command. If you want to attach a console when you start a stopwatch, just run `sw-attach --start`.
+
+## Configuring
+
+`swd` can be configured if the `swd-config` cargo feature is activated. If so, `swd` reads `/etc/stopwatchd.toml`. `swd` sessions spawned by a non-root user is configured using `$XDG_CONFIG_HOME/stopwatchd.toml` instead. A different config file can be specified using the `--config` flag.
+
+```bash
+swd --config ~/e.toml
+```
+
+The default configuration file is stored in `/usr/share/stopwatchd/swd.toml` which is not read by `swd`. I've included it so that it can act as a backup/example if you need a fresh copy.
+
+## Cargo Features
+
+Feature names in **bold** are compiled by default.
+
+| Feature Name | Description |
+| - | - |
+| **swd-config** | `swd` can be configured with files. |
+| **users** | One `swd` can run for each user on a system instead of only just one per system. |

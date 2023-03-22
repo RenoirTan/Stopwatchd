@@ -1,1 +1,4 @@
+# Minimum log level that swd outputs to syslog.
+# From low to high: trace < debug < info < warn < error < off
+# Default: info
 log_level = "info"
