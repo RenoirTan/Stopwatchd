@@ -10,7 +10,7 @@ license = ""
 [package.metadata.deb]
 name = "stopwatchd"
 maintainer = "RenoirTan"
-depends = "systemd"
+depends = "systemd, libc6, libgcc-s1"
 extended-description-file = "README.md"
 revision = "1"
 section = "utility"
