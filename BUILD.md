@@ -2,12 +2,13 @@
 
 A simple `cargo build` should be sufficient for testing purposes. The `swd` and `swctl` binaries should be located in `target/debug` or `target/release` depending on whether you used the `--release` flag or not.
 
-Packaging stopwatchd can be done using `./scripts/package`. It's a bash file that builds the binaries, sets up configuration and other data files, and installs them to the `$pkgdir` directory. Environment variables can be set to modify the behaviour of `./scripts/package`, more details can be found in `./scripts/_common`. For example:
+Building and packaging stopwatchd can be done using `./scripts/build` and `./scripts/package` respectively. `package` is a bash script that installs build artefacts to the `$pkgdir` directory. Environment variables can be set to modify the behaviour of these scripts, more details can be found in `./scripts/_common`. For example:
 
 ```bash
 # pkgdir has to be an absolute path
 pkgdir="$(pwd)/pkg"
 
+scripts/build # create build artefacts
 scripts/package # dump build artefacts in ${pkgdir}
 
 # collect and compress everything into one file
@@ -48,7 +49,8 @@ An example:
 ```bash
 pkgdir=/
 prefix=/usr/local
-features=users # comma-separated list of cargo features
+features='users,swd-config' # comma-separated list of cargo features
 
+./scripts/build
 sudo ./scripts/package
 ```

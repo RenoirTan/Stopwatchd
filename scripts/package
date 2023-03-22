@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source "$(dirname $0)/_common"
 
 setup_dirvars
@@ -9,38 +11,58 @@ cd_src
 
 mkdir -p "${pkgdir}"
 
-cargo build --features "${features}"
-
 # /usr/bin
+echo -n "Installing binaries... "
+if [ ! -d "${_reldir}" ]; then
+    echo "${_reldir} does not exist! Please run scripts/build first."
+    exit 1
+fi
 mkdir -p "${pkgdir}/${bindir}"
 install -Dm 755 "${_swdpath}" "${pkgdir}/${bindir}/swd"
 install -Dm 755 "${_swctlpath}" "${pkgdir}/${bindir}/swctl"
+echo "OK!"
 
 # /usr/share/doc/stopwatchd
+echo -n "Installing documentation... "
 mkdir -p "${pkgdir}/${docdir}"
 install -Dm 644 "./README.md" "${pkgdir}/${docdir}/README.md"
+echo "OK!"
 
 if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'swd-config'* ]]; then
+    echo -n "Installing config files... "
+
     # /etc/stopwatchd
-    mkdir -p "${confdir}"
+    mkdir -p "${pkgdir}/${confdir}"
     install -Dm 644 "${_swdconfpath}" "${pkgdir}/${confdir}/swd.toml"
 
     # /usr/share/stopwatchd
-    mkdir -p "${sysconfdir}"
+    mkdir -p "${pkgdir}/${sysconfdir}"
     install -Dm 644 "${_swdconfpath}" "${pkgdir}/${sysconfdir}/swd.toml"
+    
+    echo "OK!"
 fi
 
 if is_var "${use_systemd}"; then
-    scripts/mk-systemd-service
+    _serviceout="${outdir}/stopwatchd.service"
+
+    if [ ! -f "${_serviceout}" ]; then
+        echo "${_serviceout} does not exist! Please run scripts/mk-systemd-service first."
+        exit 1
+    fi
+
     # /usr/lib/systemd/system
+    echo -n "Installing systemd service units... "
     _sysdir="${pkgdir}/${libdir}/systemd/system" 
     mkdir -p "${_sysdir}"
-    install -Dm 644 "out/stopwatchd.service" "${_sysdir}/stopwatchd.service"
+    install -Dm 644 "${_serviceout}" "${_sysdir}/stopwatchd.service"
+    echo "OK!"
 
     if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'users'* ]]; then
         # /usr/lib/systemd/user
+        echo -n "Installing user systemd service units... "
         _userdir="${pkgdir}/${libdir}/systemd/user"
         mkdir -p "${_userdir}"
-        install -Dm 644 "out/stopwatchd.service" "${_userdir}/stopwatchd.service"
+        install -Dm 644 "${_serviceout}" "${_userdir}/stopwatchd.service"
+        echo "OK!"
     fi
 fi

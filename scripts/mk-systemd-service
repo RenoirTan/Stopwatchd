@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 source "$(dirname $0)/_common"
 
 _serviceoutpath="stopwatchd.service"
@@ -13,5 +15,7 @@ if [ ! -f "${_servicepath}" ]; then
     exit 1
 fi
 
+echo -n "Generating ${outdir}/${_serviceoutpath}... "
 install -Dm 644 "${_servicepath}" "${outdir}/${_serviceoutpath}"
 sed -i "s|<BINDIR>|${bindir}|" "${outdir}/${_serviceoutpath}"
+echo 'OK!'
