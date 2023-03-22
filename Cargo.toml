@@ -23,6 +23,7 @@ assets = [
     ["res/conf/swd.toml", "etc/stopwatchd/swd.toml", "644"],
     ["README.md", "usr/share/doc/stopwatchd/README.md", "644"]
 ]
+maintainer-scripts = "res/os/debian/maintainer-scripts"
 
 [package.metadata.deb.systemd-units]
 unit-scripts = "out/" # Search the out/ directory for the generated .service files
