@@ -1,14 +1,78 @@
 #!/hint/bash
 
-pkgdir="$(pwd)/pkg"
-outdir="$(pwd)/out"
-prefix="/usr"
+# To change what gets built in the final package, you can set some of the
+# following environment variables.
+#
+# If variable is empty, a default value will be used instead.
+# For "boolean" values, set it to 0 for false and 1 for true.
+
+# Name of the package.
+pkgname="${pkgname:-stopwatchd}"
+
+# Destination directory where the final build artefacts are placed, similar to
+# DESTDIR in `make DESTDIR=??? install`.
+# NOTE: MUST BE AN ABSOLUTE PATH!!!
+pkgdir=${pkgdir:-"$(pwd)/pkg"}
+
+# Temporary output directory for build artefacts. This is separate from pkgdir
+# to prevent any leftovers from being included in the final package.
+# NOTE: MUST BE AN ABSOLUTE PATH!!!
+outdir=${outdir:-"$(pwd)/out"}
+
 _reldir="./target/release"
 _swdpath="${_reldir}/swd"
 _swctlpath="${_reldir}/swctl"
 _servicepath="./res/init/systemd/stopwatchd.service"
+_swdconfpath="./res/conf/swd.toml"
+
+# Comma-separated list of cargo features to compile. This variable also controls
+# what ends up in ${pkgdir}. See `cargo help` for more info on cargo features.
+features=${features:-'default'}
+
+# Whether to include systemd files in the final package. By default, the
+# relevant .service files will be installed, but you can disable this by setting
+# use_systemd=0
+use_systemd=${use_systemd:-1}
 
 # cd to project root
 cd_src() {
     cd "$(dirname $0)/.."
+}
+
+is_var() {
+    [ -z "$1" ] || [ "$1" == '0' ] && return 1
+    return 0
+}
+
+# https://www.gnu.org/software/automake/manual/automake.html#Standard-Directory-Variables
+setup_dirvars() {
+    export prefix=${prefix:-'/usr'}
+
+    export exec_prefix=${exec_prefix:-"${prefix}"}
+    export bindir=${bindir:-"${exec_prefix}/bin"}
+    export libdir=${libdir:-"${exec_prefix}/lib"}
+
+    export datarootdir=${datarootdir:-"${prefix}/share"}
+    export datadir=${datadir:-"${datarootdir}"}
+    export mandir=${mandir:-"${datarootdir}/man"}
+    export infodir=${infodir:-"${datarootdir}/info"}
+    export docdir=${docdir:-"${datarootdir}/doc/${pkgname}"}
+
+    export confdir=${confdir:-'/etc/stopwatchd'}
+}
+
+print_dirvars() {
+    echo "prefix=${prefix}"
+    echo ''
+    echo "exec_prefix=${exec_prefix}"
+    echo "bindir=${bindir}"
+    echo "libdir=${libdir}"
+    echo ''
+    echo "datarootdir=${datarootdir}"
+    echo "datadir=${datadir}"
+    echo "mandir=${mandir}"
+    echo "infodir=${infodir}"
+    echo "docdir=${docdir}"
+    echo ''
+    echo "confdir=${confdir}"
 }

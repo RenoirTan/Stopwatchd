@@ -1,0 +1,37 @@
+#!/bin/bash
+
+source "$(dirname $0)/_common"
+
+setup_dirvars
+print_dirvars
+
+cd_src
+
+mkdir -p "${pkgdir}"
+
+cargo build --features "${features}"
+
+mkdir -p "${pkgdir}/${bindir}"
+install -Dm 755 "${_swdpath}" "${pkgdir}/${bindir}/swd"
+install -Dm 755 "${_swctlpath}" "${pkgdir}/${bindir}/swctl"
+
+mkdir -p "${pkgdir}/${docdir}"
+install -Dm 644 "./README.md" "${pkgdir}/${docdir}/README.md"
+
+if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'swd-config'* ]]; then
+    mkdir -p "${confdir}"
+    install -Dm 644 "${_swdconfpath}" "${pkgdir}/${confdir}/swd.toml"
+fi
+
+if is_var "${use_systemd}"; then
+    scripts/mk-systemd-service
+    _sysdir="${pkgdir}/${libdir}/systemd/system" 
+    mkdir -p "${_sysdir}"
+    install -Dm 644 "out/stopwatchd.service" "${_sysdir}/stopwatchd.service"
+
+    if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'users'* ]]; then
+        _userdir="${pkgdir}/${libdir}/systemd/user"
+        mkdir -p "${_userdir}"
+        install -Dm 644 "out/stopwatchd.service" "${_userdir}/stopwatchd.service"
+    fi
+fi

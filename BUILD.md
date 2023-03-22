@@ -2,6 +2,19 @@
 
 A simple `cargo build` should be sufficient for testing purposes. The `swd` and `swctl` binaries should be located in `target/debug` or `target/release` depending on whether you used the `--release` flag or not.
 
+Packaging stopwatchd can be done using `./scripts/package`. It's a bash file that builds the binaries, sets up configuration and other data files, and installs them to the `$pkgdir` directory. Environment variables can be set to modify the behaviour of `./scripts/package`, more details can be found in `./scripts/_common`. For example:
+
+```bash
+# pkgdir has to be an absolute path
+pkgdir="$(pwd)/pkg"
+
+scripts/package # dump build artefacts in ${pkgdir}
+
+# collect and compress everything into one file
+cd ${pkgdir}
+tar -czvf stopwatchd.tar.gz .
+```
+
 ## Debian
 
 Install cargo-deb:
@@ -28,28 +41,14 @@ cd StopwatchdABS/stopwatchd # or stopwatchd-git
 makepkg -si # make and then install the package
 ```
 
-## Other systemd distributions
+## Other distributions
 
-Compile stopwatchd as per normal.
-
-```bash
-cargo build --release
-```
-
-Then, run:
+An example:
 
 ```bash
-scripts/mk-systemd-service
-```
+pkgdir=/
+prefix=/usr/local
+features=users # comma-separated list of cargo features
 
-to create `out/stopwatchd.service`.
-
-Then, copy the following files to their respective destinations:
-
-```bash
-install -Dm 755 target/debug/swd /usr/bin/swd
-install -Dm 755 target/debug/swctl /usr/bin/swctl
-install -Dm 644 README.md /usr/share/doc/stopwatchd/README.md
-install -Dm 644 out/stopwatchd.service /lib/systemd/system/stopwatchd.service
-install -Dm 644 res/conf/swd.conf /etc/stopwatchd/swd.conf
+sudo ./scripts/package
 ```
