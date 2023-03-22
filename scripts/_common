@@ -59,6 +59,7 @@ setup_dirvars() {
     export docdir=${docdir:-"${datarootdir}/doc/${pkgname}"}
 
     export confdir=${confdir:-'/etc/stopwatchd'}
+    export sysconfdir=${sysconfdir:-"${datarootdir}/${pkgname}"}
 }
 
 print_dirvars() {
@@ -75,4 +76,5 @@ print_dirvars() {
     echo "docdir=${docdir}"
     echo ''
     echo "confdir=${confdir}"
+    echo "sysconfdir=${sysconfdir}"
 }

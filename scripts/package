@@ -11,25 +11,34 @@ mkdir -p "${pkgdir}"
 
 cargo build --features "${features}"
 
+# /usr/bin
 mkdir -p "${pkgdir}/${bindir}"
 install -Dm 755 "${_swdpath}" "${pkgdir}/${bindir}/swd"
 install -Dm 755 "${_swctlpath}" "${pkgdir}/${bindir}/swctl"
 
+# /usr/share/doc/stopwatchd
 mkdir -p "${pkgdir}/${docdir}"
 install -Dm 644 "./README.md" "${pkgdir}/${docdir}/README.md"
 
 if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'swd-config'* ]]; then
+    # /etc/stopwatchd
     mkdir -p "${confdir}"
     install -Dm 644 "${_swdconfpath}" "${pkgdir}/${confdir}/swd.toml"
+
+    # /usr/share/stopwatchd
+    mkdir -p "${sysconfdir}"
+    install -Dm 644 "${_swdconfpath}" "${pkgdir}/${sysconfdir}/swd.toml"
 fi
 
 if is_var "${use_systemd}"; then
     scripts/mk-systemd-service
+    # /usr/lib/systemd/system
     _sysdir="${pkgdir}/${libdir}/systemd/system" 
     mkdir -p "${_sysdir}"
     install -Dm 644 "out/stopwatchd.service" "${_sysdir}/stopwatchd.service"
 
     if [[ "${features}" == *'default'* ]] || [[ "${features}" == *'users'* ]]; then
+        # /usr/lib/systemd/user
         _userdir="${pkgdir}/${libdir}/systemd/user"
         mkdir -p "${_userdir}"
         install -Dm 644 "out/stopwatchd.service" "${_userdir}/stopwatchd.service"

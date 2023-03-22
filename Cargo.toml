@@ -23,6 +23,7 @@ assets = [
     # This is here because cargo deb doesn't seem to support user services yet
     ["out/stopwatchd.service", "lib/systemd/user/stopwatchd.service","644"],
     ["res/conf/swd.toml", "etc/stopwatchd/swd.toml", "644"],
+    ["res/conf/swd.toml", "usr/share/swd.toml", "644"],
     ["README.md", "usr/share/doc/stopwatchd/README.md", "644"]
 ]
 maintainer-scripts = "res/os/debian/maintainer-scripts"
