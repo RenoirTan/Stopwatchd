@@ -3,6 +3,6 @@ Description=Stopwatchd Daemon Server
 Wants=
 
 [Service]
-ExecStart=<PREFIX>/bin/swd
+ExecStart=<BINDIR>/swd
 Type=simple
 WorkingDirectory=/

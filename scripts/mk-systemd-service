@@ -4,26 +4,7 @@ source "$(dirname $0)/_common"
 
 _serviceoutpath="stopwatchd.service"
 
-while getopts "o:p:" option; do
-    case "${option}" in
-        o)
-            echo "Specified intermediate output directory: ${OPTARG}"
-            outdir="${OPTARG}"
-            ;;
-        p)
-            echo "Specified prefix: ${OPTARG}"
-            prefix="${OPTARG}"
-            ;;
-        ?)
-            echo "Usage: $(basename $0) [-o outdir]"
-            echo ""
-            echo "Options:"
-            echo " -o outdir: Set the intermediate output directory."
-            echo "          : '$(pwd)/out' by default."
-            exit 1
-            ;;
-    esac
-done
+setup_dirvars
 
 cd_src
 
@@ -33,4 +14,4 @@ if [ ! -f "${_servicepath}" ]; then
 fi
 
 install -Dm 644 "${_servicepath}" "${outdir}/${_serviceoutpath}"
-sed -i "s|<PREFIX>|${prefix}|" "${outdir}/${_serviceoutpath}"
+sed -i "s|<BINDIR>|${bindir}|" "${outdir}/${_serviceoutpath}"

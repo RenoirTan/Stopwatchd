@@ -2,8 +2,13 @@
 
 source "$(dirname $0)/_common"
 
+prefix='/usr'
+libdir='/lib'
+setup_dirvars
+print_dirvars
+
 cd_src
 
-scripts/mk-systemd-service -p '/usr'
+scripts/mk-systemd-service
 mkdir -p pkg
 cargo deb --output pkg
