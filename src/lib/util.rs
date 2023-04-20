@@ -1,4 +1,4 @@
-//! Utility functions for [`stopwatchd`].
+//! Utility functions for `stopwatchd`.
 
 use std::{io::{stdin, Read, self, stdout, Write}, collections::HashMap};
 

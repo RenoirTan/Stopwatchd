@@ -166,7 +166,7 @@ impl Formatter {
         count
     }
 
-    /// Rest in peace original function: https://doc.rust-lang.org/nomicon/subtyping.html
+    /// Rest in peace original function: <https://doc.rust-lang.org/nomicon/subtyping.html>
     pub fn from_verbose(
         &self,
         basic: &mut Builder,

@@ -9,6 +9,9 @@ use super::{
     client_message::ClientRequestKind
 };
 
+#[allow(unused)]
+use crate::models::stopwatch::Stopwatch;
+
 /// Request to pause a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseRequest;

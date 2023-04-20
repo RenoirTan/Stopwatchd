@@ -131,7 +131,7 @@ impl ServerReply {
         self.extend_successful(successful.into_iter().map(|d| (d.get_identifier(), d)))
     }
 
-    /// Add a collection of [`StopwatchDetails`] mapped to their respective [`Identifiers`].
+    /// Add a collection of [`StopwatchDetails`] mapped to their respective [`Identifier`]s.
     pub fn extend_successful<I>(&mut self, successful: I)
     where
         I: IntoIterator<Item = (Identifier, StopwatchDetails)>
@@ -139,7 +139,7 @@ impl ServerReply {
         self.successful.extend(successful);
     }
 
-    /// Add error messages. [`Identifiers`] can be elicited from [`ServerError`].
+    /// Add error messages. [`Identifier`]s can be elicited from [`ServerError`].
     pub fn add_errors<I>(&mut self, errors: I)
     where
         I: IntoIterator<Item = ServerError>

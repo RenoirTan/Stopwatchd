@@ -9,6 +9,12 @@ use super::{
     client_message::ClientRequestKind
 };
 
+#[allow(unused)]
+use crate::{
+    communication::details::StopwatchDetails,
+    models::stopwatch::Stopwatch
+};
+
 /// Request for information about stopwatches managed by `swd`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoRequest;

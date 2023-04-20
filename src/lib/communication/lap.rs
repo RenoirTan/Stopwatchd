@@ -9,6 +9,9 @@ use super::{
     client_message::ClientRequestKind
 };
 
+#[allow(unused)]
+use crate::models::stopwatch::Stopwatch;
+
 /// Request to create a new lap.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapRequest;

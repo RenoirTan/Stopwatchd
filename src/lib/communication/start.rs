@@ -9,7 +9,10 @@ use super::{
     client_message::ClientRequestKind
 };
 
-/// Get `swd` to create a new stopwatch.
+#[allow(unused)]
+use crate::models::stopwatch::Stopwatch;
+
+/// Get `swd` to create a new [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StartRequest;
 

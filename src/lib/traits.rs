@@ -1,4 +1,4 @@
-//! Custom traits for types in [`stopwatchd`].
+//! Custom traits for types in `stopwatchd`.
 
 use std::io;
 
