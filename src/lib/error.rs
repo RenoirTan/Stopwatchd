@@ -1,9 +1,14 @@
+//! Custom errors for Stopwatchd.
+
 use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
 use crate::{identifiers::{Identifier, UuidName}, models::stopwatch::State};
+#[allow(unused)]
+use crate::models::stopwatch::Stopwatch;
 
+/// No matches or multiple conflicting matches for an [`Identifier`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindStopwatchError {
     pub identifier: Identifier,
@@ -11,6 +16,7 @@ pub struct FindStopwatchError {
 }
 
 impl FindStopwatchError {
+    /// Short error message.
     pub fn summarize(&self) -> String {
         let duplicates_len = self.duplicates.len();
         if duplicates_len == 0 {
@@ -24,6 +30,7 @@ impl FindStopwatchError {
         }
     }
 
+    /// More detailed error message.
     pub fn diagnose(&self) -> String {
         let mut diagnosis = self.summarize();
         if self.duplicates.len() == 0 {
@@ -48,6 +55,8 @@ impl fmt::Display for FindStopwatchError {
 
 impl std::error::Error for FindStopwatchError { }
 
+/// Action does not apply for a [`Stopwatch`] because it's in the wrong
+/// [`State`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvalidState {
     pub identifier: Identifier,

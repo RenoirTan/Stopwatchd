@@ -1,3 +1,5 @@
+//! Stopwatch.
+
 use std::{
     time::{Duration, SystemTime},
     ops::Deref,
@@ -11,7 +13,8 @@ use crate::identifiers::{UNMatchKind, UuidName, Identifier};
 
 use super::lap::{CurrentLap, FinishedLap};
 
-
+/// Name of the stopwatch. If the name is empty, then Stopwatchd treats it as
+/// "non-existent".
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Name(String);
 
@@ -21,6 +24,7 @@ impl Name {
         Self(name.into())
     }
 
+    /// Create an empty/non-existent name.
     #[inline]
     pub fn empty() -> Self {
         Self("".to_string())
@@ -31,6 +35,7 @@ impl Name {
         self.0.is_empty()
     }
 
+    /// Deref the inner raw [`String`].
     #[inline]
     pub fn inner(&self) -> &String {
         &self.0
@@ -69,8 +74,10 @@ impl AsRef<str> for Name {
     }
 }
 
+/// Minimum default capacity for lists storing laps.
 pub const MIN_LAPS_CAPACITY: usize = 4;
 
+/// What the [`Stopwatch`] is doing.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum State {
     Playing,
@@ -103,6 +110,7 @@ impl fmt::Display for State {
     }
 }
 
+/// Represents a stopwatch, with laps and an API to pause and play.
 #[derive(Debug)]
 pub struct Stopwatch {
     pub id: Uuid,
@@ -112,6 +120,7 @@ pub struct Stopwatch {
 }
 
 impl Stopwatch {
+    /// New stopwatch with an optional name. The stopwatch is paused by default.
     pub fn new(name: Option<Name>) -> Self {
         let id = Uuid::new_v4();
         let name = name.unwrap_or_default();
@@ -120,6 +129,7 @@ impl Stopwatch {
         Self { id, name, finished_laps, current_lap }
     }
 
+    /// New stopwatch but start immediately.
     pub fn start(name: Option<Name>) -> Self {
         let mut sw = Self::new(name);
         sw.play();
@@ -156,6 +166,7 @@ impl Stopwatch {
         }
     }
 
+    /// Stop the current lap and create a new lap.
     pub fn new_lap(&mut self, start_immediately: bool) -> State {
         match self.current_lap.take() {
             Some(prev_lap) => {
@@ -175,10 +186,12 @@ impl Stopwatch {
         }
     }
 
+    /// Count the number of laps, including the current one.
     pub fn laps(&self) -> usize {
         self.finished_laps.len() + if self.current_lap.is_some() { 1 } else { 0 }
     }
 
+    /// Get a copy first lap.
     pub fn first_lap(&self) -> Option<FinishedLap> {
         match self.finished_laps.first() {
             Some(lap) => Some(lap.clone()),
@@ -186,14 +199,17 @@ impl Stopwatch {
         }
     }
 
+    /// Check if this stopwatch matches an [`Identifier`].
     pub fn matches_identifier(&self, identifier: &Identifier) -> Option<UNMatchKind> {
         self.get_uuid_name().matches(identifier)
     }
 
+    /// Extract the UUID and name.
     pub fn get_uuid_name(&self) -> UuidName {
         UuidName { id: self.id, name: self.name.clone() }
     }
 
+    /// Get a copy of the last lap.
     pub fn last_lap(&self) -> Option<FinishedLap> {
         match self.current_lap.as_ref() {
             Some(lap) => Some(lap.normalize()),
@@ -201,14 +217,18 @@ impl Stopwatch {
         }
     }
 
+    /// List of already finished lap. This excludes the current lap if it hasn't
+    /// ended yet.
     pub fn finished_laps(&self) -> &[FinishedLap] {
         &self.finished_laps
     }
 
+    /// Get the current lap if it's running.
     pub fn current_lap(&self) -> Option<&CurrentLap> {
         self.current_lap.as_ref()
     }
 
+    /// Get a copy of all laps.
     pub fn all_laps(&self) -> Vec<FinishedLap> {
         let mut laps = self.finished_laps.clone();
         if let Some(cur) = &self.current_lap {
@@ -217,6 +237,7 @@ impl Stopwatch {
         laps
     }
 
+    /// Terminate this stopwatch such that it cannot be played again.
     pub fn end(&mut self) -> State {
         if let Some(prev_lap) = self.current_lap.take() {
             let state = if prev_lap.playing() {
@@ -231,6 +252,7 @@ impl Stopwatch {
         }
     }
 
+    /// Get the current [`State`] of the stopwatch.
     pub fn state(&self) -> State {
         match &self.current_lap {
             Some(lap) => if lap.playing() {
@@ -242,10 +264,12 @@ impl Stopwatch {
         }
     }
 
+    /// When the stopwatch was created.
     pub fn start_time(&self) -> Option<SystemTime> {
         self.first_lap().map(|l| l.start)
     }
 
+    /// How much time the stopwatch was playing.
     pub fn total_time(&self) -> Duration {
         let total = match &self.current_lap {
             Some(lap) => lap.total_time(),
@@ -255,6 +279,7 @@ impl Stopwatch {
             .fold(total, |total, lap| total + lap.duration)
     }
 
+    /// Details about this stopwatch.
     pub fn report(&self) -> String {
         let mut report = String::new();
         report.push_str(&format!("Stopwatch ID: {}\n", self.id));

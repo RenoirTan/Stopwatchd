@@ -1,3 +1,5 @@
+//! Custom traits for types in [`stopwatchd`].
+
 use std::io;
 
 use ciborium::{ser::into_writer, de::from_reader};

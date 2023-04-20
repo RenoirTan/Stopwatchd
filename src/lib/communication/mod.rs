@@ -1,3 +1,5 @@
+//! Common infrastructure to pass messages between `swd` and `swctl`.
+
 pub mod client_message;
 pub mod delete;
 pub mod details;

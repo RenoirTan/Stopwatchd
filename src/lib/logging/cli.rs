@@ -1,3 +1,5 @@
+//! Compatibility between [`clap`] and Stopwatchd's logging facility.
+
 use std::fmt;
 
 use clap::ValueEnum;

@@ -1,3 +1,5 @@
+//! Create a new lap for the specified [`Stopwatch`]es.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
@@ -7,6 +9,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Request to create a new lap.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapRequest;
 
@@ -18,6 +21,7 @@ impl Into<ClientRequestKind> for LapRequest {
     }
 }
 
+/// Reply from `swd` creating new laps.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapReply;
 

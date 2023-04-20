@@ -1,3 +1,5 @@
+//! Start a new stopwatch.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
@@ -7,6 +9,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Get `swd` to create a new stopwatch.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StartRequest;
 
@@ -18,6 +21,7 @@ impl Into<ClientRequestKind> for StartRequest {
     }
 }
 
+/// Reply from `swd` after creating new stopwatches.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StartReply;
 

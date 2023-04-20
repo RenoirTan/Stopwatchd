@@ -1,3 +1,5 @@
+//! Messages passed from clients to `swd` server.
+
 use std::{process, io};
 
 use serde::{Serialize, Deserialize};
@@ -14,6 +16,9 @@ use super::{
     delete::DeleteRequest
 };
 
+/// Possible actions requested by the client.
+/// 
+/// See the respective .*Request structs for more information.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClientRequestKind {
     Start(StartRequest),
@@ -26,14 +31,26 @@ pub enum ClientRequestKind {
     #[default] Default
 }
 
+/// A request from a client.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientRequest {
+    /// List of stopwatches that the requested action specified by `specific_args` is meant to
+    /// apply to.
     pub identifiers: Vec<Identifier>,
+    /// Return verbose output.
     pub verbose: bool,
+    /// Type of request.
     pub specific_args: ClientRequestKind
 }
 
 impl ClientRequest {
+    /// Create a new [`ClientRequest`].
+    /// 
+    /// # Arguments
+    /// * identifiers - List of [`Identifier`]s (or an iterator that generates identifiers).
+    /// * verbose - Whether to return verbose output, may have adverse effects on the performance
+    ///     of swd as it has to process and send more data.
+    /// * specific_args - Type of request.
     pub fn new<I, T>(identifiers: I, verbose: bool, specific_args: ClientRequestKind) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -65,13 +82,18 @@ impl Into<ClientMessage> for ClientRequest {
     }
 }
 
+/// Message from a client.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClientMessage {
+    /// PID of client.
     pub pid: u32,
+    /// Requested action.
     pub request: ClientRequest
 }
 
 impl ClientMessage {
+    /// Create a [`ClientMessage`] from [`ClientRequest`].
+    /// The PID will be filled in automatically.
     pub fn create(request: ClientRequest) -> Self {
         let pid = process::id();
         Self { pid, request }

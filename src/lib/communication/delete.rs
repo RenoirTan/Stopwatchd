@@ -1,3 +1,5 @@
+//! Delete a stopwatch from `swd`.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
@@ -7,6 +9,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Delete action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteRequest;
 

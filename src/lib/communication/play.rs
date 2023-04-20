@@ -1,3 +1,5 @@
+//! Continue running the timer of a lap.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
@@ -7,6 +9,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Request to play a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlayRequest;
 
@@ -18,6 +21,7 @@ impl Into<ClientRequestKind> for PlayRequest {
     }
 }
 
+/// Reply from `swd` after playing a [`Stopwatch`]'s lap.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlayReply;
 

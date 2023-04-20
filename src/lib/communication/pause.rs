@@ -1,3 +1,5 @@
+//! Pause a running lap.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
@@ -7,6 +9,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Request to pause a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseRequest;
 
@@ -18,6 +21,7 @@ impl Into<ClientRequestKind> for PauseRequest {
     }
 }
 
+/// Reply from `swd` after pausing a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseReply;
 

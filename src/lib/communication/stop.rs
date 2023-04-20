@@ -7,6 +7,7 @@ use super::{
     client_message::ClientRequestKind
 };
 
+/// Stop a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopRequest;
 
@@ -18,6 +19,7 @@ impl Into<ClientRequestKind> for StopRequest {
     }
 }
 
+/// Reply from `swd` after stopping a [`Stopwatch`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopReply;
 

@@ -1,3 +1,5 @@
+//! Common utilities for Stopwatchd programs.
+
 #[macro_use]
 extern crate log;
 

@@ -1,3 +1,5 @@
+//! Info on a [`Stopwatch`] passed to the client.
+
 use std::time::{SystemTime, Duration};
 
 use serde::{Serialize, Deserialize};
@@ -12,6 +14,8 @@ use crate::{
     identifiers::{UuidName, Identifier}
 };
 
+/// Details about a [`Stopwatch`]. See the methods and fields to see what
+/// details exist.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopwatchDetails {
     pub sw_id: Uuid,
@@ -25,6 +29,7 @@ pub struct StopwatchDetails {
 }
 
 impl StopwatchDetails {
+    /// Extract details from a [`Stopwatch`]. Optionally include `verbose` info.
     pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
         let sw_id = stopwatch.id;
         let name = stopwatch.name.clone();
@@ -50,6 +55,8 @@ impl StopwatchDetails {
         }
     }
 
+    /// Create a collection of [`StopwatchDetails`] from an [`Iterator`] of
+    /// [`Stopwatch`]s.
     pub fn from_iter<'s, I, D>(iter: I, verbose: bool) -> D
     where
         I: Iterator<Item = &'s Stopwatch>,
@@ -59,6 +66,7 @@ impl StopwatchDetails {
             .collect()
     }
 
+    /// Number of laps in the stopwatch.
     pub fn laps_count(&self) -> usize {
         match &self.verbose_info {
             Some(vi) => vi.laps.len(),
@@ -66,6 +74,7 @@ impl StopwatchDetails {
         }
     }
 
+    /// Time elapsed for the current lap.
     pub fn current_lap_time(&self) -> Duration {
         match &self.verbose_info {
             Some(vi) => vi.laps.last().unwrap().duration,
@@ -73,6 +82,7 @@ impl StopwatchDetails {
         }
     }
 
+    /// Obtain [`UuidName`].
     pub fn get_uuid_name(&self) -> UuidName {
         UuidName {
             id: self.sw_id,
@@ -80,6 +90,7 @@ impl StopwatchDetails {
         }
     }
 
+    /// Get a string that this stopwatch can be identified by.
     pub fn get_identifier(&self) -> Identifier {
         self.get_uuid_name().as_identifier()
     }
@@ -87,13 +98,14 @@ impl StopwatchDetails {
 
 impl Codecable<'_> for StopwatchDetails { }
 
+/// Extra information, supplements [`StopwatchDetails`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VerboseDetails {
     pub laps: Vec<FinishedLap>
 }
 
-
 impl VerboseDetails {
+    /// Create [`VerboseDetails`] from a [`Stopwatch`].
     pub fn from_stopwatch(stopwatch: &Stopwatch) -> Self {
         let laps = stopwatch.all_laps();
         Self { laps }
