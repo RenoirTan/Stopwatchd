@@ -1,3 +1,5 @@
+//! Convert command line arguments to a request to `swd`.
+
 use stopwatchd::communication::{
     client_message::ClientRequest,
     start::StartRequest,
@@ -11,6 +13,8 @@ use stopwatchd::communication::{
 
 use crate::cli::{self, Subcommands};
 
+/// Convert arguments to a request. See [`ClientRequest`] on how to send
+/// a serialised message to `swd`.
 pub fn args_to_request(args: &cli::Cli) -> ClientRequest {
     let (identifiers, specific) = match &args.action {
         Subcommands::Start(args) => (

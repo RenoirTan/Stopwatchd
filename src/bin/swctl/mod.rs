@@ -1,3 +1,6 @@
+//! User process that talks to `swd` to interact with and get details about
+//! stopwatches.
+
 use std::process::{self, exit};
 
 #[macro_use]
@@ -108,6 +111,11 @@ async fn run(cli: cli::Cli) -> i32 {
     }
 }
 
+/// Extract [`StopwatchDetails`] and [`ServerError`] from `reply`.
+/// 
+/// # Arguments
+/// * request - Request sent to the server. This function uses the details from
+/// `request` to decide the order in which stopwatches should be displayed.
 fn get_details_errors(
     request: &ClientRequest,
     mut reply: ServerReply,
@@ -145,6 +153,7 @@ fn get_details_errors(
     (details, errors)
 }
 
+/// Format [`StopwatchDetails`] into a string.
 fn generate_output<I>(args: &cli::Cli, details: I, formatter: &Formatter, style: Styles) -> String
 where
     I: IntoIterator<Item = StopwatchDetails>
@@ -185,6 +194,7 @@ where
     }
 }
 
+/// Format [`ServerError`] into strings.
 fn generate_errors<I>(args: &cli::Cli, iter: I, formatter: &Formatter, style: Styles) -> String
 where
     I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>

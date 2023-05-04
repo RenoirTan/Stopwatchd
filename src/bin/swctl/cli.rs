@@ -1,3 +1,5 @@
+//! Command line interface for `swctl`.
+
 use clap::{Parser, Subcommand, Args};
 use stopwatchd::logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL};
 
