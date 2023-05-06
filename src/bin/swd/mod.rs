@@ -1,3 +1,5 @@
+//! Server that manages stopwatches.
+
 use std::{
     fs::create_dir_all,
     process,

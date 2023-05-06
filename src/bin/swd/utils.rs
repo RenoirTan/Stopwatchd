@@ -1,3 +1,5 @@
+//! Extra stuff.
+
 use stopwatchd::communication::{
     client_message::ClientRequestKind,
     server_message::ServerReplyKind,
@@ -10,6 +12,9 @@ use stopwatchd::communication::{
     delete::DeleteReply
 };
 
+/// Convert [`ClientRequestKind`] to corresponding [`ServerReplyKind`].
+/// 
+/// TODO: Integrated into stopwatchd library.
 pub fn crk_to_srk(crk: &ClientRequestKind) -> ServerReplyKind {
     use ClientRequestKind as C;
     use ServerReplyKind as S;

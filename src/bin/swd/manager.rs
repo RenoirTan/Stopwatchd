@@ -1,3 +1,5 @@
+//! Manages the stopwatch.
+
 use std::collections::HashMap;
 
 use stopwatchd::{
@@ -34,34 +36,42 @@ pub type RequestReceiver = UnboundedReceiver<Request>;
 pub type ResponseSender = UnboundedSender<Response>;
 pub type ResponseReceiver = UnboundedReceiver<Response>;
 
+/// Create channels to send requests to [`Manager`].
 #[inline]
 pub fn make_request_channels() -> (RequestSender, RequestReceiver) {
     unbounded_channel()
 }
 
+/// Create channels for [`Manager`] to reply back with results.
 #[inline]
 pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
     unbounded_channel()
 }
 
+/// Contains [`Stopwatch`]es and auxiliary info.
+/// 
+/// Use [`manage`] to run the manager.
 pub struct Manager {
     stopwatches: HashMap<Uuid, Stopwatch>,
     access_order: Vec<UuidName> // Last item is most recently accessed
 }
 
 impl Manager {
+    /// Vanilla manager.
     pub fn new() -> Self {
         let stopwatches = HashMap::new();
         let access_order = Vec::new();
         Self { stopwatches, access_order }
     }
 
+    /// Add a stopwatch. Doesn't check whether UUID is unique yet.
     pub fn add_stopwatch(&mut self, stopwatch: Stopwatch) {
         let un = stopwatch.get_uuid_name();
         self.stopwatches.insert(un.id, stopwatch);
         self.access_order.push(un);
     }
 
+    /// Check if a [`Stopwatch`] with the name `identifier` exists.
     pub fn has_name(&self, identifier: &str) -> Option<UuidName> {
         if identifier.is_empty() {
             return None;
@@ -74,6 +84,7 @@ impl Manager {
         None
     }
 
+    /// Check if a [`Stopwatch`] with the UUID `identifier` exists.
     pub fn has_uuid(&self, identifier: &str) -> Option<UuidName> {
         let my_uuid = match Uuid::parse_str(identifier) {
             Ok(id) => id,
@@ -87,6 +98,7 @@ impl Manager {
         None
     }
 
+    /// Check if a stopwatch with name or UUID `identifier`.
     pub fn has_uuid_or_name(&self, identifier: &str) -> Option<UuidName> {
         // TODO: Might make this more efficient
         if let Some(un) = self.has_name(identifier) {
@@ -120,6 +132,8 @@ impl Manager {
         )
     }
 
+    /// Find a [`Stopwatch`] that matches `identifier` and get a reference to
+    /// it.
     pub fn get_stopwatch_by_identifier(
         &mut self,
         identifier: &Identifier
@@ -138,6 +152,8 @@ impl Manager {
         }
     }
 
+    /// Find a [`Stopwatch`] that matches `identifier` and take ownership of it,
+    /// removing it from [`Manager`].
     pub fn take_stopwatch_by_identifier(
         &mut self,
         identifier: &Identifier
@@ -152,6 +168,10 @@ impl Manager {
         }
     }
 
+    /// Generate a [`FindStopwatchError`] for `identifier` and duplicate
+    /// stopwatches with access order `indices`. As the access order stored
+    /// by [`Manager`] keeps on changing, this might be a source of race
+    /// conditions.
     fn manager_stopwatches_error(
         &self,
         identifier: &Identifier,
@@ -168,6 +188,8 @@ impl Manager {
         FindStopwatchError { identifier, duplicates }
     }
 
+    /// Get an iterator over the contained [`Stopwatches`], with those with the
+    /// most recent uses/accesses yielded first.
     pub (self) fn stopwatches_by_access_order(&self) -> StopwatchByAccessOrder<'_> {
         StopwatchByAccessOrder {
             stopwatches: &self.stopwatches,
@@ -359,6 +381,7 @@ async fn default(res_tx: &ResponseSender) {
     }
 }
 
+/// Run a [`Manager`].
 pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
     debug!("start manage");
     while let Some(message) = req_rx.recv().await {

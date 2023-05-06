@@ -1,3 +1,5 @@
+//! Configuration and command line arguments for `swd`.
+
 #[cfg(feature = "swd-config")]
 use std::{
     io::{self, Read},
@@ -17,9 +19,15 @@ use toml::{Table, Value};
 #[cfg(feature = "users")]
 use users::{get_user_by_uid, get_current_uid};
 
+/// Default system config file for `swd`.
 #[cfg(feature = "swd-config")]
 pub const SYSTEM_CONFIG_PATH: &'static str = "/etc/stopwatchd/swd.toml";
 
+/// Get config file path for a user.
+/// 
+/// # Arguments
+/// - config_home: Fallback config_home, tried after function looks for
+/// `$XDG_CONFIG_HOME` and `$HOME/.config`.
 #[cfg(all(feature = "swd-config", feature = "users"))]
 pub fn user_config_path(config_home: Option<String>) -> Result<PathBuf, env::VarError> {
     // $HOME/.config/stopwatchd/swd.toml
@@ -29,6 +37,7 @@ pub fn user_config_path(config_home: Option<String>) -> Result<PathBuf, env::Var
     Ok(PathBuf::from(config_home).join("stopwatchd/swd.toml"))
 }
 
+/// Use [`get_config_path`].
 #[cfg(all(feature = "swd-config", feature = "users"))]
 pub fn calculate_config_path() -> PathBuf {
     match get_current_uid() {
@@ -40,6 +49,7 @@ pub fn calculate_config_path() -> PathBuf {
     }
 }
 
+/// Find config path for `swd`.
 #[cfg(feature = "swd-config")]
 pub fn get_config_path() -> PathBuf {
     #[cfg(not(feature = "users"))]
@@ -56,6 +66,7 @@ pub struct Cli {
     #[arg(short, long, value_enum, help = "Set log level")]
     pub log_level: Option<LogLevel>,
 
+    /// Path to config file.
     #[cfg(feature = "swd-config")]
     #[arg(
         short = 'c',
@@ -66,10 +77,13 @@ pub struct Cli {
 }
 
 impl Cli {
+    /// Get minimum [`LogLevel`].
     pub fn log_level(&self) -> LogLevel {
         self.log_level.unwrap_or(DEFAULT_LOGGER_LEVEL.into())
     }
 
+    /// Combine command line arguments stored in `self`
+    /// with options in TOML [`Table`].
     #[cfg(feature = "swd-config")]
     pub fn supplement_toml(&mut self, table: Table) -> Result<&mut Self, io::Error> {
         if let None = self.log_level {
@@ -87,6 +101,8 @@ impl Cli {
         Ok(self)
     }
 
+    /// Combine command line arguments stored in `self`
+    /// with config file at `config_path`.
     #[cfg(feature = "swd-config")]
     pub fn supplement_file(&mut self, config_path: Option<&str>) -> Result<&mut Self, io::Error> {
         let config_path = config_path.unwrap_or(&self.config_path);
