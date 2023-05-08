@@ -213,7 +213,7 @@ impl Formatter {
     }
 }
 
-/// "Tuple" of formatted basic stopwatch details. See [`BASIC_DETAILS_HEADER`]
+/// "Tuple" of formatted basic stopwatch details. See [`BASIC_DETAILS_HEADERS`]
 /// for the meaning of each element in the tuple.
 pub type BasicRecord = [String; BDH_COUNT];
 /// Number of basic details columns.

@@ -188,7 +188,7 @@ impl Manager {
         FindStopwatchError { identifier, duplicates }
     }
 
-    /// Get an iterator over the contained [`Stopwatches`], with those with the
+    /// Get an iterator over the contained [`Stopwatch`]es, with those with the
     /// most recent uses/accesses yielded first.
     pub (self) fn stopwatches_by_access_order(&self) -> StopwatchByAccessOrder<'_> {
         StopwatchByAccessOrder {
