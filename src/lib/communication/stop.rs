@@ -1,3 +1,5 @@
+//! Permanently terminate a stopwatch.
+
 use serde::{Serialize, Deserialize};
 
 use crate::traits::Codecable;
