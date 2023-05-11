@@ -102,7 +102,7 @@ impl TryFrom<&[u8]> for ClientMessage {
     type Error = io::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Self::from_bytes(&value)
+        Codecable::from_bytes(&value)
     }
 }
 
@@ -110,7 +110,7 @@ impl TryInto<Vec<u8>> for ClientMessage {
     type Error = io::Error;
 
     fn try_into(self) -> Result<Vec<u8>, Self::Error> {
-        self.to_bytes()
+        Codecable::to_bytes(&self)
     }
 }
 
