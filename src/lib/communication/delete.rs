@@ -2,8 +2,6 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::traits::Codecable;
-
 use super::{
     server_message::ServerReplyKind,
     client_message::ClientRequestKind
@@ -12,8 +10,6 @@ use super::{
 /// Delete action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteRequest;
-
-impl Codecable<'_> for DeleteRequest { }
 
 impl Into<ClientRequestKind> for DeleteRequest {
     fn into(self) -> ClientRequestKind {

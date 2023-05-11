@@ -184,8 +184,6 @@ impl ServerReply {
     }
 }
 
-impl Codecable<'_> for ServerReply { }
-
 impl Default for ServerReply {
     fn default() -> Self {
         let specific = ServerReplyKind::default();
@@ -214,8 +212,6 @@ impl ServerMessage {
     }
 }
 
-impl Codecable<'_> for ServerMessage { }
-
 impl Default for ServerMessage {
     fn default() -> Self {
         let pid = process::id();
@@ -228,7 +224,7 @@ impl TryFrom<&[u8]> for ServerMessage {
     type Error = io::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        Self::from_bytes(&value)
+        Codecable::from_bytes(&value)
     }
 }
 
@@ -236,6 +232,6 @@ impl TryInto<Vec<u8>> for ServerMessage {
     type Error = io::Error;
 
     fn try_into(self) -> Result<Vec<u8>, Self::Error> {
-        self.to_bytes()
+        Codecable::to_bytes(&self)
     }
 }

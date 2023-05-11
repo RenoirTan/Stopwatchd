@@ -10,7 +10,6 @@ use crate::{
         stopwatch::{Name, State, Stopwatch},
         lap::FinishedLap
     },
-    traits::Codecable,
     identifiers::{UuidName, Identifier}
 };
 
@@ -95,8 +94,6 @@ impl StopwatchDetails {
         self.get_uuid_name().as_identifier()
     }
 }
-
-impl Codecable<'_> for StopwatchDetails { }
 
 /// Extra information, supplements [`StopwatchDetails`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

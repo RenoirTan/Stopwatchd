@@ -2,7 +2,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::{traits::Codecable, identifiers::Identifier};
+use crate::identifiers::Identifier;
 
 use super::{
     server_message::ServerReplyKind,
@@ -18,8 +18,6 @@ use crate::{
 /// Request for information about stopwatches managed by `swd`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoRequest;
-
-impl Codecable<'_> for InfoRequest { }
 
 impl Into<ClientRequestKind> for InfoRequest {
     fn into(self) -> ClientRequestKind {

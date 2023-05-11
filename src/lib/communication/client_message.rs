@@ -64,8 +64,6 @@ impl ClientRequest {
     }
 }
 
-impl Codecable<'_> for ClientRequest { }
-
 impl Default for ClientRequest {
     fn default() -> Self {
         Self {
@@ -99,8 +97,6 @@ impl ClientMessage {
         Self { pid, request }
     }
 }
-
-impl Codecable<'_> for ClientMessage { }
 
 impl TryFrom<&[u8]> for ClientMessage {
     type Error = io::Error;
