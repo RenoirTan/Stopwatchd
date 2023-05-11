@@ -3,8 +3,8 @@
 use serde::{Serialize, Deserialize};
 
 use super::{
-    server_message::ServerReplyKind,
-    client_message::ClientRequestKind
+    reply::ReplyKind,
+    request::RequestKind
 };
 
 #[allow(unused)]
@@ -14,9 +14,9 @@ use crate::models::stopwatch::Stopwatch;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseRequest;
 
-impl Into<ClientRequestKind> for PauseRequest {
-    fn into(self) -> ClientRequestKind {
-        ClientRequestKind::Pause(self)
+impl Into<RequestKind> for PauseRequest {
+    fn into(self) -> RequestKind {
+        RequestKind::Pause(self)
     }
 }
 
@@ -24,8 +24,8 @@ impl Into<ClientRequestKind> for PauseRequest {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseReply;
 
-impl Into<ServerReplyKind> for PauseReply {
-    fn into(self) -> ServerReplyKind {
-        ServerReplyKind::Pause(self)
+impl Into<ReplyKind> for PauseReply {
+    fn into(self) -> ReplyKind {
+        ReplyKind::Pause(self)
     }
 }

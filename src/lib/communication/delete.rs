@@ -3,25 +3,25 @@
 use serde::{Serialize, Deserialize};
 
 use super::{
-    server_message::ServerReplyKind,
-    client_message::ClientRequestKind
+    reply::ReplyKind,
+    request::RequestKind
 };
 
 /// Delete action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteRequest;
 
-impl Into<ClientRequestKind> for DeleteRequest {
-    fn into(self) -> ClientRequestKind {
-        ClientRequestKind::Delete(self)
+impl Into<RequestKind> for DeleteRequest {
+    fn into(self) -> RequestKind {
+        RequestKind::Delete(self)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteReply;
 
-impl Into<ServerReplyKind> for DeleteReply {
-    fn into(self) -> ServerReplyKind {
-        ServerReplyKind::Delete(self)
+impl Into<ReplyKind> for DeleteReply {
+    fn into(self) -> ReplyKind {
+        ReplyKind::Delete(self)
     }
 }

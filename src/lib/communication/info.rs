@@ -5,8 +5,8 @@ use serde::{Serialize, Deserialize};
 use crate::identifiers::Identifier;
 
 use super::{
-    server_message::ServerReplyKind,
-    client_message::ClientRequestKind
+    reply::ReplyKind,
+    request::RequestKind
 };
 
 #[allow(unused)]
@@ -19,9 +19,9 @@ use crate::{
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoRequest;
 
-impl Into<ClientRequestKind> for InfoRequest {
-    fn into(self) -> ClientRequestKind {
-        ClientRequestKind::Info(self)
+impl Into<RequestKind> for InfoRequest {
+    fn into(self) -> RequestKind {
+        RequestKind::Info(self)
     }
 }
 
@@ -34,9 +34,9 @@ pub enum InfoReply {
     All(InfoAll)
 }
 
-impl Into<ServerReplyKind> for InfoReply {
-    fn into(self) -> ServerReplyKind {
-        ServerReplyKind::Info(self)
+impl Into<ReplyKind> for InfoReply {
+    fn into(self) -> ReplyKind {
+        ReplyKind::Info(self)
     }
 }
 

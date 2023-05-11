@@ -1,7 +1,7 @@
 //! Convert command line arguments to a request to `swd`.
 
 use stopwatchd::communication::{
-    client_message::ClientRequest,
+    request::Request,
     start::StartRequest,
     info::InfoRequest,
     stop::StopRequest,
@@ -15,7 +15,7 @@ use crate::cli::{self, Subcommands};
 
 /// Convert arguments to a request. See [`ClientRequest`] on how to send
 /// a serialised message to `swd`.
-pub fn args_to_request(args: &cli::Cli) -> ClientRequest {
+pub fn args_to_request(args: &cli::Cli) -> Request {
     let (identifiers, specific) = match &args.action {
         Subcommands::Start(args) => (
             args.identifier.iter().map(Clone::clone).collect(),
@@ -28,5 +28,5 @@ pub fn args_to_request(args: &cli::Cli) -> ClientRequest {
         Subcommands::Play(args) => (args.identifiers.clone(), PlayRequest.into()),
         Subcommands::Delete(args) => (args.identifiers.clone(), DeleteRequest.into())
     };
-    ClientRequest::new(identifiers, args.verbose, specific)
+    Request::new(identifiers, args.verbose, specific)
 }

@@ -12,8 +12,8 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        client_message::{ClientMessage, ClientRequest},
-        server_message::{ServerMessage, ServerReplyKind, ServerReply, ServerError},
+        request::{ClientMessage, Request},
+        reply::{ServerMessage, ReplyKind, Reply, ServerError},
         info::InfoReply, details::StopwatchDetails
     },
     traits::Codecable, identifiers::Identifier
@@ -83,8 +83,8 @@ async fn run(cli: cli::Cli) -> i32 {
         .expect(&format!("could not convert message to reply"));
 
     let (details, errors) = match reply.reply.specific_answer {
-        ServerReplyKind::Default => panic!("should not be ServerReply::Default"),
-        ServerReplyKind::Info(InfoReply::All(ref all)) => {
+        ReplyKind::Default => panic!("should not be ServerReply::Default"),
+        ReplyKind::Info(InfoReply::All(ref all)) => {
             let ao = all.access_order.clone();
             get_details_errors(&message.request, reply.reply, Some(&ao))
         },
@@ -117,8 +117,8 @@ async fn run(cli: cli::Cli) -> i32 {
 /// * request - Request sent to the server. This function uses the details from
 /// `request` to decide the order in which stopwatches should be displayed.
 fn get_details_errors(
-    request: &ClientRequest,
-    mut reply: ServerReply,
+    request: &Request,
+    mut reply: Reply,
     access_order: Option<&Vec<Identifier>>
 ) -> (Vec<StopwatchDetails>, Vec<(Option<Identifier>, Vec<ServerError>)>) {
     let mut details = Vec::with_capacity(reply.successful.len());

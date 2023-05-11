@@ -1,8 +1,8 @@
 //! Extra stuff.
 
 use stopwatchd::communication::{
-    client_message::ClientRequestKind,
-    server_message::ServerReplyKind,
+    request::RequestKind,
+    reply::ReplyKind,
     start::StartReply,
     info::InfoReply,
     stop::StopReply,
@@ -15,9 +15,9 @@ use stopwatchd::communication::{
 /// Convert [`ClientRequestKind`] to corresponding [`ServerReplyKind`].
 /// 
 /// TODO: Integrated into stopwatchd library.
-pub fn crk_to_srk(crk: &ClientRequestKind) -> ServerReplyKind {
-    use ClientRequestKind as C;
-    use ServerReplyKind as S;
+pub fn crk_to_srk(crk: &RequestKind) -> ReplyKind {
+    use RequestKind as C;
+    use ReplyKind as S;
     match crk {
         C::Start(_) => S::Start(StartReply),
         C::Info(_) => S::Info(InfoReply::default()),

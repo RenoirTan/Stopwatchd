@@ -4,8 +4,8 @@ use std::io;
 
 use stopwatchd::{
     communication::{
-        client_message::ClientMessage,
-        server_message::{ServerMessage, ServerReply}
+        request::ClientMessage,
+        reply::{ServerMessage, Reply}
     },
     traits::Codecable
 };
@@ -51,7 +51,7 @@ pub async fn handle_client(client: UnixStream, req_tx: RequestSender) -> io::Res
         },
         None => {
             error!("no error from manager");
-            ServerMessage::create(ServerReply::default())
+            ServerMessage::create(Reply::default())
         }
     };
 

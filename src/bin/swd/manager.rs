@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use stopwatchd::{
     communication::{
-        client_message::{ClientRequest, ClientRequestKind},
-        server_message::{ServerReply, ServerError},
+        request::{Request, RequestKind},
+        reply::{Reply, ServerError},
         start::StartReply,
         info::{InfoReply, InfoAll},
         delete::DeleteReply,
@@ -22,13 +22,13 @@ use crate::utils::crk_to_srk;
 
 #[derive(Clone, Debug)]
 pub struct Request {
-    pub action: ClientRequest,
+    pub action: Request,
     pub res_tx: ResponseSender
 }
 
 #[derive(Clone, Debug)]
 pub struct Response {
-    pub output: ServerReply
+    pub output: Reply
 }
 
 pub type RequestSender = UnboundedSender<Request>;
@@ -225,7 +225,7 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
     }
 }
 
-async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let given_identifier = req.identifiers.first().cloned();
     let name = given_identifier.clone().map(Name::new);
 
@@ -233,7 +233,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientReque
     let stopwatch = Stopwatch::start(name.clone());
     let sw_identifier = &stopwatch.get_uuid_name().as_identifier();
 
-    let mut reply = ServerReply::new(StartReply.into());
+    let mut reply = Reply::new(StartReply.into());
 
     if let Some(uuid_name) = manager.has_uuid_or_name(&sw_identifier) {
         trace!("stopwatch with the same name or uuid already exists");
@@ -274,7 +274,7 @@ async fn good_or_bad(
     }
 }
 
-async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let specific_args = &req.specific_args;
     let mut details = HashMap::<Identifier, StopwatchDetails>::new();
     let mut errored = HashMap::<Option<Identifier>, ServerError>::new();
@@ -285,23 +285,23 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
         let errs = &mut errored;
         match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => match specific_args {
-                ClientRequestKind::Info(_) => {
+                RequestKind::Info(_) => {
                     details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
                 },
-                ClientRequestKind::Stop(_) => {
+                RequestKind::Stop(_) => {
                     let state = sw.end();
                     good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
-                ClientRequestKind::Lap(_) => {
+                RequestKind::Lap(_) => {
                     let state = sw.new_lap(true);
                     good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
-                ClientRequestKind::Pause(_) => {
+                RequestKind::Pause(_) => {
                     let state = sw.pause();
                     let condition = matches!(state, State::Ended | State::Paused);
                     good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
                 },
-                ClientRequestKind::Play(_) => {
+                RequestKind::Play(_) => {
                     let state = sw.play();
                     let condition = matches!(state, State::Ended | State::Playing);
                     good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
@@ -315,7 +315,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
     }
 
     let specific_reply = crk_to_srk(specific_args);
-    let mut reply = ServerReply::new(specific_reply);
+    let mut reply = Reply::new(specific_reply);
     reply.extend_successful(details);
     reply.extend_uncollected_errors(errored);
 
@@ -327,7 +327,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest
     }
 }
 
-async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("info_all");
     let mut access_order = vec![];
     let mut details = vec![];
@@ -337,7 +337,7 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRe
         details.push(StopwatchDetails::from_stopwatch(sw, req.verbose));
     }
 
-    let mut reply = ServerReply::new(InfoReply::All(InfoAll { access_order }).into());
+    let mut reply = Reply::new(InfoReply::All(InfoAll { access_order }).into());
     reply.add_successful(details);
     let response = Response {
         output: reply
@@ -349,9 +349,9 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRe
     }
 }
 
-async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequest) {
+async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("got request for delete");
-    let mut reply = ServerReply::new(DeleteReply.into());
+    let mut reply = Reply::new(DeleteReply.into());
     for identifier in &req.identifiers {
         match manager.take_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
@@ -374,7 +374,7 @@ async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &ClientRequ
 }
 
 async fn default(res_tx: &ResponseSender) {
-    let response = Response { output: ServerReply::default() };
+    let response = Response { output: Reply::default() };
     trace!("manage is sending response back for default");
     if let Err(e) = res_tx.send(response) {
         error!("{}", e)
@@ -388,16 +388,16 @@ pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
         trace!("manage received message");
         let request = message.action;
         match request.specific_args {
-            ClientRequestKind::Start(_) => {
+            RequestKind::Start(_) => {
                 start(&mut manager, &message.res_tx, &request).await;
             },
-            ClientRequestKind::Info(_) if request.identifiers.len() == 0 => {
+            RequestKind::Info(_) if request.identifiers.len() == 0 => {
                 info_all(&mut manager, &message.res_tx, &request).await;
             },
-            ClientRequestKind::Default => {
+            RequestKind::Default => {
                 default(&message.res_tx).await;
             },
-            ClientRequestKind::Delete(_) => {
+            RequestKind::Delete(_) => {
                 delete(&mut manager, &message.res_tx, &request).await;
             },
             _ => {
