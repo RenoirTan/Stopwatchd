@@ -4,8 +4,8 @@ use std::io;
 
 use stopwatchd::{
     communication::{
-        request::ClientMessage,
-        reply::{ServerMessage, Reply}
+        client::ClientMessage,
+        server::{ServerMessage, Reply}
     },
     traits::Codecable
 };

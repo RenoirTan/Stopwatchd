@@ -5,8 +5,8 @@ use serde::{Serialize, Deserialize};
 use crate::identifiers::Identifier;
 
 use super::{
-    reply::ReplyKind,
-    request::RequestKind
+    server::ReplyKind,
+    client::RequestKind
 };
 
 #[allow(unused)]

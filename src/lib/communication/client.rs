@@ -66,7 +66,7 @@ mod test {
     use crate::{
         communication::{
             start::StartRequest,
-            request::{RequestKind, Request}
+            client::{RequestKind, Request}
         },
         traits::Codecable,
         models::stopwatch::Name

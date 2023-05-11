@@ -5,7 +5,7 @@ use std::{time::Duration, fmt};
 use chrono::{Local, DateTime, NaiveTime};
 use clap::ValueEnum;
 use stopwatchd::{
-    communication::{details::StopwatchDetails, reply::ServerError},
+    communication::{details::StopwatchDetails, server::ServerError},
     util::get_uuid_node, models::lap::FinishedLap, identifiers::Identifier
 };
 use tabled::{builder::Builder, Table, Style};

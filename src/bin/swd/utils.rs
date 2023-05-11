@@ -1,8 +1,8 @@
 //! Extra stuff.
 
 use stopwatchd::communication::{
-    request::RequestKind,
-    reply::ReplyKind,
+    client::RequestKind,
+    server::ReplyKind,
     start::StartReply,
     info::InfoReply,
     stop::StopReply,

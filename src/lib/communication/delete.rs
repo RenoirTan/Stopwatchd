@@ -3,8 +3,8 @@
 use serde::{Serialize, Deserialize};
 
 use super::{
-    reply::ReplyKind,
-    request::RequestKind
+    server::ReplyKind,
+    client::RequestKind
 };
 
 /// Delete action.

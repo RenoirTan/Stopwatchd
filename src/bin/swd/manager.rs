@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use stopwatchd::{
     communication::{
-        request::{Request, RequestKind},
-        reply::{Reply, ServerError},
+        client::{Request, RequestKind},
+        server::{Reply, ServerError},
         start::StartReply,
         info::{InfoReply, InfoAll},
         delete::DeleteReply,

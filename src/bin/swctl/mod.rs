@@ -12,8 +12,8 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        request::{ClientMessage, Request},
-        reply::{ServerMessage, ReplyKind, Reply, ServerError},
+        client::{ClientMessage, Request},
+        server::{ServerMessage, ReplyKind, Reply, ServerError},
         info::InfoReply, details::StopwatchDetails
     },
     traits::Codecable, identifiers::Identifier

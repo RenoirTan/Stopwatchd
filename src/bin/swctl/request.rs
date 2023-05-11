@@ -1,7 +1,7 @@
 //! Convert command line arguments to a request to `swd`.
 
 use stopwatchd::communication::{
-    request::Request,
+    client::Request,
     start::StartRequest,
     info::InfoRequest,
     stop::StopRequest,
