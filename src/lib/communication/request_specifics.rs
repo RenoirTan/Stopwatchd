@@ -2,6 +2,8 @@
 
 use serde::{Serialize, Deserialize};
 
+use crate::impl_into_enum_variant;
+
 /// Possible actions `swd` can take and the extra arguments the action needs.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpecificArgs {
@@ -42,17 +44,12 @@ pub struct LapArgs;
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteArgs;
 
-macro_rules! impl_into_specific_args {
-    ( $( $datatype:ty, $variant:ident ),* ) => {
-        $(
-            impl Into<SpecificArgs> for $datatype {
-                fn into(self) -> SpecificArgs {
-                    SpecificArgs::$variant(self)
-                }
-            }
-        )*
-    };
-}
-
-impl_into_specific_args!(InfoArgs, Info, StartArgs, Start, StopArgs, Stop,
-    PlayArgs, Play, PauseArgs, Pause, LapArgs, Lap, DeleteArgs, Delete);
+impl_into_enum_variant!(SpecificArgs {
+    Info(InfoArgs),
+    Start(StartArgs),
+    Stop(StopArgs),
+    Play(PlayArgs),
+    Pause(PauseArgs),
+    Lap(LapArgs),
+    Delete(DeleteArgs)
+});
