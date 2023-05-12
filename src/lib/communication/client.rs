@@ -4,15 +4,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::{identifiers::Identifier, util::iter_into_vec};
 
-use super::{
-    start::StartRequest,
-    info::InfoRequest,
-    stop::StopRequest,
-    lap::LapRequest,
-    pause::PauseRequest,
-    play::PlayRequest,
-    delete::DeleteRequest
-};
+pub use super::request_specifics::SpecificArgs;
 
 /// Common arguments for requests.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,32 +36,18 @@ impl Default for CommonArgs {
     }
 }
 
-/// Possible actions requested by the client.
-/// 
-/// See the respective .*Request structs for more information.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RequestKind {
-    Start(StartRequest),
-    Info(InfoRequest),
-    Stop(StopRequest),
-    Lap(LapRequest),
-    Pause(PauseRequest),
-    Play(PlayRequest),
-    Delete(DeleteRequest)
-}
-
 /// A request from a client.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Request {
-    /// Common arguments (not specific to one or a few [`RequestKind`]).
+    /// Common arguments (not specific to one or a few actions).
     pub common_args: CommonArgs,
-    /// Type of request.
-    pub specific_args: RequestKind
+    /// Type of request and their arguments.
+    pub specific_args: SpecificArgs
 }
 
 impl Request {
     /// Create a new [`Request`].
-    pub fn new(common_args: CommonArgs, specific_args: RequestKind) -> Self {
+    pub fn new(common_args: CommonArgs, specific_args: SpecificArgs) -> Self {
         Self { common_args, specific_args }
     }
 }
@@ -78,8 +56,8 @@ impl Request {
 mod test {
     use crate::{
         communication::{
-            start::StartRequest,
-            client::{RequestKind, Request, CommonArgs}
+            client::{Request, CommonArgs},
+            request_specifics::StartArgs
         },
         traits::Codecable,
         models::stopwatch::Name
@@ -87,7 +65,7 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let specific = RequestKind::Start(StartRequest);
+        let specific = StartArgs.into();
         let common = CommonArgs::from_iter([Name::default()], false);
         let request = Request::new(common, specific);
 
@@ -99,7 +77,7 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let specific = RequestKind::Start(StartRequest);
+        let specific = StartArgs.into();
         let common = CommonArgs::from_iter(["random"], false);
         let request = Request::new(common, specific);
 

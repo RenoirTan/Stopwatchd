@@ -4,26 +4,13 @@ use serde::{Serialize, Deserialize};
 
 use crate::identifiers::Identifier;
 
-use super::{
-    server::ReplyKind,
-    client::RequestKind
-};
+use super::server::ReplyKind;
 
 #[allow(unused)]
 use crate::{
     communication::details::StopwatchDetails,
     models::stopwatch::Stopwatch
 };
-
-/// Request for information about stopwatches managed by `swd`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct InfoRequest;
-
-impl Into<RequestKind> for InfoRequest {
-    fn into(self) -> RequestKind {
-        RequestKind::Info(self)
-    }
-}
 
 /// Kind of information coming from `swd`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

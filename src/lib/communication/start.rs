@@ -2,23 +2,10 @@
 
 use serde::{Serialize, Deserialize};
 
-use super::{
-    server::ReplyKind,
-    client::RequestKind
-};
+use super::server::ReplyKind;
 
 #[allow(unused)]
 use crate::models::stopwatch::Stopwatch;
-
-/// Get `swd` to create a new [`Stopwatch`].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StartRequest;
-
-impl Into<RequestKind> for StartRequest {
-    fn into(self) -> RequestKind {
-        RequestKind::Start(self)
-    }
-}
 
 /// Reply from `swd` after creating new stopwatches.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
