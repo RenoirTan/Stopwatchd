@@ -61,3 +61,11 @@ where
     }
     map
 }
+
+pub fn iter_into_vec<I, T, U>(iter: I) -> Vec<U>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<U>
+{
+    iter.into_iter().map(Into::into).collect()
+}
