@@ -70,6 +70,30 @@ where
     iter.into_iter().map(Into::into).collect()
 }
 
+/// Implements [`Into`] for data types that are variants of an enum.
+/// 
+/// Consider the following example for the syntax. The identifier for the
+/// enum comes first, then an open '{', and then the variants are declared
+/// just like how they were defined in the original `enum Variants { ... }`
+/// definition. Once none/some/all of the variants can [`Into`] `Variants`,
+/// close the macro input with '}'
+/// 
+/// # Example
+/// 
+/// ```
+/// enum Variants {
+///     A(TypeA),
+///     B(TypeB)
+/// }
+/// 
+/// struct TypeA;
+/// struct TypeB;
+/// 
+/// impl_into_enum_variant!(Variants {
+///     A(TypeA),
+///     B(TypeB)
+/// });
+/// ```
 #[macro_export]
 macro_rules! impl_into_enum_variant {
     ( $enumtype:ty { $( $variant:ident($datatype:ty) ),* }) => {
