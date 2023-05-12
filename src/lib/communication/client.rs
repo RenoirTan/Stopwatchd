@@ -2,62 +2,53 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::identifiers::Identifier;
+use crate::{identifiers::Identifier, util::iter_into_vec};
 
-use super::{
-    start::StartRequest,
-    info::InfoRequest,
-    stop::StopRequest,
-    lap::LapRequest,
-    pause::PauseRequest,
-    play::PlayRequest,
-    delete::DeleteRequest
-};
+pub use super::request_specifics::SpecificArgs;
 
-/// Possible actions requested by the client.
-/// 
-/// See the respective .*Request structs for more information.
+/// Common arguments for requests.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RequestKind {
-    Start(StartRequest),
-    Info(InfoRequest),
-    Stop(StopRequest),
-    Lap(LapRequest),
-    Pause(PauseRequest),
-    Play(PlayRequest),
-    Delete(DeleteRequest)
+pub struct CommonArgs {
+    /// List of stopwatches the specified action should be applied to.
+    pub identifiers: Vec<Identifier>,
+    /// Whether to return verbose/more detailed information.
+    pub verbose: bool
+}
+
+impl CommonArgs {
+    /// Create a new [`CommonArgs`] object.
+    pub fn new(identifiers: Vec<Identifier>, verbose: bool) -> Self {
+        Self { identifiers, verbose }
+    }
+
+    pub fn from_iter<I, T>(identifiers: I, verbose: bool) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<Identifier>
+    {
+        Self::new(iter_into_vec(identifiers), verbose)
+    }
+}
+
+impl Default for CommonArgs {
+    fn default() -> Self {
+        Self { identifiers: vec![], verbose: false }
+    }
 }
 
 /// A request from a client.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Request {
-    /// List of stopwatches that the requested action specified by `specific_args` is meant to
-    /// apply to.
-    pub identifiers: Vec<Identifier>,
-    /// Return verbose output.
-    pub verbose: bool,
-    /// Type of request.
-    pub specific_args: RequestKind
+    /// Common arguments (not specific to one or a few actions).
+    pub common_args: CommonArgs,
+    /// Type of request and their arguments.
+    pub specific_args: SpecificArgs
 }
 
 impl Request {
-    /// Create a new [`ClientRequest`].
-    /// 
-    /// # Arguments
-    /// * identifiers - List of [`Identifier`]s (or an iterator that generates identifiers).
-    /// * verbose - Whether to return verbose output, may have adverse effects on the performance
-    ///     of swd as it has to process and send more data.
-    /// * specific_args - Type of request.
-    pub fn new<I, T>(identifiers: I, verbose: bool, specific_args: RequestKind) -> Self
-    where
-        I: IntoIterator<Item = T>,
-        T: Into<Identifier>
-    {
-        Self {
-            identifiers: identifiers.into_iter().map(Into::into).collect(),
-            verbose,
-            specific_args
-        }
+    /// Create a new [`Request`].
+    pub fn new(common_args: CommonArgs, specific_args: SpecificArgs) -> Self {
+        Self { common_args, specific_args }
     }
 }
 
@@ -65,8 +56,8 @@ impl Request {
 mod test {
     use crate::{
         communication::{
-            start::StartRequest,
-            client::{RequestKind, Request}
+            client::{Request, CommonArgs},
+            request_specifics::StartArgs
         },
         traits::Codecable,
         models::stopwatch::Name
@@ -74,8 +65,9 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let specific = RequestKind::Start(StartRequest);
-        let request = Request::new([Name::default()], false, specific);
+        let specific = StartArgs.into();
+        let common = CommonArgs::from_iter([Name::default()], false);
+        let request = Request::new(common, specific);
 
         let encoded = request.to_bytes().unwrap();
         let decoded = Request::from_bytes(&encoded).unwrap();
@@ -85,8 +77,9 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let specific = RequestKind::Start(StartRequest);
-        let request = Request::new(["random"], true, specific);
+        let specific = StartArgs.into();
+        let common = CommonArgs::from_iter(["random"], false);
+        let request = Request::new(common, specific);
 
         let encoded = request.to_bytes().unwrap();
         let decoded = Request::from_bytes(&encoded).unwrap();

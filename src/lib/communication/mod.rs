@@ -7,6 +7,7 @@ pub mod info;
 pub mod lap;
 pub mod pause;
 pub mod play;
+pub mod request_specifics;
 pub mod server;
 pub mod start;
 pub mod stop;

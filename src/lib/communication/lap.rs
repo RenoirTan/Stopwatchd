@@ -2,23 +2,10 @@
 
 use serde::{Serialize, Deserialize};
 
-use super::{
-    server::ReplyKind,
-    client::RequestKind
-};
+use super::server::ReplyKind;
 
 #[allow(unused)]
 use crate::models::stopwatch::Stopwatch;
-
-/// Request to create a new lap.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LapRequest;
-
-impl Into<RequestKind> for LapRequest {
-    fn into(self) -> RequestKind {
-        RequestKind::Lap(self)
-    }
-}
 
 /// Reply from `swd` creating new laps.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
