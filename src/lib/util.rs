@@ -69,3 +69,16 @@ where
 {
     iter.into_iter().map(Into::into).collect()
 }
+
+#[macro_export]
+macro_rules! impl_into_enum_variant {
+    ( $enumtype:ty { $( $variant:ident($datatype:ty) ),* }) => {
+        $(
+            impl Into<$enumtype> for $datatype {
+                fn into(self) -> $enumtype {
+                    <$enumtype>::$variant(self)
+                }
+            }
+        )*
+    };
+}
