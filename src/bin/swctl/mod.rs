@@ -12,11 +12,12 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        client::{ClientMessage, Request},
-        server::{ServerMessage, ReplyKind, Reply, ServerError},
-        info::InfoReply, details::StopwatchDetails
+        client::Request,
+        server::{Reply, ServerError},
+        details::StopwatchDetails, reply_specifics::{SpecificAnswer, InfoAnswer}
     },
-    traits::Codecable, identifiers::Identifier
+    traits::Codecable,
+    identifiers::Identifier
 };
 use tokio::net::UnixStream;
 
@@ -63,11 +64,11 @@ async fn run(cli: cli::Cli) -> i32 {
     trace!("checking if can write to server");
     stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
 
-    let message: ClientMessage = request::args_to_request(&cli).into();
-    let message_bytes = message.to_bytes()
-        .expect("could not convert request into message");
+    let request = request::args_to_request(&cli);
+    let message_bytes = request.to_bytes()
+        .expect("could not serialize request to bytes");
 
-    info!("writing message to server");
+    info!("sending request to server");
     stream.try_write(&message_bytes)
         .expect(&format!("could not write request message to {}", ssock_path_str));
 
@@ -79,16 +80,15 @@ async fn run(cli: cli::Cli) -> i32 {
     stream.try_read_buf(&mut braw)
         .expect(&format!("could not read reply message from {}", ssock_path_str));
 
-    let reply = ServerMessage::from_bytes(&braw)
+    let reply = Reply::from_bytes(&braw)
         .expect(&format!("could not convert message to reply"));
 
-    let (details, errors) = match reply.reply.specific_answer {
-        ReplyKind::Default => panic!("should not be ServerReply::Default"),
-        ReplyKind::Info(InfoReply::All(ref all)) => {
+    let (details, errors) = match reply.specific_answer {
+        SpecificAnswer::Info(InfoAnswer::All(ref all)) => {
             let ao = all.access_order.clone();
-            get_details_errors(&message.request, reply.reply, Some(&ao))
+            get_details_errors(&request, reply, Some(&ao))
         },
-        _ => get_details_errors(&message.request, reply.reply, None)
+        _ => get_details_errors(&request, reply, None)
     };
 
     let formatter = Formatter::new(&cli.datetime_fmt, &cli.duration_fmt);
@@ -128,7 +128,7 @@ fn get_details_errors(
     // Otherwise, use the cmd args as the access order.
     let ao = match access_order {
         Some(ao) => ao.iter(),
-        None => request.identifiers.iter()
+        None => request.common_args.identifiers.iter()
     };
 
     // Errors associated with `None` identifier are likely more serious and
