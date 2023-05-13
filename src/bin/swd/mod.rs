@@ -25,7 +25,7 @@ use crate::{
     cleanup::Cleanup,
     signal::{make_signal_handler, close_signal_handler},
     socket::{clear_socket, create_socket, listen_to_socket, set_socket_perms},
-    manager::{Manager, make_request_channels, manage, RequestSender},
+    manager::{Manager, make_request_channels, manage, JobSender},
 };
 
 mod cleanup;
@@ -96,7 +96,7 @@ async fn main() {
 }
 
 #[cfg(not(feature = "swd-config"))]
-async fn run(socket: &UnixListener, req_tx: &RequestSender) {
+async fn run(socket: &UnixListener, req_tx: &JobSender) {
     // Setup interrupt handling
     let restart = Arc::new(AtomicBool::new(true)); // Useless
     let (handle, signals_task, signal_rx) = make_signal_handler(restart);
@@ -110,7 +110,7 @@ async fn run(socket: &UnixListener, req_tx: &RequestSender) {
 }
 
 #[cfg(feature = "swd-config")]
-async fn run(socket: &UnixListener, req_tx: &RequestSender, config_path: &str) {
+async fn run(socket: &UnixListener, req_tx: &JobSender, config_path: &str) {
     let restart = Arc::new(AtomicBool::new(true));
     // Application
     while restart.load(Ordering::Relaxed) {

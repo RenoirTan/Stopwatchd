@@ -28,7 +28,7 @@ pub enum InfoAnswer {
 
 /// Stores details on how information should be presented when no particular
 /// [`Stopwatch`] or stopwatches were requested.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InfoAll {
     /// Order in which stopwatches were last accessed.
     /// Provides a sequence that the client can show details in.
@@ -36,27 +36,27 @@ pub struct InfoAll {
 }
 
 /// Reply from `swd` after creating new stopwatches.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StartAnswer;
 
 /// Reply from `swd` after stopping a [`Stopwatch`].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopAnswer;
 
 /// Reply from `swd` after playing a [`Stopwatch`]'s lap.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlayAnswer;
 
 /// Reply from `swd` after pausing a [`Stopwatch`].
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PauseAnswer;
 
 /// Reply from `swd` after creating new laps.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LapAnswer;
 
 /// Reply from `swd` after deleting [`Stopwatch`]es.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeleteAnswer;
 
 impl_into_enum_variant!(SpecificAnswer {

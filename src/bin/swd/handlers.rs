@@ -4,14 +4,15 @@ use std::io;
 
 use stopwatchd::{
     communication::{
-        client::ClientMessage,
-        server::{ServerMessage, Reply}
+        client::Request,
+        server::{Reply, ServerError},
+        reply_specifics::{InfoAnswer, SpecificAnswer}
     },
     traits::Codecable
 };
 use tokio::net::UnixStream;
 
-use crate::manager::{RequestSender, Request, make_response_channels};
+use crate::manager::{JobSender, JobRequest, make_response_channels};
 
 // for docs
 #[allow(unused)]
@@ -26,20 +27,20 @@ const BUF_MIN_CAPACITY: usize = 4096;
 /// client - Stream of bytes from client.
 /// 
 /// req_tx - Transmitter to [`Manager`].
-pub async fn handle_client(client: UnixStream, req_tx: RequestSender) -> io::Result<()> {
+pub async fn handle_client(client: UnixStream, req_tx: JobSender) -> io::Result<()> {
     client.readable().await?;
     let mut braw = Vec::with_capacity(BUF_MIN_CAPACITY);
     let bytes_read = client.try_read_buf(&mut braw)?;
     debug!("received {} bytes from client", bytes_read);
 
-    let message = ClientMessage::from_bytes(&braw)?;
+    let request = Request::from_bytes(&braw)?;
     // println!("{:?}", message);
 
     // Communication from manager (res_tx) to handle_client (res_rx).
     let (res_tx, mut res_rx) = make_response_channels();
-    let request = Request { action: message.request, res_tx };
+    let job_req = JobRequest { action: request, res_tx };
     trace!("sending request to manager");
-    req_tx.send(request).map_err(|e|
+    req_tx.send(job_req).map_err(|e|
         io::Error::new(io::ErrorKind::ConnectionRefused, e)
     )?;
 
@@ -47,11 +48,14 @@ pub async fn handle_client(client: UnixStream, req_tx: RequestSender) -> io::Res
     let reply = match res_rx.recv().await {
         Some(response) => {
             debug!("response received");
-            ServerMessage::create(response.output)
+            response.output
         },
         None => {
-            error!("no error from manager");
-            ServerMessage::create(Reply::default())
+            error!("no response from manager");
+            let ans = SpecificAnswer::Info(InfoAnswer::Basic);
+            let mut reply = Reply::new(ans);
+            reply.add_errors([ServerError::Other("no response from manager".into())]);
+            reply
         }
     };
 

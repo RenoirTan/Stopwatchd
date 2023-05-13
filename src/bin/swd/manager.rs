@@ -4,12 +4,10 @@ use std::collections::HashMap;
 
 use stopwatchd::{
     communication::{
-        client::{Request, RequestKind},
+        client::Request,
         server::{Reply, ServerError},
-        start::StartReply,
-        info::{InfoReply, InfoAll},
-        delete::DeleteReply,
-        details::StopwatchDetails
+        reply_specifics::{InfoAll, DeleteAnswer, InfoAnswer, StartAnswer},
+        details::StopwatchDetails, args_to_default_ans, request_specifics::SpecificArgs
     },
     models::stopwatch::{Stopwatch, Name, State},
     error::{FindStopwatchError, InvalidState},
@@ -18,27 +16,25 @@ use stopwatchd::{
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
 
-use crate::utils::crk_to_srk;
-
 #[derive(Clone, Debug)]
-pub struct Request {
+pub struct JobRequest {
     pub action: Request,
     pub res_tx: ResponseSender
 }
 
 #[derive(Clone, Debug)]
-pub struct Response {
+pub struct JobResponse {
     pub output: Reply
 }
 
-pub type RequestSender = UnboundedSender<Request>;
-pub type RequestReceiver = UnboundedReceiver<Request>;
-pub type ResponseSender = UnboundedSender<Response>;
-pub type ResponseReceiver = UnboundedReceiver<Response>;
+pub type JobSender = UnboundedSender<JobRequest>;
+pub type JobReceiver = UnboundedReceiver<JobRequest>;
+pub type ResponseSender = UnboundedSender<JobResponse>;
+pub type ResponseReceiver = UnboundedReceiver<JobResponse>;
 
 /// Create channels to send requests to [`Manager`].
 #[inline]
-pub fn make_request_channels() -> (RequestSender, RequestReceiver) {
+pub fn make_request_channels() -> (JobSender, JobReceiver) {
     unbounded_channel()
 }
 
@@ -226,14 +222,14 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
-    let given_identifier = req.identifiers.first().cloned();
+    let given_identifier = req.common_args.identifiers.first().cloned();
     let name = given_identifier.clone().map(Name::new);
 
     // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(name.clone());
     let sw_identifier = &stopwatch.get_uuid_name().as_identifier();
 
-    let mut reply = Reply::new(StartReply.into());
+    let mut reply = Reply::new(StartAnswer.into());
 
     if let Some(uuid_name) = manager.has_uuid_or_name(&sw_identifier) {
         trace!("stopwatch with the same name or uuid already exists");
@@ -243,12 +239,12 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         };
         reply.extend_uncollected_errors([(given_identifier, error.into())]);
     } else {
-        let details = StopwatchDetails::from_stopwatch(&stopwatch, req.verbose);
+        let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
         manager.add_stopwatch(stopwatch);
         reply.extend_successful([(sw_identifier.clone(), details)]);
     }
 
-    let response = Response { output: reply.into() };
+    let response = JobResponse { output: reply.into() };
     trace!("manage is sending response back for start");
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
@@ -278,30 +274,30 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let specific_args = &req.specific_args;
     let mut details = HashMap::<Identifier, StopwatchDetails>::new();
     let mut errored = HashMap::<Option<Identifier>, ServerError>::new();
-    let verbose = req.verbose;
-    for identifier in &req.identifiers {
+    let verbose = req.common_args.verbose;
+    for identifier in &req.common_args.identifiers {
         let identifier = identifier.clone();
         let deets = &mut details;
         let errs = &mut errored;
         match manager.get_stopwatch_by_identifier(&identifier) {
             Ok(sw) => match specific_args {
-                RequestKind::Info(_) => {
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, req.verbose));
+                SpecificArgs::Info(_) => {
+                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, verbose));
                 },
-                RequestKind::Stop(_) => {
+                SpecificArgs::Stop(_) => {
                     let state = sw.end();
                     good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
-                RequestKind::Lap(_) => {
+                SpecificArgs::Lap(_) => {
                     let state = sw.new_lap(true);
                     good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
                 },
-                RequestKind::Pause(_) => {
+                SpecificArgs::Pause(_) => {
                     let state = sw.pause();
                     let condition = matches!(state, State::Ended | State::Paused);
                     good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
                 },
-                RequestKind::Play(_) => {
+                SpecificArgs::Play(_) => {
                     let state = sw.play();
                     let condition = matches!(state, State::Ended | State::Playing);
                     good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
@@ -314,12 +310,12 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         }
     }
 
-    let specific_reply = crk_to_srk(specific_args);
+    let specific_reply = args_to_default_ans(specific_args);
     let mut reply = Reply::new(specific_reply);
     reply.extend_successful(details);
     reply.extend_uncollected_errors(errored);
 
-    let response = Response { output: reply.into() };
+    let response = JobResponse { output: reply.into() };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
@@ -334,12 +330,12 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
 
     for sw in manager.stopwatches_by_access_order() {
         access_order.push(sw.get_uuid_name().as_identifier().clone());
-        details.push(StopwatchDetails::from_stopwatch(sw, req.verbose));
+        details.push(StopwatchDetails::from_stopwatch(sw, req.common_args.verbose));
     }
 
-    let mut reply = Reply::new(InfoReply::All(InfoAll { access_order }).into());
+    let mut reply = Reply::new(InfoAnswer::All(InfoAll { access_order }).into());
     reply.add_successful(details);
-    let response = Response {
+    let response = JobResponse {
         output: reply
     };
     if let Err(e) = res_tx.send(response) {
@@ -351,13 +347,13 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
 
 async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("got request for delete");
-    let mut reply = Reply::new(DeleteReply.into());
-    for identifier in &req.identifiers {
+    let mut reply = Reply::new(DeleteAnswer.into());
+    for identifier in &req.common_args.identifiers {
         match manager.take_stopwatch_by_identifier(&identifier) {
             Ok(sw) => {
                 reply.extend_successful([(
                     identifier.clone(),
-                    StopwatchDetails::from_stopwatch(&sw, req.verbose)
+                    StopwatchDetails::from_stopwatch(&sw, req.common_args.verbose)
                 )]);
             },
             Err(e) => {
@@ -365,7 +361,7 @@ async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
             }
         }
     }
-    let response = Response { output: reply.into() };
+    let response = JobResponse { output: reply.into() };
     if let Err(e) = res_tx.send(response) {
         error!("{}", e);
     } else {
@@ -373,31 +369,20 @@ async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     }
 }
 
-async fn default(res_tx: &ResponseSender) {
-    let response = Response { output: Reply::default() };
-    trace!("manage is sending response back for default");
-    if let Err(e) = res_tx.send(response) {
-        error!("{}", e)
-    }
-}
-
 /// Run a [`Manager`].
-pub async fn manage(mut manager: Manager, mut req_rx: RequestReceiver) {
+pub async fn manage(mut manager: Manager, mut req_rx: JobReceiver) {
     debug!("start manage");
     while let Some(message) = req_rx.recv().await {
         trace!("manage received message");
         let request = message.action;
         match request.specific_args {
-            RequestKind::Start(_) => {
+            SpecificArgs::Start(_) => {
                 start(&mut manager, &message.res_tx, &request).await;
             },
-            RequestKind::Info(_) if request.identifiers.len() == 0 => {
+            SpecificArgs::Info(_) if request.common_args.identifiers.len() == 0 => {
                 info_all(&mut manager, &message.res_tx, &request).await;
             },
-            RequestKind::Default => {
-                default(&message.res_tx).await;
-            },
-            RequestKind::Delete(_) => {
+            SpecificArgs::Delete(_) => {
                 delete(&mut manager, &message.res_tx, &request).await;
             },
             _ => {
