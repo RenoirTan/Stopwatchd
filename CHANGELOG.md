@@ -17,3 +17,9 @@
  - Allow each user to have their own `swd` session.
  - `swctl` can choose to either communicate with the user-started `swd` or the system `swd` using the `--root` flag.
  - Add Debian maintainer scripts
+
+## v0.4.0
+
+ - Refactor `stopwatchd::communications` and `swctl::formatter`.
+ - As a result the API for communicating with `swd` has changed.
+ - Printouts from `swctl` are now different.
