@@ -7,7 +7,9 @@ use stopwatchd::{
         client::Request,
         server::{Reply, ServerError},
         reply_specifics::{InfoAll, DeleteAnswer, InfoAnswer, StartAnswer},
-        details::StopwatchDetails, args_to_default_ans, request_specifics::SpecificArgs
+        details::StopwatchDetails,
+        args_to_default_ans,
+        request_specifics::SpecificArgs
     },
     models::stopwatch::{Stopwatch, Name, State},
     error::{FindStopwatchError, InvalidState},

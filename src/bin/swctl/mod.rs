@@ -14,7 +14,8 @@ use stopwatchd::{
     communication::{
         client::Request,
         server::{Reply, ServerError},
-        details::StopwatchDetails, reply_specifics::{SpecificAnswer, InfoAnswer}
+        details::StopwatchDetails,
+        reply_specifics::{SpecificAnswer, InfoAnswer}
     },
     traits::Codecable,
     identifiers::Identifier
