@@ -6,9 +6,8 @@
    - [x] Respond to `SIGHUP`.
    - [x] Update config on `SIGHUP`.
  - [ ] Refactoring
-   - [ ] Reduce the number of files under `stopwatchd::communication`.
-     - [ ] Remove structs for actions that do not contribute extra information like `Stop`.
-   - [ ] Simplify the API for `swctl::formatted`.
+   - [x] Reduce the number of files under `stopwatchd::communication`.
+   - [x] Simplify the API for `swctl::formatted`.
  - [ ] Work on `sw-attach`, maybe with ncurses.
  - [ ] Other init systems:
    - [ ] openrc
