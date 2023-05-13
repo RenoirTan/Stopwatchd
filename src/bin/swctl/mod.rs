@@ -6,7 +6,7 @@ use std::process::{self, exit};
 #[macro_use]
 extern crate log;
 use clap::Parser;
-use formatted::{get_basic_single_builder, get_verbose_table_builder, get_basic_table_builder, get_error_table_builder, add_errors_to_builder, Styles};
+use formatted::{ErrorRecord, BasicDetails, BasicDetailsNoDT, VerboseDetails, VerboseDetailsNoDT};
 use stopwatchd::{
     logging,
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
@@ -19,9 +19,10 @@ use stopwatchd::{
     traits::Codecable,
     identifiers::Identifier
 };
+use tabled::{builder::Builder, Tabled};
 use tokio::net::UnixStream;
 
-use crate::formatted::Formatter;
+use crate::formatted::{Formatter, Styles};
 
 mod cli;
 mod formatted;
@@ -159,57 +160,109 @@ where
     I: IntoIterator<Item = StopwatchDetails>
 {
     if args.verbose {
-        let mut out = String::new();
-        let basic = get_basic_single_builder(args.show_datetime_info);
-        let verbose = get_verbose_table_builder(args.show_datetime_info);
-        for d in details {
-            let mut b = basic.clone();
-            let mut v = verbose.clone();
-
-            formatter.from_verbose(&mut b, &mut v, d, args.show_datetime_info);
-
-            if out.len() != 0 {
-                out.push('\n');
-            }
-
-            let mut btable = b.build();
-            style.style_table(&mut btable);
-            out.push_str(&btable.to_string());
-            out.push('\n');
-            let mut vtable = v.build();
-            style.style_table(&mut vtable);
-            out.push_str(&vtable.to_string());
-        }
-        out
+        generate_output_verbose(args, details, formatter, style)
     } else {
-        let mut builder = get_basic_table_builder(args.show_datetime_info);
-        let row_count = formatter.from_details(&mut builder, details, args.show_datetime_info);
-        if row_count == 0 {
-            String::new()
-        } else {
-            let mut table = builder.build();
-            style.style_table(&mut table);
-            table.to_string()
-        }
+        generate_output_normal(args, details, formatter, style)
     }
 }
 
+fn generate_output_normal<I>(
+    args: &cli::Cli,
+    details: I,
+    formatter: &Formatter,
+    style: Styles
+) -> String
+where
+    I: IntoIterator<Item = StopwatchDetails>
+{
+    let mut builder = Builder::new();
+    if args.show_datetime_info {
+        builder.set_header(BasicDetails::headers());
+    } else {
+        builder.set_header(BasicDetailsNoDT::headers());
+    }
+    for d in details {
+        let record = BasicDetails::format(formatter, &d, args.show_datetime_info);
+        if args.show_datetime_info {
+            builder.push_record(record.fields());
+        } else {
+            builder.push_record(BasicDetailsNoDT::from(record).fields());
+        }
+    }
+    let mut table = builder.build();
+    style.style_table(&mut table);
+    table.to_string()
+}
+
+fn generate_output_verbose<I>(
+    args: &cli::Cli,
+    details: I,
+    formatter: &Formatter,
+    style: Styles
+) -> String
+where
+    I: IntoIterator<Item = StopwatchDetails>
+{
+    let mut out = "+++\n".to_string();
+    'l: for d in details {
+        let mut basic_builder = Builder::default();
+        let basic_record = BasicDetails::format(formatter, &d, args.show_datetime_info);
+        if args.show_datetime_info {
+            basic_builder.set_header(BasicDetails::headers());
+            basic_builder.push_record(basic_record.fields());
+        } else {
+            basic_builder.set_header(BasicDetailsNoDT::headers());
+            basic_builder.push_record(BasicDetailsNoDT::from(basic_record).fields());
+        }
+        let mut table = basic_builder.index().column(0).transpose().build();
+        style.style_table(&mut table);
+        out.push_str(&table.to_string());
+
+        let verbose = match d.verbose_info {
+            Some(v) => v,
+            None => continue 'l
+        };
+        out.push_str("\n---\n");
+        let mut verbose_builder = Builder::default();
+        if args.show_datetime_info {
+            verbose_builder.set_header(VerboseDetails::headers());
+        } else {
+            verbose_builder.set_header(VerboseDetailsNoDT::headers());
+        }
+        for lap in &verbose.laps {
+            let vd = VerboseDetails::format(formatter, lap, args.show_datetime_info);
+            if args.show_datetime_info {
+                verbose_builder.push_record(vd.fields());
+            } else {
+                verbose_builder.push_record(VerboseDetailsNoDT::from(vd).fields());
+            }
+        }
+        let mut table = verbose_builder.build();
+        style.style_table(&mut table);
+        out.push_str(&table.to_string());
+
+        out.push_str("\n+++");
+    }
+    out
+}
+
 /// Format [`ServerError`] into strings.
-fn generate_errors<I>(args: &cli::Cli, iter: I, formatter: &Formatter, style: Styles) -> String
+fn generate_errors<I>(_args: &cli::Cli, iter: I, formatter: &Formatter, style: Styles) -> String
 where
     I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>
 {
-    let mut out = String::new();
+    let mut builder = Builder::default();
+    builder.set_header(ErrorRecord::headers());
     for (identifier, errors) in iter {
-        let mut builder = get_error_table_builder(args.show_datetime_info);
-        let record = formatter.get_errors(identifier, errors, args.show_datetime_info);
-        add_errors_to_builder(&mut builder, record, args.show_datetime_info);
-        if out.len() != 0 {
-            out.push('\n');
+        for error in errors {
+            let record = ErrorRecord::format(formatter, identifier.as_ref(), error);
+            builder.push_record(record.fields());
         }
-        let mut table = builder.build();
-        style.style_table(&mut table);
-        out.push_str(&table.to_string());
     }
-    out
+    if builder.count_rows() == 0 {
+        return String::new();
+    }
+    let mut table = builder.build();
+    style.style_table(&mut table);
+    table.to_string()
 }
