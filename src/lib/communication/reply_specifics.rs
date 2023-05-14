@@ -6,6 +6,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::{identifiers::Identifier, impl_into_enum_variant};
 
+/// Type of action `swd` took and the result of that action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpecificAnswer {
     Info(InfoAnswer),
@@ -22,7 +23,7 @@ pub enum SpecificAnswer {
 pub enum InfoAnswer {
     /// [`StopwatchDetails`] are returned in the order requested by the client.
     #[default] Basic,
-    /// No stopwatch in particular was requested.
+    /// No stopwatch in particular was requested. All information returned.
     All(InfoAll)
 }
 

@@ -62,6 +62,7 @@ where
     map
 }
 
+/// Collect items of type `T` from `iter` into a [`Vec`] of type `U`.
 pub fn iter_into_vec<I, T, U>(iter: I) -> Vec<U>
 where
     I: IntoIterator<Item = T>,

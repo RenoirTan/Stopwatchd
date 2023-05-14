@@ -115,6 +115,7 @@ impl Formatter {
     }
 }
 
+/// Record of non-verbose parts of [`StopwatchDetails`].
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct BasicDetails {
     #[tabled(rename = "id")] pub id: String,
@@ -127,6 +128,11 @@ pub struct BasicDetails {
 }
 
 impl BasicDetails {
+    /// Format basic fields from [`StopwatchDetails`] into human-readable
+    /// strings.
+    /// 
+    /// # See Also
+    /// [`BasicDetailsNoDT`]. Set `show_dt` to [`false`].
     pub fn format(formatter: &Formatter, details: &StopwatchDetails, show_dt: bool) -> Self {
         let id = format!("{:x}", get_uuid_node(&details.sw_id));
         let name = details.name.to_string();
@@ -147,6 +153,9 @@ impl BasicDetails {
     }
 }
 
+/// Like [`BasicDetails`] but without fields that carry date and time
+/// information. Converts from [`BasicDetails`] using [`From::from`]
+/// by discarding unneeded data.
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct BasicDetailsNoDT {
     #[tabled(rename = "id")] pub id: String,
@@ -170,6 +179,7 @@ impl From<BasicDetails> for BasicDetailsNoDT {
     }
 }
 
+/// Verbose information about each lap from [`StopwatchDetails`].
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct VerboseDetails {
     #[tabled(rename = "id")] pub id: String,
@@ -179,6 +189,7 @@ pub struct VerboseDetails {
 }
 
 impl VerboseDetails {
+    /// Convert each lap into [`VerboseDetails`].
     pub fn format(formatter: &Formatter, lap: &FinishedLap, show_dt: bool) -> Self {
         let id = lap.id
             .as_hyphenated()
@@ -195,6 +206,7 @@ impl VerboseDetails {
     }
 }
 
+/// [`VerboseDetails`] but with no fields containing date and time information.
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct VerboseDetailsNoDT {
     #[tabled(rename = "id")] pub id: String,
@@ -212,6 +224,7 @@ impl From<VerboseDetails> for VerboseDetailsNoDT {
     }
 }
 
+/// Formatted [`ServerError`] thrown by `swd`.
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct ErrorRecord {
     #[tabled(rename = "identifier")] pub identifier: String,
@@ -219,6 +232,10 @@ pub struct ErrorRecord {
 }
 
 impl ErrorRecord {
+    /// Convert [`ServerError`] into human-readable text and associate it with
+    /// a corresponding stopwatch [`Identifier`]. If the parameter `identifier`
+    /// is [`None`], the error is associated with an error with `swd` or `swctl`
+    /// and not a particular in stopwatch.
     pub fn format(
         _formatter: &Formatter,
         identifier: Option<&Identifier>,

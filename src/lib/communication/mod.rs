@@ -10,6 +10,8 @@ pub mod server;
 
 // No convenient macro because `https://github.com/rust-lang/rust/issues/86935`
 
+/// Map [`SpecificArgs`] to its corresponding [`SpecificAnswer`] with default
+/// values.
 pub fn args_to_default_ans(args: &SpecificArgs) -> SpecificAnswer {
     use SpecificArgs as A;
     use SpecificAnswer as B;
@@ -24,6 +26,8 @@ pub fn args_to_default_ans(args: &SpecificArgs) -> SpecificAnswer {
     }
 }
 
+/// Map [`SpecificAnswer`] to its corresponding [`SpecificArgs`] with default
+/// values.
 pub fn ans_to_default_args(ans: &SpecificAnswer) -> SpecificArgs {
     use SpecificArgs as B;
     use SpecificAnswer as A;

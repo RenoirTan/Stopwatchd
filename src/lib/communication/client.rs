@@ -21,6 +21,17 @@ impl CommonArgs {
         Self { identifiers, verbose }
     }
 
+    /// Create a new [`CommonArgs`] object from an [`Iterator`] of
+    /// [`Identifier`]s.
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// // `&str` implements `Into<Identifier>`
+    /// let identifiers = ["sw1", "sw2"];
+    /// let verbose = false;
+    /// let common = CommonArgs::from_iter(identifiers, verbose);
+    /// ```
     pub fn from_iter<I, T>(identifiers: I, verbose: bool) -> Self
     where
         I: IntoIterator<Item = T>,
