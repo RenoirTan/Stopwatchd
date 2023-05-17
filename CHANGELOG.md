@@ -21,5 +21,7 @@
 ## v0.4.0
 
  - Refactor `stopwatchd::communications` and `swctl::formatter`.
+ - `stopwatchd::identifiers::UuidName` is now `Identifier`.
+ - What used to be `Identifier` and `UNMatchKind` has been moved from `stopwatchd::identifier` to `swd::raw_identifier` as `RawIdentifier` and `IdentifierMatch` respectively.
  - As a result the API for communicating with `swd` has changed.
  - Printouts from `swctl` are now different.

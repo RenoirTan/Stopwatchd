@@ -32,6 +32,7 @@ mod cleanup;
 mod config;
 mod handlers;
 mod manager;
+mod raw_identifier;
 mod signal;
 mod socket;
 mod utils;

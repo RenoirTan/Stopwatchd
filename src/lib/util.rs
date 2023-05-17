@@ -23,6 +23,16 @@ pub fn get_uuid_node(uuid: &Uuid) -> u64 {
     uuid.as_u64_pair().1 & ((1 << 48) - 1)
 }
 
+/// Convert a hexadecimal string to a possible Uuid node.
+pub fn raw_identifier_to_uuid_node<S: AsRef<str>>(raw: S) -> Option<u64> {
+    let possible = u64::from_str_radix(raw.as_ref(), 16).ok()?;
+    if possible <= 0xffff_ffff_ffff {
+        Some(possible)
+    } else {
+        None
+    }
+}
+
 /// Returns whether `uuid`'s string representation matches `test`.
 #[warn(deprecated)]
 #[inline]

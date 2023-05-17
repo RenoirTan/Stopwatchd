@@ -2,7 +2,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::{identifiers::Identifier, util::iter_into_vec};
+use crate::util::iter_into_vec;
 
 pub use super::request_specifics::SpecificArgs;
 
@@ -10,15 +10,15 @@ pub use super::request_specifics::SpecificArgs;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommonArgs {
     /// List of stopwatches the specified action should be applied to.
-    pub identifiers: Vec<Identifier>,
+    pub raw_identifiers: Vec<String>,
     /// Whether to return verbose/more detailed information.
     pub verbose: bool
 }
 
 impl CommonArgs {
     /// Create a new [`CommonArgs`] object.
-    pub fn new(identifiers: Vec<Identifier>, verbose: bool) -> Self {
-        Self { identifiers, verbose }
+    pub fn new(identifiers: Vec<String>, verbose: bool) -> Self {
+        Self { raw_identifiers: identifiers, verbose }
     }
 
     /// Create a new [`CommonArgs`] object from an [`Iterator`] of
@@ -35,7 +35,7 @@ impl CommonArgs {
     pub fn from_iter<I, T>(identifiers: I, verbose: bool) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<Identifier>
+        T: Into<String>
     {
         Self::new(iter_into_vec(identifiers), verbose)
     }
@@ -43,7 +43,7 @@ impl CommonArgs {
 
 impl Default for CommonArgs {
     fn default() -> Self {
-        Self { identifiers: vec![], verbose: false }
+        Self { raw_identifiers: vec![], verbose: false }
     }
 }
 
@@ -70,14 +70,13 @@ mod test {
             client::{Request, CommonArgs},
             request_specifics::StartArgs
         },
-        traits::Codecable,
-        models::stopwatch::Name
+        traits::Codecable
     };
 
     #[test]
     fn test_cycle_0() {
         let specific = StartArgs.into();
-        let common = CommonArgs::from_iter([Name::default()], false);
+        let common = CommonArgs::from_iter([""], false);
         let request = Request::new(common, specific);
 
         let encoded = request.to_bytes().unwrap();

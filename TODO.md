@@ -8,6 +8,10 @@
  - [ ] Refactoring
    - [x] Reduce the number of files under `stopwatchd::communication`.
    - [x] Simplify the API for `swctl::formatted`.
+   - [ ] Rework naming
+     - [x] Use raw `String` for `Name` and (original) `Identifier`.
+     - [x] Rename all uses of the name `identifier` and its derivatives to `raw_identifier`
+     - [x] Rename `UuidName` to `Identifier`.
  - [ ] Work on `sw-attach`, maybe with ncurses.
  - [ ] Other init systems:
    - [ ] openrc

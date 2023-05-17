@@ -11,12 +11,14 @@ use stopwatchd::{
         args_to_default_ans,
         request_specifics::SpecificArgs
     },
-    models::stopwatch::{Stopwatch, Name, State},
+    models::stopwatch::{Stopwatch, State},
     error::{FindStopwatchError, InvalidState},
-    identifiers::{UNMatchKind, UuidName, Identifier}
+    identifiers::Identifier
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
 use uuid::Uuid;
+
+use crate::raw_identifier::{RawIdentifier, IdentifierMatch};
 
 #[derive(Clone, Debug)]
 pub struct JobRequest {
@@ -51,7 +53,7 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 /// Use [`manage`] to run the manager.
 pub struct Manager {
     stopwatches: HashMap<Uuid, Stopwatch>,
-    access_order: Vec<UuidName> // Last item is most recently accessed
+    access_order: Vec<Identifier> // Last item is most recently accessed
 }
 
 impl Manager {
@@ -64,61 +66,41 @@ impl Manager {
 
     /// Add a stopwatch. Doesn't check whether UUID is unique yet.
     pub fn add_stopwatch(&mut self, stopwatch: Stopwatch) {
-        let un = stopwatch.get_uuid_name();
-        self.stopwatches.insert(un.id, stopwatch);
-        self.access_order.push(un);
+        let identifier = stopwatch.identifier.clone();
+        self.stopwatches.insert(identifier.id, stopwatch);
+        self.access_order.push(identifier);
     }
 
-    /// Check if a [`Stopwatch`] with the name `identifier` exists.
-    pub fn has_name(&self, identifier: &str) -> Option<UuidName> {
-        if identifier.is_empty() {
-            return None;
-        }
-        for (_, stopwatch) in self.stopwatches.iter() {
-            if &*stopwatch.name == identifier {
-                return Some(stopwatch.get_uuid_name());
+    /// Check if `raw` identifier matches one of the stopwatches by name or
+    /// by UUID if `stop_when_uuid_matches` is true.
+    pub fn has_uuid_or_name(
+        &self,
+        raw: &RawIdentifier,
+        stop_when_uuid_matches: bool
+    ) -> Option<(Identifier, IdentifierMatch)> {
+        for identifier in &self.access_order {
+            match raw.matches(identifier) {
+                Some(IdentifierMatch::Name) =>
+                    return Some((identifier.clone(), IdentifierMatch::Name)),
+                Some(IdentifierMatch::Uuid) if stop_when_uuid_matches =>
+                    return Some((identifier.clone(), IdentifierMatch::Uuid)),
+                _ => continue
             }
         }
         None
-    }
-
-    /// Check if a [`Stopwatch`] with the UUID `identifier` exists.
-    pub fn has_uuid(&self, identifier: &str) -> Option<UuidName> {
-        let my_uuid = match Uuid::parse_str(identifier) {
-            Ok(id) => id,
-            Err(_) => return None
-        };
-        for (_, stopwatch) in self.stopwatches.iter() {
-            if stopwatch.id == my_uuid {
-                return Some(stopwatch.get_uuid_name());
-            }
-        }
-        None
-    }
-
-    /// Check if a stopwatch with name or UUID `identifier`.
-    pub fn has_uuid_or_name(&self, identifier: &str) -> Option<UuidName> {
-        // TODO: Might make this more efficient
-        if let Some(un) = self.has_name(identifier) {
-            Some(un)
-        } else if let Some(un) = self.has_uuid(identifier) {
-            Some(un)
-        } else {
-            None
-        }
     }
 
     /// Get the index of the stopwatch that matches `identifier` inside `access_order`
-    fn find_ao_index(&self, identifier: &Identifier) -> Result<usize, FindStopwatchError> {
+    fn find_ao_index(&self, raw: &RawIdentifier) -> Result<usize, FindStopwatchError> {
         let mut possible_index = None;
-        for (index, uuid_name) in self.access_order.iter().enumerate() {
-            match uuid_name.matches(identifier) {
-                Some(UNMatchKind::Name) => {
+        for (index, identifier) in self.access_order.iter().enumerate() {
+            match raw.matches(identifier) {
+                Some(IdentifierMatch::Name) => {
                     return Ok(index);
                 },
-                Some(UNMatchKind::Uuid) => {
+                Some(IdentifierMatch::Uuid) => {
                     if let Some(pi) = possible_index {
-                        return Err(self.manager_stopwatches_error(identifier, &[pi, index]));
+                        return Err(self.manager_stopwatches_error(raw, &[pi, index]));
                     }
                     possible_index = Some(index);
                 },
@@ -126,17 +108,17 @@ impl Manager {
             }
         }
         possible_index.ok_or_else(|| 
-            FindStopwatchError { identifier: identifier.clone(), duplicates: vec![] }
+            FindStopwatchError { raw_identifier: raw.to_string(), duplicates: vec![] }
         )
     }
 
     /// Find a [`Stopwatch`] that matches `identifier` and get a reference to
     /// it.
-    pub fn get_stopwatch_by_identifier(
+    pub fn get_stopwatch_by_raw_id(
         &mut self,
-        identifier: &Identifier
+        raw: &RawIdentifier
     ) -> Result<&mut Stopwatch, FindStopwatchError> {
-        let ao_index = self.find_ao_index(identifier)?;
+        let ao_index = self.find_ao_index(raw)?;
         let uuid_name = self.access_order.remove(ao_index);
         match self.stopwatches.get_mut(&uuid_name.id) {
             Some(sw) => {
@@ -144,7 +126,7 @@ impl Manager {
                 Ok(sw)
             },
             None => Err(FindStopwatchError {
-                identifier: identifier.clone(),
+                raw_identifier: raw.to_string(),
                 duplicates: vec![]
             })
         }
@@ -152,16 +134,16 @@ impl Manager {
 
     /// Find a [`Stopwatch`] that matches `identifier` and take ownership of it,
     /// removing it from [`Manager`].
-    pub fn take_stopwatch_by_identifier(
+    pub fn take_stopwatch_by_raw_id(
         &mut self,
-        identifier: &Identifier
+        raw: &RawIdentifier
     ) -> Result<Stopwatch, FindStopwatchError> {
-        let ao_index = self.find_ao_index(identifier)?;
+        let ao_index = self.find_ao_index(raw)?;
         let uuid_name = self.access_order.remove(ao_index);
         match self.stopwatches.remove(&uuid_name.id) {
             Some(sw) => Ok(sw),
             None => Err(FindStopwatchError {
-                identifier: identifier.clone(), duplicates: vec![]
+                raw_identifier: raw.to_string(), duplicates: vec![]
             })
         }
     }
@@ -172,7 +154,7 @@ impl Manager {
     /// conditions.
     fn manager_stopwatches_error(
         &self,
-        identifier: &Identifier,
+        raw: &RawIdentifier,
         indices: &[usize]
     ) -> FindStopwatchError {
         let mut duplicates = vec![];
@@ -182,8 +164,7 @@ impl Manager {
                 duplicates.push(uuid_name.clone());
             }
         }
-        let identifier = identifier.clone();
-        FindStopwatchError { identifier, duplicates }
+        FindStopwatchError { raw_identifier: raw.to_string(), duplicates }
     }
 
     /// Get an iterator over the contained [`Stopwatch`]es, with those with the
@@ -200,7 +181,7 @@ impl Manager {
 
 struct StopwatchByAccessOrder<'m> {
     stopwatches: &'m HashMap<Uuid, Stopwatch>,
-    access_order: &'m Vec<UuidName>,
+    access_order: &'m Vec<Identifier>,
     index: usize
 }
 
@@ -224,26 +205,28 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
-    let given_identifier = req.common_args.identifiers.first().cloned();
-    let name = given_identifier.clone().map(Name::new);
+    let name = req.common_args.raw_identifiers.first().cloned();
 
     // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(name.clone());
-    let sw_identifier = &stopwatch.get_uuid_name().as_identifier();
+    let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
 
     let mut reply = Reply::new(StartAnswer.into());
 
-    if let Some(uuid_name) = manager.has_uuid_or_name(&sw_identifier) {
+    // TODO: --no-name-and-uuid-clash -> name of new stopwatch must not clash
+    //       with another stopwatch's uuid.
+    if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
         trace!("stopwatch with the same name or uuid already exists");
         let error = FindStopwatchError {
-            identifier: sw_identifier.clone(),
-            duplicates: vec![uuid_name]
+            raw_identifier: sw_raw_id.into(),
+            duplicates: vec![identifier]
         };
-        reply.extend_uncollected_errors([(given_identifier, error.into())]);
+        // TODO: If name is None, error gets categorised as a system error.
+        reply.extend_uncollected_errors([(name, error.into())]);
     } else {
         let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
         manager.add_stopwatch(stopwatch);
-        reply.extend_successful([(sw_identifier.clone(), details)]);
+        reply.extend_successful([(sw_raw_id.clone(), details)]);
     }
 
     let response = JobResponse { output: reply.into() };
@@ -254,19 +237,22 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
 }
 
 async fn good_or_bad(
-    identifier: Identifier,
+    raw_str: String,
     stopwatch: &Stopwatch,
     verbose: bool,
-    details: &mut HashMap<Identifier, StopwatchDetails>,
-    errored: &mut HashMap<Option<Identifier>, ServerError>,
+    details: &mut HashMap<String, StopwatchDetails>,
+    errored: &mut HashMap<Option<String>, ServerError>,
     error_condition: bool
 ) {
     if error_condition {
         let state = stopwatch.state();
-        errored.insert(Some(identifier.clone()), InvalidState { identifier, state }.into());
+        errored.insert(
+            Some(raw_str.clone()),
+            InvalidState { raw_identifier: raw_str, state }.into()
+        );
     } else {
         details.insert(
-            identifier,
+            raw_str,
             StopwatchDetails::from_stopwatch(stopwatch, verbose)
         );
     }
@@ -274,40 +260,41 @@ async fn good_or_bad(
 
 async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let specific_args = &req.specific_args;
-    let mut details = HashMap::<Identifier, StopwatchDetails>::new();
-    let mut errored = HashMap::<Option<Identifier>, ServerError>::new();
+    let mut details = HashMap::<String, StopwatchDetails>::new();
+    let mut errored = HashMap::<Option<String>, ServerError>::new();
     let verbose = req.common_args.verbose;
-    for identifier in &req.common_args.identifiers {
-        let identifier = identifier.clone();
+    for raw_str in &req.common_args.raw_identifiers {
+        let raw = RawIdentifier::new(raw_str);
+        let raw_str = raw_str.clone();
         let deets = &mut details;
         let errs = &mut errored;
-        match manager.get_stopwatch_by_identifier(&identifier) {
+        match manager.get_stopwatch_by_raw_id(&raw) {
             Ok(sw) => match specific_args {
                 SpecificArgs::Info(_) => {
-                    details.insert(identifier, StopwatchDetails::from_stopwatch(sw, verbose));
+                    details.insert(raw_str, StopwatchDetails::from_stopwatch(sw, verbose));
                 },
                 SpecificArgs::Stop(_) => {
                     let state = sw.end();
-                    good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
+                    good_or_bad(raw_str, sw, verbose, deets, errs, state.ended()).await;
                 },
                 SpecificArgs::Lap(_) => {
                     let state = sw.new_lap(true);
-                    good_or_bad(identifier, sw, verbose, deets, errs, state.ended()).await;
+                    good_or_bad(raw_str, sw, verbose, deets, errs, state.ended()).await;
                 },
                 SpecificArgs::Pause(_) => {
                     let state = sw.pause();
                     let condition = matches!(state, State::Ended | State::Paused);
-                    good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
+                    good_or_bad(raw_str, sw, verbose, deets, errs, condition).await;
                 },
                 SpecificArgs::Play(_) => {
                     let state = sw.play();
                     let condition = matches!(state, State::Ended | State::Playing);
-                    good_or_bad(identifier, sw, verbose, deets, errs, condition).await;
+                    good_or_bad(raw_str, sw, verbose, deets, errs, condition).await;
                 }
                 _ => { }
             },
             Err(fse) => {
-                errored.insert(Some(identifier), fse.into());
+                errored.insert(Some(raw_str), fse.into());
             }
         }
     }
@@ -331,7 +318,7 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
     let mut details = vec![];
 
     for sw in manager.stopwatches_by_access_order() {
-        access_order.push(sw.get_uuid_name().as_identifier().clone());
+        access_order.push(sw.identifier.clone().into());
         details.push(StopwatchDetails::from_stopwatch(sw, req.common_args.verbose));
     }
 
@@ -350,16 +337,17 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
 async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("got request for delete");
     let mut reply = Reply::new(DeleteAnswer.into());
-    for identifier in &req.common_args.identifiers {
-        match manager.take_stopwatch_by_identifier(&identifier) {
+    for raw_str in &req.common_args.raw_identifiers {
+        let raw = RawIdentifier::new(raw_str);
+        match manager.take_stopwatch_by_raw_id(&raw) {
             Ok(sw) => {
                 reply.extend_successful([(
-                    identifier.clone(),
+                    raw_str.clone(),
                     StopwatchDetails::from_stopwatch(&sw, req.common_args.verbose)
                 )]);
             },
             Err(e) => {
-                reply.extend_uncollected_errors([(Some(identifier.clone()), e.into())]);
+                reply.extend_uncollected_errors([(Some(raw_str.clone()), e.into())]);
             }
         }
     }
@@ -381,7 +369,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: JobReceiver) {
             SpecificArgs::Start(_) => {
                 start(&mut manager, &message.res_tx, &request).await;
             },
-            SpecificArgs::Info(_) if request.common_args.identifiers.len() == 0 => {
+            SpecificArgs::Info(_) if request.common_args.raw_identifiers.len() == 0 => {
                 info_all(&mut manager, &message.res_tx, &request).await;
             },
             SpecificArgs::Delete(_) => {
