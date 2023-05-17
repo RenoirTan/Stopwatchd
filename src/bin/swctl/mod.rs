@@ -129,7 +129,7 @@ fn get_details_errors(
     // Otherwise, use the cmd args as the access order.
     let ao = match access_order {
         Some(ao) => ao.iter(),
-        None => request.common_args.identifiers.iter()
+        None => request.common_args.raw_identifiers.iter()
     };
 
     // Errors associated with `None` identifier are likely more serious and

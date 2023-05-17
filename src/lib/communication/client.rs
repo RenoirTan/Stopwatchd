@@ -10,7 +10,7 @@ pub use super::request_specifics::SpecificArgs;
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommonArgs {
     /// List of stopwatches the specified action should be applied to.
-    pub identifiers: Vec<String>,
+    pub raw_identifiers: Vec<String>,
     /// Whether to return verbose/more detailed information.
     pub verbose: bool
 }
@@ -18,7 +18,7 @@ pub struct CommonArgs {
 impl CommonArgs {
     /// Create a new [`CommonArgs`] object.
     pub fn new(identifiers: Vec<String>, verbose: bool) -> Self {
-        Self { identifiers, verbose }
+        Self { raw_identifiers: identifiers, verbose }
     }
 
     /// Create a new [`CommonArgs`] object from an [`Iterator`] of
@@ -43,7 +43,7 @@ impl CommonArgs {
 
 impl Default for CommonArgs {
     fn default() -> Self {
-        Self { identifiers: vec![], verbose: false }
+        Self { raw_identifiers: vec![], verbose: false }
     }
 }
 

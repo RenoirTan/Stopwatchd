@@ -225,7 +225,7 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
-    let name = req.common_args.identifiers.first().cloned();
+    let name = req.common_args.raw_identifiers.first().cloned();
 
     // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(name.clone());
@@ -281,7 +281,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let mut details = HashMap::<String, StopwatchDetails>::new();
     let mut errored = HashMap::<Option<String>, ServerError>::new();
     let verbose = req.common_args.verbose;
-    for raw_str in &req.common_args.identifiers {
+    for raw_str in &req.common_args.raw_identifiers {
         let raw = RawIdentifier::new(raw_str);
         let raw_str = raw_str.clone();
         let deets = &mut details;
@@ -355,7 +355,7 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
 async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("got request for delete");
     let mut reply = Reply::new(DeleteAnswer.into());
-    for raw_str in &req.common_args.identifiers {
+    for raw_str in &req.common_args.raw_identifiers {
         let raw = RawIdentifier::new(raw_str);
         match manager.take_stopwatch_by_raw_id(&raw) {
             Ok(sw) => {
@@ -387,7 +387,7 @@ pub async fn manage(mut manager: Manager, mut req_rx: JobReceiver) {
             SpecificArgs::Start(_) => {
                 start(&mut manager, &message.res_tx, &request).await;
             },
-            SpecificArgs::Info(_) if request.common_args.identifiers.len() == 0 => {
+            SpecificArgs::Info(_) if request.common_args.raw_identifiers.len() == 0 => {
                 info_all(&mut manager, &message.res_tx, &request).await;
             },
             SpecificArgs::Delete(_) => {
