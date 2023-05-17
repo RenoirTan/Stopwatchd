@@ -4,10 +4,7 @@ use std::{fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{
-    error::{FindStopwatchError, InvalidState},
-    identifiers::Identifier
-};
+use crate::error::{FindStopwatchError, InvalidState};
 
 use super::{details::StopwatchDetails, reply_specifics::SpecificAnswer};
 
@@ -34,12 +31,12 @@ pub enum ServerError {
 }
 
 impl ServerError {
-    /// Stopwatch [`Identifier`] that caused the error.
-    pub fn get_identifier(&self) -> Option<&Identifier> {
+    /// Raw stopwatch identifier that caused the error.
+    pub fn get_raw_id(&self) -> Option<&str> {
         use ServerError::*;
         match self {
-            FindStopwatchError(fse) => Some(&fse.identifier),
-            InvalidState(is) => Some(&is.identifier),
+            FindStopwatchError(fse) => Some(&fse.raw_identifier),
+            InvalidState(is) => Some(&is.raw_identifier),
             Other(_) => None
         }
     }
@@ -82,11 +79,11 @@ impl From<String> for ServerError {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Reply {
     /// Successful messages. The [`Identifier`] of the relevant `Stopwatch` is included here.
-    pub successful: HashMap<Identifier, StopwatchDetails>,
+    pub successful: HashMap<String, StopwatchDetails>,
     /// Error messages. The offending [`Identifier`]s may be in one of the keys.
     /// Errors that were not caused by a particular [`Identifier`] will be associated with the
     /// [`None`] key.
-    pub errors: HashMap<Option<Identifier>, Vec<ServerError>>,
+    pub errors: HashMap<Option<String>, Vec<ServerError>>,
     /// Type of action `swd` tried to take.
     pub specific_answer: SpecificAnswer
 }
@@ -105,15 +102,16 @@ impl Reply {
     where
         I: IntoIterator<Item = StopwatchDetails>
     {
-        self.extend_successful(successful.into_iter().map(|d| (d.get_identifier(), d)))
+        self.extend_successful(successful.into_iter().map(|d| (d.get_raw_id(), d)))
     }
 
     /// Add a collection of [`StopwatchDetails`] mapped to their respective [`Identifier`]s.
-    pub fn extend_successful<I>(&mut self, successful: I)
+    pub fn extend_successful<I, S>(&mut self, successful: I)
     where
-        I: IntoIterator<Item = (Identifier, StopwatchDetails)>
+        I: IntoIterator<Item = (S, StopwatchDetails)>,
+        S: Into<String>
     {
-        self.successful.extend(successful);
+        self.successful.extend(successful.into_iter().map(|(i, d)| (i.into(), d)));
     }
 
     /// Add error messages. [`Identifier`]s can be elicited from [`ServerError`].
@@ -122,14 +120,14 @@ impl Reply {
         I: IntoIterator<Item = ServerError>
     {
         self.extend_uncollected_errors(
-            errors.into_iter().map(|e| (e.get_identifier().cloned(), e))
+            errors.into_iter().map(|e| (e.get_raw_id().map(str::to_string), e))
         );
     }
 
     /// Add error messages with a specified [`Identifier`].
     pub fn extend_uncollected_errors<I>(&mut self, errors: I)
     where
-        I: IntoIterator<Item = (Option<Identifier>, ServerError)>
+        I: IntoIterator<Item = (Option<String>, ServerError)>
     {
         for (identifier, error) in errors {
             match self.errors.get_mut(&identifier) {
@@ -146,7 +144,7 @@ impl Reply {
     /// Add a mapping of [`Identifier`]s and the errors they've produced.
     pub fn extend_errors<I>(&mut self, errors: I)
     where
-        I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>
+        I: IntoIterator<Item = (Option<String>, Vec<ServerError>)>
     {
         for (identifier, my_errors) in errors {
             match self.errors.get_mut(&identifier) {

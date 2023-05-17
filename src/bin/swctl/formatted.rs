@@ -7,8 +7,7 @@ use clap::ValueEnum;
 use stopwatchd::{
     communication::{details::StopwatchDetails, server::ServerError},
     util::get_uuid_node,
-    models::lap::FinishedLap,
-    identifiers::Identifier
+    models::lap::FinishedLap
 };
 use tabled::{Table, Tabled, settings::Style};
 use uuid::Uuid;
@@ -134,8 +133,8 @@ impl BasicDetails {
     /// # See Also
     /// [`BasicDetailsNoDT`]. Set `show_dt` to [`false`].
     pub fn format(formatter: &Formatter, details: &StopwatchDetails, show_dt: bool) -> Self {
-        let id = format!("{:x}", get_uuid_node(&details.sw_id));
-        let name = details.name.to_string();
+        let id = format!("{:x}", get_uuid_node(&details.identifier.id));
+        let name = details.identifier.name.clone();
         let state = format!("{}", details.state);
         let start_time = if show_dt {
             details.start_time
@@ -238,7 +237,7 @@ impl ErrorRecord {
     /// and not a particular in stopwatch.
     pub fn format(
         _formatter: &Formatter,
-        identifier: Option<&Identifier>,
+        identifier: Option<&String>,
         error: ServerError
     ) -> Self {
         let identifier = identifier

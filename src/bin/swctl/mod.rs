@@ -17,8 +17,7 @@ use stopwatchd::{
         details::StopwatchDetails,
         reply_specifics::{SpecificAnswer, InfoAnswer}
     },
-    traits::Codecable,
-    identifiers::Identifier
+    traits::Codecable
 };
 use tabled::{builder::Builder, Tabled};
 use tokio::net::UnixStream;
@@ -121,8 +120,8 @@ async fn run(cli: cli::Cli) -> i32 {
 fn get_details_errors(
     request: &Request,
     mut reply: Reply,
-    access_order: Option<&Vec<Identifier>>
-) -> (Vec<StopwatchDetails>, Vec<(Option<Identifier>, Vec<ServerError>)>) {
+    access_order: Option<&Vec<String>>
+) -> (Vec<StopwatchDetails>, Vec<(Option<String>, Vec<ServerError>)>) {
     let mut details = Vec::with_capacity(reply.successful.len());
     let mut errors = Vec::with_capacity(reply.errors.len());
 
@@ -140,7 +139,7 @@ fn get_details_errors(
     }
     // Add stuff that has an identifier in access order
     for identifier in ao {
-        if let Some(d) = reply.successful.remove(&identifier) {
+        if let Some(d) = reply.successful.remove(identifier) {
             details.push(d);
         }
         let o_id = Some(identifier.clone());
@@ -250,7 +249,7 @@ where
 /// Format [`ServerError`] into strings.
 fn generate_errors<I>(_args: &cli::Cli, iter: I, formatter: &Formatter, style: Styles) -> String
 where
-    I: IntoIterator<Item = (Option<Identifier>, Vec<ServerError>)>
+    I: IntoIterator<Item = (Option<String>, Vec<ServerError>)>
 {
     let mut builder = Builder::default();
     builder.set_header(ErrorRecord::headers());

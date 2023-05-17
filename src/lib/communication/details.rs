@@ -3,22 +3,20 @@
 use std::time::{SystemTime, Duration};
 
 use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 
 use crate::{
     models::{
-        stopwatch::{Name, State, Stopwatch},
+        stopwatch::{State, Stopwatch},
         lap::FinishedLap
     },
-    identifiers::{UuidName, Identifier}
+    identifiers::Identifier
 };
 
 /// Details about a [`Stopwatch`]. See the methods and fields to see what
 /// details exist.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StopwatchDetails {
-    pub sw_id: Uuid,
-    pub name: Name,
+    pub identifier: Identifier,
     pub state: State,
     pub start_time: Option<SystemTime>,
     pub total_time: Duration,
@@ -30,8 +28,7 @@ pub struct StopwatchDetails {
 impl StopwatchDetails {
     /// Extract details from a [`Stopwatch`]. Optionally include `verbose` info.
     pub fn from_stopwatch(stopwatch: &Stopwatch, verbose: bool) -> Self {
-        let sw_id = stopwatch.id;
-        let name = stopwatch.name.clone();
+        let identifier = stopwatch.identifier.clone();
         let state = stopwatch.state();
         let start_time = stopwatch.start_time();
         let total_time = stopwatch.total_time();
@@ -43,8 +40,7 @@ impl StopwatchDetails {
             None
         };
         Self {
-            sw_id,
-            name,
+            identifier,
             state,
             start_time,
             total_time,
@@ -81,17 +77,9 @@ impl StopwatchDetails {
         }
     }
 
-    /// Obtain [`UuidName`].
-    pub fn get_uuid_name(&self) -> UuidName {
-        UuidName {
-            id: self.sw_id,
-            name: self.name.clone()
-        }
-    }
-
     /// Get a string that this stopwatch can be identified by.
-    pub fn get_identifier(&self) -> Identifier {
-        self.get_uuid_name().as_identifier()
+    pub fn get_raw_id(&self) -> String {
+        self.identifier.to_string()
     }
 }
 
@@ -111,20 +99,19 @@ impl VerboseDetails {
 
 #[cfg(test)]
 mod test {
-    use crate::models::stopwatch::{Stopwatch, Name};
+    use crate::models::stopwatch::Stopwatch;
 
     use super::StopwatchDetails;
 
     fn make_stopwatch() -> Stopwatch {
-        let mut stopwatch = Stopwatch::start(Some(Name::new("aaa")));
+        let mut stopwatch = Stopwatch::start(Some("aaa"));
         stopwatch.new_lap(true);
         stopwatch.pause();
         stopwatch
     }
 
     fn basic_asserts(stopwatch: &Stopwatch, info: &StopwatchDetails) {
-        assert_eq!(stopwatch.id, info.sw_id);
-        assert_eq!(stopwatch.name, info.name);
+        assert_eq!(stopwatch.identifier, info.identifier);
         assert_eq!(stopwatch.state(), info.state);
         assert_eq!(stopwatch.start_time(), info.start_time);
         assert_eq!(stopwatch.total_time(), info.total_time);

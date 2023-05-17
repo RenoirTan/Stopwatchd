@@ -4,7 +4,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::{identifiers::Identifier, impl_into_enum_variant};
+use crate::impl_into_enum_variant;
 
 /// Type of action `swd` took and the result of that action.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub enum InfoAnswer {
 pub struct InfoAll {
     /// Order in which stopwatches were last accessed.
     /// Provides a sequence that the client can show details in.
-    pub access_order: Vec<Identifier>
+    pub access_order: Vec<String>
 }
 
 /// Reply from `swd` after creating new stopwatches.

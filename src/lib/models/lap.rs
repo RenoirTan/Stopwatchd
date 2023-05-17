@@ -5,6 +5,7 @@ use std::time::{SystemTime, Instant, Duration};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
+use super::stopwatch::State;
 #[allow(unused)]
 use super::stopwatch::Stopwatch;
 
@@ -55,6 +56,11 @@ impl CurrentLap {
     /// Check if the current lap is playing.
     pub fn playing(&self) -> bool {
         self.timer.is_some()
+    }
+
+    /// Status of this lap.
+    pub fn state(&self) -> State {
+        if self.playing() { State::Playing } else { State::Paused }
     }
 
     /// Permannently end the current lap, transforming it into a
