@@ -71,43 +71,23 @@ impl Manager {
         self.access_order.push(identifier);
     }
 
-    /// Check if a [`Stopwatch`] with the name `raw` exists.
-    pub fn has_name(&self, raw: &str) -> Option<Identifier> {
-        if raw.is_empty() {
-            return None;
-        }
-        for (_, stopwatch) in self.stopwatches.iter() {
-            if stopwatch.identifier.name == raw {
-                return Some(stopwatch.identifier.clone());
+    /// Check if `raw` identifier matches one of the stopwatches by name or
+    /// by UUID if `stop_when_uuid_matches` is true.
+    pub fn has_uuid_or_name(
+        &self,
+        raw: &RawIdentifier,
+        stop_when_uuid_matches: bool
+    ) -> Option<(Identifier, IdentifierMatch)> {
+        for identifier in &self.access_order {
+            match raw.matches(identifier) {
+                Some(IdentifierMatch::Name) =>
+                    return Some((identifier.clone(), IdentifierMatch::Name)),
+                Some(IdentifierMatch::Uuid) if stop_when_uuid_matches =>
+                    return Some((identifier.clone(), IdentifierMatch::Uuid)),
+                _ => continue
             }
         }
         None
-    }
-
-    /// Check if a [`Stopwatch`] with the UUID `identifier` exists.
-    pub fn has_uuid(&self, identifier: &str) -> Option<Identifier> {
-        let my_uuid = match Uuid::parse_str(identifier) {
-            Ok(id) => id,
-            Err(_) => return None
-        };
-        for (_, stopwatch) in self.stopwatches.iter() {
-            if stopwatch.identifier.id == my_uuid {
-                return Some(stopwatch.identifier.clone());
-            }
-        }
-        None
-    }
-
-    /// Check if a stopwatch with name or UUID `identifier`.
-    pub fn has_uuid_or_name(&self, identifier: &str) -> Option<Identifier> {
-        // TODO: Might make this more efficient
-        if let Some(un) = self.has_name(identifier) {
-            Some(un)
-        } else if let Some(un) = self.has_uuid(identifier) {
-            Some(un)
-        } else {
-            None
-        }
     }
 
     /// Get the index of the stopwatch that matches `identifier` inside `access_order`
@@ -229,17 +209,19 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
 
     // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(name.clone());
-    // TODO: REWORK HAS_??? METHODS
-    let sw_raw_id = &stopwatch.identifier.to_string();
+    let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
 
     let mut reply = Reply::new(StartAnswer.into());
 
-    if let Some(uuid_name) = manager.has_uuid_or_name(&sw_raw_id) {
+    // TODO: --no-name-and-uuid-clash -> name of new stopwatch must not clash
+    //       with another stopwatch's uuid.
+    if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
         trace!("stopwatch with the same name or uuid already exists");
         let error = FindStopwatchError {
-            raw_identifier: sw_raw_id.clone(),
-            duplicates: vec![uuid_name]
+            raw_identifier: sw_raw_id.into(),
+            duplicates: vec![identifier]
         };
+        // TODO: If name is None, error gets categorised as a system error.
         reply.extend_uncollected_errors([(name, error.into())]);
     } else {
         let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
