@@ -218,8 +218,6 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
 
     let mut reply = Reply::new(StartAnswer.into());
 
-    // TODO: --no-name-and-uuid-clash -> name of new stopwatch must not clash
-    //       with another stopwatch's uuid.
     if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
         trace!("stopwatch with the same name or uuid already exists");
         let error = FindStopwatchError {
