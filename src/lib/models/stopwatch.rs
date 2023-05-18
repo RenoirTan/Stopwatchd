@@ -6,9 +6,8 @@ use std::{
 };
 
 use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 
-use crate::identifiers::Identifier;
+use crate::identifiers::{Identifier, UniqueId, Name};
 
 use super::lap::{CurrentLap, FinishedLap};
 
@@ -58,17 +57,16 @@ pub struct Stopwatch {
 
 impl Stopwatch {
     /// New stopwatch with an optional name. The stopwatch is paused by default.
-    pub fn new<S: Into<String>>(name: Option<S>) -> Self {
-        let id = Uuid::new_v4();
-        let name = name.map(Into::into).unwrap_or_else(|| String::new());
-        let identifier = Identifier::new(id, name);
+    pub fn new<N: Into<Name>>(name: N) -> Self {
+        let id = UniqueId::generate();
+        let identifier = Identifier::new(id, name.into());
         let finished_laps = Vec::new();
         let current_lap = Some(CurrentLap::new(id));
         Self { identifier, finished_laps, current_lap }
     }
 
     /// New stopwatch but start immediately.
-    pub fn start<S: Into<String>>(name: Option<S>) -> Self {
+    pub fn start<N: Into<Name>>(name: N) -> Self {
         let mut sw = Self::new(name);
         sw.play();
         sw

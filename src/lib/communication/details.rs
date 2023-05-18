@@ -99,12 +99,12 @@ impl VerboseDetails {
 
 #[cfg(test)]
 mod test {
-    use crate::models::stopwatch::Stopwatch;
+    use crate::{models::stopwatch::Stopwatch, identifiers::Name};
 
     use super::StopwatchDetails;
 
     fn make_stopwatch() -> Stopwatch {
-        let mut stopwatch = Stopwatch::start(Some("aaa"));
+        let mut stopwatch = Stopwatch::start(Name::fixed("aaa"));
         stopwatch.new_lap(true);
         stopwatch.pause();
         stopwatch

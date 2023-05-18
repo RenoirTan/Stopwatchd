@@ -62,6 +62,7 @@ chrono = "0.4.23"
 ciborium = "0.2.0"
 clap = { version = "4.1.4", features = ["derive"] }
 futures = "0.3.26"
+hex = "0.4.3"
 log = "0.4.17"
 serde = { version = "1.0.152", features = ["derive"] }
 signal-hook = "0.3.14"

@@ -13,10 +13,9 @@ use stopwatchd::{
     },
     models::stopwatch::{Stopwatch, State},
     error::{FindStopwatchError, InvalidState},
-    identifiers::Identifier
+    identifiers::{Identifier, UniqueId, Name}
 };
 use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
-use uuid::Uuid;
 
 use crate::raw_identifier::{RawIdentifier, IdentifierMatch};
 
@@ -52,7 +51,7 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 /// 
 /// Use [`manage`] to run the manager.
 pub struct Manager {
-    stopwatches: HashMap<Uuid, Stopwatch>,
+    stopwatches: HashMap<UniqueId, Stopwatch>,
     access_order: Vec<Identifier> // Last item is most recently accessed
 }
 
@@ -180,7 +179,7 @@ impl Manager {
 
 
 struct StopwatchByAccessOrder<'m> {
-    stopwatches: &'m HashMap<Uuid, Stopwatch>,
+    stopwatches: &'m HashMap<UniqueId, Stopwatch>,
     access_order: &'m Vec<Identifier>,
     index: usize
 }
@@ -205,10 +204,16 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
 }
 
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
-    let name = req.common_args.raw_identifiers.first().cloned();
+    let given_name = req.common_args.raw_identifiers.first().cloned();
+
+    // TODO: Reply [`BadNameError`] if name is an invalid [`Name`].
+    //       --fix-bad-names to automatically fix names
+    //       --ignore-bad-names: don't create stopwatches with bad names, but no errors <- not sure
+    // assume --fix-bad-names for now
+    let name = Name::fixed(given_name.clone().unwrap_or_default());
 
     // Start stopwatch first, delete if need be
-    let stopwatch = Stopwatch::start(name.clone());
+    let stopwatch = Stopwatch::start(name);
     let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
 
     let mut reply = Reply::new(StartAnswer.into());
@@ -222,7 +227,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
             duplicates: vec![identifier]
         };
         // TODO: If name is None, error gets categorised as a system error.
-        reply.extend_uncollected_errors([(name, error.into())]);
+        reply.extend_uncollected_errors([(given_name, error.into())]);
     } else {
         let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
         manager.add_stopwatch(stopwatch);
