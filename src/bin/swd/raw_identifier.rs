@@ -1,11 +1,11 @@
 //! [`RawIdentifier`] and [`IdentifierMatch`].
 #![allow(unused)]
 
-use std::fmt;
+use std::{fmt, str::FromStr};
 use std::ops::Deref;
 
 use serde::{Serialize, Deserialize};
-use stopwatchd::{util::{raw_identifier_to_uuid_node, get_uuid_node}, identifiers::Identifier};
+use stopwatchd::{util::{raw_identifier_to_uuid_node, get_uuid_node}, identifiers::{Identifier, UniqueId}};
 use uuid::Uuid;
 
 /// [`RawIdentifier`]s are unresolved references to a [`Stopwatch`] that are
@@ -16,15 +16,15 @@ use uuid::Uuid;
 #[derive(Clone, Debug, Eq, Hash, Serialize, Deserialize)]
 pub struct RawIdentifier {
     raw: String,
-    possible_node: Option<u64>
+    possible_id: Option<UniqueId>
 }
 
 impl RawIdentifier {
     /// Create a new [`Identifier`] from raw input which can be passed by a
     /// user from the command line.
     pub fn new<S: Into<String>>(raw: S) -> Self {
-        let mut me = Self { raw: raw.into(), possible_node: None };
-        me.calculate_node();
+        let mut me = Self { raw: raw.into(), possible_id: None };
+        me.calculate_id();
         me
     }
 
@@ -33,16 +33,15 @@ impl RawIdentifier {
         &self.raw
     }
 
-    /// Check if the raw identifier looks like the "node" in a UUID.
-    /// If so, return the node as a [`u64`].
-    pub fn calculate_node(&mut self) -> Option<u64> {
-        self.possible_node = raw_identifier_to_uuid_node(&self.raw);
-        self.possible_node
+    /// Check if the raw identifier looks like a [`UniqueId`].
+    pub fn calculate_id(&mut self) -> Option<UniqueId> {
+        self.possible_id = UniqueId::from_str(&self.raw).ok();
+        self.possible_id
     }
 
     /// Return a UUID "node" if this raw identifier is like one.
-    pub fn get_possible_node(&self) -> Option<u64> {
-        self.possible_node
+    pub fn get_possible_id(&self) -> Option<UniqueId> {
+        self.possible_id
     }
 
     /// Whether this raw identifier matches a name.
@@ -50,10 +49,10 @@ impl RawIdentifier {
         self.raw == name
     }
 
-    /// Whether this raw identifier matches a [`Uuid`]'s node.
-    pub fn matches_uuid(&self, uuid: &Uuid) -> bool {
-        match self.possible_node {
-            Some(node) => node == get_uuid_node(uuid),
+    /// Whether this raw identifier matches a [`UniqueId`].
+    pub fn matches_id(&self, id: &UniqueId) -> bool {
+        match self.possible_id {
+            Some(pos_id) => pos_id == *id,
             None => false
         }
     }
@@ -62,7 +61,7 @@ impl RawIdentifier {
     pub fn matches(&self, identifier: &Identifier) -> Option<IdentifierMatch> {
         if self.matches_name(&identifier.name) {
             Some(IdentifierMatch::Name)
-        } else if self.matches_uuid(&identifier.id) {
+        } else if self.matches_id(&identifier.id) {
             Some(IdentifierMatch::Uuid)
         } else {
             None
@@ -92,7 +91,7 @@ impl From<String> for RawIdentifier {
 
 impl From<Identifier> for RawIdentifier {
     fn from(identifier: Identifier) -> Self {
-        Self::from(Into::<String>::into(identifier))
+        Self::from(<Identifier as Into<String>>::into(identifier))
     }
 }
 
