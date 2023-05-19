@@ -73,3 +73,15 @@ impl fmt::Display for InvalidState {
 }
 
 impl std::error::Error for InvalidState { }
+
+/// If a name starts with '@'.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct BadNameError;
+
+impl fmt::Display for BadNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BadNameError")
+    }
+}
+
+impl std::error::Error for BadNameError { }

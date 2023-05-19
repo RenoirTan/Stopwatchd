@@ -4,7 +4,7 @@ use std::{fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{error::{FindStopwatchError, InvalidState}, identifiers::BadNameError};
+use crate::error::{FindStopwatchError, InvalidState, BadNameError};
 
 use super::{details::StopwatchDetails, reply_specifics::SpecificAnswer};
 
