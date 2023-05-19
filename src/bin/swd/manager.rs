@@ -212,11 +212,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         _ => panic!("fuck")
     };
     let given_name = req.common_args.raw_identifiers.first().cloned();
-
-    // TODO: Reply [`BadNameError`] if name is an invalid [`Name`].
-    //       --fix-bad-names to automatically fix names
-    //       --ignore-bad-names: don't create stopwatches with bad names, but no errors <- not sure
-    // assume --fix-bad-names for now
+    
     let name = if start_args.fix_bad_names {
         Name::fixed(given_name.clone().unwrap_or_default())
     } else {
