@@ -211,15 +211,18 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         SpecificArgs::Start(ref sa) => sa,
         _ => panic!("fuck")
     };
-    let given_name = req.common_args.raw_identifiers.first().cloned();
+    let given_name = req.common_args.raw_identifiers.first().cloned()
+        .unwrap_or_else(|| String::new());
     
     let name = if start_args.fix_bad_names {
-        Some(Name::fixed(given_name.clone().unwrap_or_default()))
+        Some(Name::fixed(given_name.clone()))
     } else {
-        match Name::new(given_name.clone().unwrap_or_default()) {
+        match Name::new(given_name.clone()) {
             Ok(n) => Some(n),
             Err(e) => {
-                reply.extend_uncollected_errors([(given_name.clone(), ServerError::BadName(e))]);
+                reply.extend_uncollected_errors(
+                    [(Some(given_name.clone()), ServerError::BadName(e))]
+                );
                 None
             }
         }
@@ -236,8 +239,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
                 raw_identifier: sw_raw_id.into(),
                 duplicates: vec![identifier]
             };
-            // TODO: If name is None, error gets categorised as a system error.
-            reply.extend_uncollected_errors([(given_name, error.into())]);
+            reply.extend_uncollected_errors([(Some(given_name), error.into())]);
         } else {
             let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
             manager.add_stopwatch(stopwatch);
