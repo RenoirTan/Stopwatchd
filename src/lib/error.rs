@@ -40,10 +40,10 @@ impl FindStopwatchError {
             diagnosis
         } else {
             diagnosis += "\n";
-            for uuid_name in &self.duplicates {
-                let uuid = uuid_name.id;
-                let name = &uuid_name.name;
-                diagnosis += &format!("    Uuid: {:?} Name: {:?}", uuid, name);
+            for identifier in &self.duplicates {
+                let id = identifier.id;
+                let name = &identifier.name;
+                diagnosis += &format!("    Id: {} Name: {}", id, name);
             }
             diagnosis
         }
