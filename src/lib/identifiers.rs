@@ -80,8 +80,16 @@ impl Name {
 
     pub fn fixed<S: Into<String>>(unchecked: S) -> Self {
         let mut unchecked: String = unchecked.into();
-        if bad_name(&unchecked) {
-            unchecked.remove(0);
+        let mut cut = None;
+        for (index, c) in unchecked.chars().enumerate() {
+            if c == '@' {
+                cut = Some(index+1);
+            } else {
+                break;
+            }
+        }
+        if let Some(cut) = cut {
+            unchecked.drain(..cut);
         }
         Self(unchecked)
     }
