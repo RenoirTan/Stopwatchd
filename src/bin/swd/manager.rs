@@ -214,37 +214,35 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let given_name = req.common_args.raw_identifiers.first().cloned();
     
     let name = if start_args.fix_bad_names {
-        Name::fixed(given_name.clone().unwrap_or_default())
+        Some(Name::fixed(given_name.clone().unwrap_or_default()))
     } else {
         match Name::new(given_name.clone().unwrap_or_default()) {
-            Ok(n) => n,
+            Ok(n) => Some(n),
             Err(e) => {
-                reply.extend_uncollected_errors([(given_name, ServerError::BadName(e))]);
-                let response = JobResponse { output: reply.into() };
-                if let Err(e) = res_tx.send(response) {
-                    error!("{}", e);
-                }
-                return;
+                reply.extend_uncollected_errors([(given_name.clone(), ServerError::BadName(e))]);
+                None
             }
         }
     };
 
-    // Start stopwatch first, delete if need be
-    let stopwatch = Stopwatch::start(name);
-    let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
+    if let Some(name) = name {
+        // Start stopwatch first, delete if need be
+        let stopwatch = Stopwatch::start(name);
+        let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
 
-    if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
-        trace!("stopwatch with the same name or uuid already exists");
-        let error = FindStopwatchError {
-            raw_identifier: sw_raw_id.into(),
-            duplicates: vec![identifier]
-        };
-        // TODO: If name is None, error gets categorised as a system error.
-        reply.extend_uncollected_errors([(given_name, error.into())]);
-    } else {
-        let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
-        manager.add_stopwatch(stopwatch);
-        reply.extend_successful([(sw_raw_id.clone(), details)]);
+        if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
+            trace!("stopwatch with the same name or uuid already exists");
+            let error = FindStopwatchError {
+                raw_identifier: sw_raw_id.into(),
+                duplicates: vec![identifier]
+            };
+            // TODO: If name is None, error gets categorised as a system error.
+            reply.extend_uncollected_errors([(given_name, error.into())]);
+        } else {
+            let details = StopwatchDetails::from_stopwatch(&stopwatch, req.common_args.verbose);
+            manager.add_stopwatch(stopwatch);
+            reply.extend_successful([(sw_raw_id.clone(), details)]);
+        }
     }
 
     let response = JobResponse { output: reply.into() };
