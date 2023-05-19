@@ -5,6 +5,7 @@ use std::{fmt, str::FromStr, ops};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
+use crate::error::BadNameError;
 #[allow(unused)]
 use crate::models::stopwatch::Stopwatch; // for see also documentation
 
@@ -53,10 +54,6 @@ impl From<Uuid> for UniqueId {
     }
 }
 
-/// If a name starts with '@'.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BadNameError;
-
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Name(String);
 
@@ -72,8 +69,16 @@ impl Name {
 
     pub fn fixed<S: Into<String>>(unchecked: S) -> Self {
         let mut unchecked: String = unchecked.into();
-        if bad_name(&unchecked) {
-            unchecked.remove(0);
+        let mut cut = None;
+        for (index, c) in unchecked.chars().enumerate() {
+            if c == '@' {
+                cut = Some(index+1);
+            } else {
+                break;
+            }
+        }
+        if let Some(cut) = cut {
+            unchecked.drain(..cut);
         }
         Self(unchecked)
     }

@@ -75,7 +75,7 @@ mod test {
 
     #[test]
     fn test_cycle_0() {
-        let specific = StartArgs.into();
+        let specific = StartArgs { fix_bad_names: false }.into();
         let common = CommonArgs::from_iter([""], false);
         let request = Request::new(common, specific);
 
@@ -87,7 +87,7 @@ mod test {
 
     #[test]
     fn test_cycle_1() {
-        let specific = StartArgs.into();
+        let specific = StartArgs { fix_bad_names: true }.into();
         let common = CommonArgs::from_iter(["random"], false);
         let request = Request::new(common, specific);
 

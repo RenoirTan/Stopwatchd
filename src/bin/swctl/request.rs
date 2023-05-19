@@ -15,7 +15,7 @@ pub fn args_to_request(args: &cli::Cli) -> Request {
     let (identifiers, specific) = match &args.action {
         Subcommands::Start(args) => (
             args.raw_identifier.iter().map(Clone::clone).collect(),
-            StartArgs.into()
+            StartArgs { fix_bad_names: args.fix_bad_names }.into()
         ),
         Subcommands::Info(args) => (args.raw_identifiers.clone(), InfoArgs.into()),
         Subcommands::Stop(args) => (args.raw_identifiers.clone(), StopArgs.into()),

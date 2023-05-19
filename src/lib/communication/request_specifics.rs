@@ -22,7 +22,9 @@ pub struct InfoArgs;
 
 /// Get `swd` to create a new [`Stopwatch`].
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StartArgs;
+pub struct StartArgs {
+    pub fix_bad_names: bool
+}
 
 /// Stop a [`Stopwatch`].
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

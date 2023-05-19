@@ -4,7 +4,7 @@ use std::{fmt, collections::HashMap, hash::Hash};
 
 use serde::{Serialize, Deserialize};
 
-use crate::error::{FindStopwatchError, InvalidState};
+use crate::error::{FindStopwatchError, InvalidState, BadNameError};
 
 use super::{details::StopwatchDetails, reply_specifics::SpecificAnswer};
 
@@ -27,6 +27,7 @@ where
 pub enum ServerError {
     FindStopwatchError(FindStopwatchError),
     InvalidState(InvalidState),
+    BadName(BadNameError),
     Other(String)
 }
 
@@ -37,6 +38,7 @@ impl ServerError {
         match self {
             FindStopwatchError(fse) => Some(&fse.raw_identifier),
             InvalidState(is) => Some(&is.raw_identifier),
+            BadName(_) => None, // TODO: Should have identifier
             Other(_) => None
         }
     }
@@ -48,6 +50,7 @@ impl fmt::Display for ServerError {
         match self {
             FindStopwatchError(fse) => write!(f, "{}", fse.diagnose()),
             InvalidState(is) => write!(f, "{}", is),
+            BadName(bne) => bne.fmt(f),
             Other(s) => write!(f, "{}", s)
         }
     }
