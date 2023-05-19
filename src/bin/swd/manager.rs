@@ -203,20 +203,39 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
     }
 }
 
+// TODO: Clean up this entire function
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
+    let mut reply = Reply::new(StartAnswer.into());
+
+    let start_args = match req.specific_args {
+        SpecificArgs::Start(ref sa) => sa,
+        _ => panic!("fuck")
+    };
     let given_name = req.common_args.raw_identifiers.first().cloned();
 
     // TODO: Reply [`BadNameError`] if name is an invalid [`Name`].
     //       --fix-bad-names to automatically fix names
     //       --ignore-bad-names: don't create stopwatches with bad names, but no errors <- not sure
     // assume --fix-bad-names for now
-    let name = Name::fixed(given_name.clone().unwrap_or_default());
+    let name = if start_args.fix_bad_names {
+        Name::fixed(given_name.clone().unwrap_or_default())
+    } else {
+        match Name::new(given_name.clone().unwrap_or_default()) {
+            Ok(n) => n,
+            Err(e) => {
+                reply.extend_uncollected_errors([(given_name, ServerError::BadName(e))]);
+                let response = JobResponse { output: reply.into() };
+                if let Err(e) = res_tx.send(response) {
+                    error!("{}", e);
+                }
+                return;
+            }
+        }
+    };
 
     // Start stopwatch first, delete if need be
     let stopwatch = Stopwatch::start(name);
     let sw_raw_id: RawIdentifier = stopwatch.identifier.clone().into();
-
-    let mut reply = Reply::new(StartAnswer.into());
 
     if let Some((identifier, _match_kind)) = manager.has_uuid_or_name(&sw_raw_id, false) {
         trace!("stopwatch with the same name or uuid already exists");

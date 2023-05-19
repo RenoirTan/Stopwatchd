@@ -57,6 +57,14 @@ impl From<Uuid> for UniqueId {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BadNameError;
 
+impl fmt::Display for BadNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BadNameError")
+    }
+}
+
+impl std::error::Error for BadNameError { }
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Name(String);
 

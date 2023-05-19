@@ -91,7 +91,11 @@ pub enum Subcommands {
 #[derive(Args, Clone, Debug)]
 pub struct Start {
     /// Name of the new stopwatch
-    pub raw_identifier: Option<String>
+    pub raw_identifier: Option<String>,
+
+    /// Whether to fix names such that would otherwise give an error.
+    #[arg(long, default_value_t=false)]
+    pub fix_bad_names: bool
 }
 
 #[derive(Args, Clone, Debug)]
