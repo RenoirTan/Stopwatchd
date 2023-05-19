@@ -189,9 +189,13 @@ where
             builder.push_record(BasicDetailsNoDT::from(record).fields());
         }
     }
-    let mut table = builder.build();
-    style.style_table(&mut table);
-    table.to_string()
+    if builder.count_rows() == 0 {
+        "".to_string()
+    } else {
+        let mut table = builder.build();
+        style.style_table(&mut table);
+        table.to_string()
+    }
 }
 
 fn generate_output_verbose<I>(
@@ -203,8 +207,10 @@ fn generate_output_verbose<I>(
 where
     I: IntoIterator<Item = StopwatchDetails>
 {
+    let mut n_stopwatches: usize = 0;
     let mut out = "+++\n".to_string();
     'l: for d in details {
+        n_stopwatches += 1;
         let mut basic_builder = Builder::default();
         let basic_record = BasicDetails::format(formatter, &d, args.show_datetime_info);
         if args.show_datetime_info {
@@ -243,7 +249,11 @@ where
 
         out.push_str("\n+++");
     }
-    out
+    if n_stopwatches == 0 {
+        "".to_string()
+    } else {
+        out
+    }
 }
 
 /// Format [`ServerError`] into strings.
