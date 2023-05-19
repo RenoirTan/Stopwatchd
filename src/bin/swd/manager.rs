@@ -309,7 +309,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
                     let condition = matches!(state, State::Ended | State::Playing);
                     good_or_bad(raw_str, sw, verbose, deets, errs, condition).await;
                 }
-                _ => { }
+                _ => panic!("i don't think this is supposed to happen")
             },
             Err(fse) => {
                 errored.insert(Some(raw_str), fse.into());
