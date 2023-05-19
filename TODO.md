@@ -8,12 +8,12 @@
  - [ ] Refactoring
    - [x] Reduce the number of files under `stopwatchd::communication`.
    - [x] Simplify the API for `swctl::formatted`.
-   - [ ] Rework naming
+   - [x] Rework naming
      - [x] Use raw `String` for `Name` and (original) `Identifier`.
      - [x] Rename all uses of the name `identifier` and its derivatives to `raw_identifier`
      - [x] Rename `UuidName` to `Identifier`.
-     - [ ] Make all uuids start with `@xxxx...` right-justified with zeroes to 12 hex chars
-     - [ ] Ban names that start with `@`.
+     - [x] Make all uuids start with `@xxxx...` right-justified with zeroes to 12 hex chars
+     - [x] Ban names that start with `@`.
  - [ ] Work on `sw-attach`, maybe with ncurses.
  - [ ] Other init systems:
    - [ ] openrc
