@@ -203,10 +203,12 @@ impl<'m> Iterator for StopwatchByAccessOrder<'m> {
     }
 }
 
-// TODO: Clean up this entire function
+/// Manager function to start a [`Stopwatch`].
 async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
+    // Create a new reply. Can populate with success or error later.
     let mut reply = Reply::new(StartAnswer.into());
 
+    // Retrieve arguments.
     let start_args = match req.specific_args {
         SpecificArgs::Start(ref sa) => sa,
         _ => panic!("fuck")
@@ -214,7 +216,8 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let given_name = req.common_args.raw_identifiers.first().cloned()
         .unwrap_or_else(|| String::new());
     
-    let name = if start_args.fix_bad_names {
+    // Calculate name of the new stopwatch.
+    let name: Option<Name> = if start_args.fix_bad_names {
         Some(Name::fixed(given_name.clone()))
     } else {
         match Name::new(given_name.clone()) {
@@ -228,6 +231,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         }
     };
 
+    // Create new stopwatch.
     if let Some(name) = name {
         // Start stopwatch first, delete if need be
         let stopwatch = Stopwatch::start(name);
@@ -247,6 +251,7 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
         }
     }
 
+    // Reply
     let response = JobResponse { output: reply.into() };
     trace!("manage is sending response back for start");
     if let Err(e) = res_tx.send(response) {
@@ -254,8 +259,19 @@ async fn start(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     }
 }
 
+/// Helper function for [`all`].
+/// 
+/// If error condition is met, add an [`InvalidState`] error to `errored`.
+/// Otherwise, add a [`StopwatchDetails`] to `details` to signify success.
+/// 
+/// # Arguments
+/// * raw_identifier - Raw identifier used to match a stopwatch.
+/// * stopwatch - [`Stopwatch`] object.
+/// * details - Map of [`StopwatchDetails`], stores success messages.
+/// * errored - Map of [`ServerError`], stores error messages.
+/// * error_condition - Error condition. See the description of this function.
 async fn good_or_bad(
-    raw_str: String,
+    raw_identifier: String,
     stopwatch: &Stopwatch,
     verbose: bool,
     details: &mut HashMap<String, StopwatchDetails>,
@@ -265,17 +281,18 @@ async fn good_or_bad(
     if error_condition {
         let state = stopwatch.state();
         errored.insert(
-            Some(raw_str.clone()),
-            InvalidState { raw_identifier: raw_str, state }.into()
+            Some(raw_identifier.clone()),
+            InvalidState { raw_identifier, state }.into()
         );
     } else {
         details.insert(
-            raw_str,
+            raw_identifier,
             StopwatchDetails::from_stopwatch(stopwatch, verbose)
         );
     }
 }
 
+/// Master function for multiple actions.
 async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     let specific_args = &req.specific_args;
     let mut details = HashMap::<String, StopwatchDetails>::new();
@@ -330,6 +347,7 @@ async fn all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     }
 }
 
+/// Get info about all stopwatches.
 async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("info_all");
     let mut access_order = vec![];
@@ -352,6 +370,7 @@ async fn info_all(manager: &mut Manager, res_tx: &ResponseSender, req: &Request)
     }
 }
 
+/// Delete stopwatch.
 async fn delete(manager: &mut Manager, res_tx: &ResponseSender, req: &Request) {
     trace!("got request for delete");
     let mut reply = Reply::new(DeleteAnswer.into());
