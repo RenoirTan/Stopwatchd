@@ -82,6 +82,12 @@ impl Name {
         }
         Self(unchecked)
     }
+
+    /// Create a new [`Name`] without checking to see if it's invalid.
+    /// The caller must make sure that the `unchecked` string is a valid name.
+    pub unsafe fn unchecked<S: Into<String>>(unchecked: S) -> Self {
+        Name(unchecked.into())
+    }
 }
 
 impl ops::Deref for Name {

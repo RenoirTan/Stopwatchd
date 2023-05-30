@@ -5,7 +5,10 @@ use std::{fmt, str::FromStr};
 use std::ops::Deref;
 
 use serde::{Serialize, Deserialize};
-use stopwatchd::{util::{raw_identifier_to_uuid_node, get_uuid_node}, identifiers::{Identifier, UniqueId}};
+use stopwatchd::{
+    util::{raw_identifier_to_uuid_node, get_uuid_node},
+    identifiers::{Identifier, UniqueId, Name}
+};
 use uuid::Uuid;
 
 /// [`RawIdentifier`]s are unresolved references to a [`Stopwatch`] that are
@@ -42,6 +45,15 @@ impl RawIdentifier {
     /// Return a UUID "node" if this raw identifier is like one.
     pub fn get_possible_id(&self) -> Option<UniqueId> {
         self.possible_id
+    }
+
+    /// Resolve this [`RawIdentifier`] into a [`UniqueId`] if possible.
+    /// Otherwise, return a [`Name`] instead.
+    pub fn to_possible_id_or_name(self) -> Result<UniqueId, Name> {
+        match self.get_possible_id() {
+            Some(id) => Ok(id),
+            None => Err(unsafe { Name::unchecked(self.raw) })
+        }
     }
 
     /// Whether this raw identifier matches a name.
