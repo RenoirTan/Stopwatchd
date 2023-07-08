@@ -23,6 +23,16 @@ pub fn get_uuid_node(uuid: &Uuid) -> u64 {
     uuid.as_u64_pair().1 & ((1 << 48) - 1)
 }
 
+/// Convert a hexadecimal string to a possible Uuid node.
+pub fn raw_identifier_to_uuid_node<S: AsRef<str>>(raw: S) -> Option<u64> {
+    let possible = u64::from_str_radix(raw.as_ref(), 16).ok()?;
+    if possible <= 0xffff_ffff_ffff {
+        Some(possible)
+    } else {
+        None
+    }
+}
+
 /// Returns whether `uuid`'s string representation matches `test`.
 #[warn(deprecated)]
 #[inline]
@@ -60,4 +70,50 @@ where
         map.insert(identifier, value);
     }
     map
+}
+
+/// Collect items of type `T` from `iter` into a [`Vec`] of type `U`.
+pub fn iter_into_vec<I, T, U>(iter: I) -> Vec<U>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<U>
+{
+    iter.into_iter().map(Into::into).collect()
+}
+
+/// Implements [`Into`] for data types that are variants of an enum.
+/// 
+/// Consider the following example for the syntax. The identifier for the
+/// enum comes first, then an open '{', and then the variants are declared
+/// just like how they were defined in the original `enum Variants { ... }`
+/// definition. Once none/some/all of the variants can [`Into`] `Variants`,
+/// close the macro input with '}'
+/// 
+/// # Example
+/// 
+/// ```
+/// enum Variants {
+///     A(TypeA),
+///     B(TypeB)
+/// }
+/// 
+/// struct TypeA;
+/// struct TypeB;
+/// 
+/// impl_into_enum_variant!(Variants {
+///     A(TypeA),
+///     B(TypeB)
+/// });
+/// ```
+#[macro_export]
+macro_rules! impl_into_enum_variant {
+    ( $enumtype:ty { $( $variant:ident($datatype:ty) ),* }) => {
+        $(
+            impl Into<$enumtype> for $datatype {
+                fn into(self) -> $enumtype {
+                    <$enumtype>::$variant(self)
+                }
+            }
+        )*
+    };
 }

@@ -91,47 +91,51 @@ pub enum Subcommands {
 #[derive(Args, Clone, Debug)]
 pub struct Start {
     /// Name of the new stopwatch
-    pub identifier: Option<String>
+    pub raw_identifier: Option<String>,
+
+    /// Whether to fix names such that would otherwise give an error.
+    #[arg(long, default_value_t=false)]
+    pub fix_bad_names: bool
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Info {
     /// List of stopwatches you want information about.
     /// Leave blank to query all stopwatches
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Stop {
     /// List of stopwatches to stop.
     /// Must specify more than 1 stopwatch
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Lap {
     /// List stopwatches to start a new lap for.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Pause {
     /// List stopwatches to pause.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Play {
     /// List of stopwatches to play.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }
 
 #[derive(Args, Clone, Debug)]
 pub struct Delete {
     /// List of stopwatches to delete.
     /// Must specify more than 1 stopwatch.
-    pub identifiers: Vec<String>
+    pub raw_identifiers: Vec<String>
 }

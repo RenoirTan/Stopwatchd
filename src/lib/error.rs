@@ -4,15 +4,18 @@ use std::fmt;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{identifiers::{Identifier, UuidName}, models::stopwatch::State};
+use crate::{
+    identifiers::Identifier,
+    models::stopwatch::State
+};
 #[allow(unused)]
 use crate::models::stopwatch::Stopwatch;
 
-/// No matches or multiple conflicting matches for an [`Identifier`].
+/// No matches or multiple conflicting matches for a raw identifier.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FindStopwatchError {
-    pub identifier: Identifier,
-    pub duplicates: Vec<UuidName>
+    pub raw_identifier: String,
+    pub duplicates: Vec<Identifier>
 }
 
 impl FindStopwatchError {
@@ -20,12 +23,12 @@ impl FindStopwatchError {
     pub fn summarize(&self) -> String {
         let duplicates_len = self.duplicates.len();
         if duplicates_len == 0 {
-            format!("no stopwatch was found with identifier: {}", self.identifier)
+            format!("no stopwatch was found with identifier: {}", self.raw_identifier)
         } else {
             format!(
                 "{} stopwatches were found with identifier: {}",
                 duplicates_len,
-                self.identifier
+                self.raw_identifier
             )
         }
     }
@@ -37,10 +40,10 @@ impl FindStopwatchError {
             diagnosis
         } else {
             diagnosis += "\n";
-            for uuid_name in &self.duplicates {
-                let uuid = uuid_name.id;
-                let name = &uuid_name.name;
-                diagnosis += &format!("    Uuid: {:?} Name: {:?}", uuid, name);
+            for identifier in &self.duplicates {
+                let id = identifier.id;
+                let name = &identifier.name;
+                diagnosis += &format!("    Id: {} Name: {}", id, name);
             }
             diagnosis
         }
@@ -59,14 +62,26 @@ impl std::error::Error for FindStopwatchError { }
 /// [`State`].
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InvalidState {
-    pub identifier: Identifier,
+    pub raw_identifier: String,
     pub state: State
 }
 
 impl fmt::Display for InvalidState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} is currently {}", self.identifier, self.state)
+        write!(f, "{} is currently {}", self.raw_identifier, self.state)
     }
 }
 
 impl std::error::Error for InvalidState { }
+
+/// If a name starts with '@'.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct BadNameError;
+
+impl fmt::Display for BadNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BadNameError")
+    }
+}
+
+impl std::error::Error for BadNameError { }

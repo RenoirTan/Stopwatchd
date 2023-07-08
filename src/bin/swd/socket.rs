@@ -9,7 +9,7 @@ use std::{
 
 use tokio::net::UnixListener;
 
-use crate::{signal::SignalReceiver, handlers::handle_client, manager::RequestSender};
+use crate::{signal::SignalReceiver, handlers::handle_client, manager::JobSender};
 
 /// Unix file permissions for sockets.
 pub const SOCK_MODE: i32 = 0o550;
@@ -49,7 +49,7 @@ pub fn set_socket_perms<P: AsRef<Path>>(path: &P) -> io::Result<i32> {
 pub async fn listen_to_socket(
     listener: &UnixListener,
     mut signal_rx: SignalReceiver,
-    req_tx: RequestSender
+    req_tx: JobSender
 ) {
     debug!("listening to socket");
     loop {

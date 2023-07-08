@@ -21,7 +21,7 @@ pub fn get_uid() -> Option<u32> {
     return None;
 
     #[cfg(feature = "users")]
-    return Some(get_current_uid())
+    Some(get_current_uid())
 }
 
 /// Get name of the socket file used to communicate with `swd`.

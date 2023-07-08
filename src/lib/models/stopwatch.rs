@@ -2,77 +2,14 @@
 
 use std::{
     time::{Duration, SystemTime},
-    ops::Deref,
     fmt
 };
 
 use serde::{Serialize, Deserialize};
-use uuid::Uuid;
 
-use crate::identifiers::{UNMatchKind, UuidName, Identifier};
+use crate::identifiers::{Identifier, UniqueId, Name};
 
 use super::lap::{CurrentLap, FinishedLap};
-
-/// Name of the stopwatch. If the name is empty, then Stopwatchd treats it as
-/// "non-existent".
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Name(String);
-
-impl Name {
-    #[inline]
-    pub fn new<S: Into<String>>(name: S) -> Self {
-        Self(name.into())
-    }
-
-    /// Create an empty/non-existent name.
-    #[inline]
-    pub fn empty() -> Self {
-        Self("".to_string())
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Deref the inner raw [`String`].
-    #[inline]
-    pub fn inner(&self) -> &String {
-        &self.0
-    }
-}
-
-impl Default for Name {
-    #[inline]
-    fn default() -> Self {
-        Self("".to_string())
-    }
-}
-
-impl<S: Into<String>> From<Option<S>> for Name {
-    #[inline]
-    fn from(name: Option<S>) -> Self {
-        Self(match name {
-            Some(n) => n.into(),
-            None => String::new()
-        })
-    }
-}
-
-impl Deref for Name {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.inner()
-    }
-}
-
-impl AsRef<str> for Name {
-    fn as_ref(&self) -> &str {
-        self.inner()
-    }
-}
 
 /// Minimum default capacity for lists storing laps.
 pub const MIN_LAPS_CAPACITY: usize = 4;
@@ -113,24 +50,23 @@ impl fmt::Display for State {
 /// Represents a stopwatch, with laps and an API to pause and play.
 #[derive(Debug)]
 pub struct Stopwatch {
-    pub id: Uuid,
-    pub name: Name,
+    pub identifier: Identifier,
     finished_laps: Vec<FinishedLap>,
     current_lap: Option<CurrentLap> // If some, not yet ended
 }
 
 impl Stopwatch {
     /// New stopwatch with an optional name. The stopwatch is paused by default.
-    pub fn new(name: Option<Name>) -> Self {
-        let id = Uuid::new_v4();
-        let name = name.unwrap_or_default();
+    pub fn new<N: Into<Name>>(name: N) -> Self {
+        let id = UniqueId::generate();
+        let identifier = Identifier::new(id, name.into());
         let finished_laps = Vec::new();
         let current_lap = Some(CurrentLap::new(id));
-        Self { id, name, finished_laps, current_lap }
+        Self { identifier, finished_laps, current_lap }
     }
 
     /// New stopwatch but start immediately.
-    pub fn start(name: Option<Name>) -> Self {
+    pub fn start<N: Into<Name>>(name: N) -> Self {
         let mut sw = Self::new(name);
         sw.play();
         sw
@@ -139,11 +75,7 @@ impl Stopwatch {
     /// Starts the stopwatch.
     pub fn play(&mut self) -> State {
         if let Some(ref mut lap) = self.current_lap {
-            let state = if lap.playing() {
-                State::Playing
-            } else {
-                State::Paused
-            };
+            let state = lap.state();
             lap.play();
             state
         } else {
@@ -154,11 +86,7 @@ impl Stopwatch {
     /// Pauses the stopwatch.
     pub fn pause(&mut self) -> State {
         if let Some(ref mut lap) = self.current_lap {
-            let state = if lap.playing() {
-                State::Playing
-            } else {
-                State::Paused
-            };
+            let state = lap.state();
             lap.pause();
             state
         } else {
@@ -171,9 +99,9 @@ impl Stopwatch {
         match self.current_lap.take() {
             Some(prev_lap) => {
                 if start_immediately {
-                    self.current_lap = Some(CurrentLap::start(self.id));
+                    self.current_lap = Some(CurrentLap::start(self.identifier.id));
                 } else {
-                    self.current_lap = Some(CurrentLap::new(self.id));
+                    self.current_lap = Some(CurrentLap::new(self.identifier.id));
                 }
                 self.finished_laps.push(prev_lap.end());
                 if start_immediately {
@@ -197,16 +125,6 @@ impl Stopwatch {
             Some(lap) => Some(lap.clone()),
             None => self.current_lap.as_ref().map(|l| l.normalize())
         }
-    }
-
-    /// Check if this stopwatch matches an [`Identifier`].
-    pub fn matches_identifier(&self, identifier: &Identifier) -> Option<UNMatchKind> {
-        self.get_uuid_name().matches(identifier)
-    }
-
-    /// Extract the UUID and name.
-    pub fn get_uuid_name(&self) -> UuidName {
-        UuidName { id: self.id, name: self.name.clone() }
     }
 
     /// Get a copy of the last lap.
@@ -240,11 +158,7 @@ impl Stopwatch {
     /// Terminate this stopwatch such that it cannot be played again.
     pub fn end(&mut self) -> State {
         if let Some(prev_lap) = self.current_lap.take() {
-            let state = if prev_lap.playing() {
-                State::Playing
-            } else {
-                State::Paused
-            };
+            let state = prev_lap.state();
             self.finished_laps.push(prev_lap.end());
             state
         } else {
@@ -255,11 +169,7 @@ impl Stopwatch {
     /// Get the current [`State`] of the stopwatch.
     pub fn state(&self) -> State {
         match &self.current_lap {
-            Some(lap) => if lap.playing() {
-                State::Playing
-            } else {
-                State::Paused
-            },
+            Some(lap) => lap.state(),
             None => State::Ended
         }
     }
@@ -282,7 +192,7 @@ impl Stopwatch {
     /// Details about this stopwatch.
     pub fn report(&self) -> String {
         let mut report = String::new();
-        report.push_str(&format!("Stopwatch ID: {}\n", self.id));
+        report.push_str(&format!("Stopwatch ID: {}\n", self.identifier.id));
         report.push_str(&format!("    State: {:?}\n", self.state()));
         report.push_str(&format!("    Laps: {}\n", self.laps()));
         report.push_str(&format!("    Duration: {} ms", self.total_time().as_millis()));

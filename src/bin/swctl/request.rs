@@ -1,32 +1,29 @@
 //! Convert command line arguments to a request to `swd`.
 
-use stopwatchd::communication::{
-    client_message::ClientRequest,
-    start::StartRequest,
-    info::InfoRequest,
-    stop::StopRequest,
-    lap::LapRequest,
-    pause::PauseRequest,
-    play::PlayRequest,
-    delete::DeleteRequest
+use stopwatchd::{
+    communication::{
+        client::{Request, CommonArgs},
+        request_specifics::{StartArgs, InfoArgs, StopArgs, LapArgs, PauseArgs, PlayArgs, DeleteArgs}
+    }
 };
 
 use crate::cli::{self, Subcommands};
 
-/// Convert arguments to a request. See [`ClientRequest`] on how to send
+/// Convert arguments to a request. See [`Request`] on how to send
 /// a serialised message to `swd`.
-pub fn args_to_request(args: &cli::Cli) -> ClientRequest {
+pub fn args_to_request(args: &cli::Cli) -> Request {
     let (identifiers, specific) = match &args.action {
         Subcommands::Start(args) => (
-            args.identifier.iter().map(Clone::clone).collect(),
-            StartRequest.into()
+            args.raw_identifier.iter().map(Clone::clone).collect(),
+            StartArgs { fix_bad_names: args.fix_bad_names }.into()
         ),
-        Subcommands::Info(args) => (args.identifiers.clone(), InfoRequest.into()),
-        Subcommands::Stop(args) => (args.identifiers.clone(), StopRequest.into()),
-        Subcommands::Lap(args) => (args.identifiers.clone(), LapRequest.into()),
-        Subcommands::Pause(args) => (args.identifiers.clone(), PauseRequest.into()),
-        Subcommands::Play(args) => (args.identifiers.clone(), PlayRequest.into()),
-        Subcommands::Delete(args) => (args.identifiers.clone(), DeleteRequest.into())
+        Subcommands::Info(args) => (args.raw_identifiers.clone(), InfoArgs.into()),
+        Subcommands::Stop(args) => (args.raw_identifiers.clone(), StopArgs.into()),
+        Subcommands::Lap(args) => (args.raw_identifiers.clone(), LapArgs.into()),
+        Subcommands::Pause(args) => (args.raw_identifiers.clone(), PauseArgs.into()),
+        Subcommands::Play(args) => (args.raw_identifiers.clone(), PlayArgs.into()),
+        Subcommands::Delete(args) => (args.raw_identifiers.clone(), DeleteArgs.into())
     };
-    ClientRequest::new(identifiers, args.verbose, specific)
+    let common = CommonArgs::from_iter(identifiers, args.verbose);
+    Request::new(common, specific)
 }

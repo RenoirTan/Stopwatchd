@@ -5,6 +5,9 @@ use std::time::{SystemTime, Instant, Duration};
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
 
+use crate::identifiers::UniqueId;
+
+use super::stopwatch::State;
 #[allow(unused)]
 use super::stopwatch::Stopwatch;
 
@@ -12,7 +15,7 @@ use super::stopwatch::Stopwatch;
 #[derive(Debug)]
 pub struct CurrentLap {
     pub id: Uuid,
-    pub sw_id: Uuid,
+    pub sw_id: UniqueId,
     pub start: SystemTime,
     timer: Option<Instant>,
     pub duration: Duration
@@ -23,7 +26,7 @@ impl CurrentLap {
     /// 
     /// # Arguments
     /// * `sw_id` - [`Uuid`] of the [`Stopwatch`] that will own this lap.
-    pub fn new(sw_id: Uuid) -> Self {
+    pub fn new(sw_id: UniqueId) -> Self {
         let id = Uuid::new_v4();
         let start = SystemTime::now();
         let timer = None;
@@ -32,7 +35,7 @@ impl CurrentLap {
     }
 
     /// Start the timer on this lap.
-    pub fn start(sw_id: Uuid) -> Self {
+    pub fn start(sw_id: UniqueId) -> Self {
         let mut lap = Self::new(sw_id);
         lap.play();
         lap
@@ -55,6 +58,11 @@ impl CurrentLap {
     /// Check if the current lap is playing.
     pub fn playing(&self) -> bool {
         self.timer.is_some()
+    }
+
+    /// Status of this lap.
+    pub fn state(&self) -> State {
+        if self.playing() { State::Playing } else { State::Paused }
     }
 
     /// Permannently end the current lap, transforming it into a
@@ -94,7 +102,7 @@ impl Into<FinishedLap> for CurrentLap {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FinishedLap {
     pub id: Uuid,
-    pub sw_id: Uuid,
+    pub sw_id: UniqueId,
     pub start: SystemTime,
     pub duration: Duration
 }

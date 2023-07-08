@@ -23,3 +23,5 @@ pub trait Codecable<'a>: Serialize + Deserialize<'a> {
         )
     }
 }
+
+impl<'a, T> Codecable<'a> for T where T: Serialize + Deserialize<'a> { }
