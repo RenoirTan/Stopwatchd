@@ -30,3 +30,8 @@
  - Printouts from `swctl` are now different.
  - New `swctl start` command line flag: `--fix-bad-names`. By default, `swd` gives an error if an invalid name is given as the new name of a stopwatch. You can tell `swd` to try and fix the name such that it's not illegal. This may cause the new name to clash with another name though, which I might fix later.
  - `stopwatchd::manager` now iterates over a sequence of identifiers and maps them to an action function.
+
+## v0.4.1
+
+ - Add `Cargo.lock`.
+ - Fixed compile errors because of new versions of libraries.
