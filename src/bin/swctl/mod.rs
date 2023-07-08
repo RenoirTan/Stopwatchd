@@ -69,6 +69,11 @@ async fn run(cli: cli::Cli) -> i32 {
     let message_bytes = request.to_bytes()
         .expect("could not serialize request to bytes");
 
+    #[cfg(feature = "debug-ipc")]
+    if cli.debug_ipc {
+        println!("From swctl.{} to swd.{}: {:?}", pid, swd_pid, message_bytes);
+    }
+
     info!("sending request to server");
     stream.try_write(&message_bytes)
         .expect(&format!("could not write request message to {}", ssock_path_str));
@@ -80,6 +85,11 @@ async fn run(cli: cli::Cli) -> i32 {
     info!("reading response from server");
     stream.try_read_buf(&mut braw)
         .expect(&format!("could not read reply message from {}", ssock_path_str));
+
+    #[cfg(feature = "debug-ipc")]
+    if cli.debug_ipc {
+        println!("From swd.{} to swctl.{}: {:?}", swd_pid, pid, braw);
+    }
 
     let reply = Reply::from_bytes(&braw)
         .expect(&format!("could not convert message to reply"));

@@ -52,7 +52,12 @@ pub struct Cli {
     /// Whether to communicate with system swd instead of user-started swd.
     #[cfg(feature = "users")]
     #[arg(long = "system", global = true)]
-    pub system_swd: bool
+    pub system_swd: bool,
+
+    /// Prints messages sent between swctl and swd and vice versa.
+    #[cfg(feature = "debug-ipc")]
+    #[arg(long = "debug-ipc", global = true)]
+    pub debug_ipc: bool
 }
 
 #[derive(Subcommand, Clone, Debug)]
