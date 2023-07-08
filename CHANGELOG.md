@@ -20,6 +20,9 @@
 
 ## v0.4.0
 
+ - Stopwatch `id`s now start with an `@` symbol, followed by 12 hexadecimal digits.
+   - Example: `@1f2e3d4c5b6a`.
+ - Names can no longer contain `@` at the front.
  - Refactor `stopwatchd::communications`, `swctl::formatter` and `swd::manager`.
  - `stopwatchd::identifiers::UuidName` is now `Identifier`.
  - What used to be `Identifier` and `UNMatchKind` has been moved from `stopwatchd::identifier` to `swd::raw_identifier` as `RawIdentifier` and `IdentifierMatch` respectively.
