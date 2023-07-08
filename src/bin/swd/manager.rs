@@ -50,9 +50,21 @@ pub fn make_response_channels() -> (ResponseSender, ResponseReceiver) {
 }
 
 // (state, raw identifier, stopwatch if found)
-pub type ActionGetStopwatch<S> = fn(S, String, Option<&Stopwatch>) -> S;
-pub type ActionGetMutStopwatch<S> = fn(S, String, Option<&mut Stopwatch>) -> S;
-pub type ActionTakeStopwatch<S> = fn(S, String, Option<Stopwatch>) -> S;
+pub type ActionGetStopwatch = fn(&mut ActionState, String, Option<&Stopwatch>);
+pub type ActionGetMutStopwatch = fn(&mut ActionState, String, Option<&mut Stopwatch>);
+pub type ActionTakeStopwatch = fn(&mut ActionState, String, Option<Stopwatch>);
+
+/// State that gets passed to any of the "Action" functions
+pub struct ActionState<'rq> {
+    pub reply: Reply,
+    pub request: &'rq Request
+}
+
+impl<'rq> ActionState<'rq> {
+    pub fn new(reply: Reply, request: &'rq Request) -> Self {
+        Self { reply, request }
+    }
+}
 
 /// Contains [`Stopwatch`]es and auxiliary info.
 /// 
@@ -74,10 +86,6 @@ impl Manager {
 
     pub fn iter_access_order_id(&self) -> impl Iterator<Item = &UniqueId> {
         self.access_order.iter()
-    }
-
-    pub fn iter_access_order_str<'a>(&'a self) -> impl Iterator<Item = String> + 'a {
-        self.access_order.iter_id_string()
     }
 
     pub fn add_stopwatch(&mut self, stopwatch: Stopwatch) -> Result<(), Identifier> {
@@ -135,63 +143,59 @@ impl Manager {
         }
     }
 
-    pub fn get_all_stopwatches_and<S>(&self, mut state: S, action: ActionGetStopwatch<S>) -> S {
+    pub fn get_all_stopwatches_and(&self, state: &mut ActionState<'_>, action: ActionGetStopwatch) {
         for id in self.iter_access_order_id() {
             let sw = self.stopwatches.get(id).unwrap();
-            state = action(state, sw.identifier.to_string(), Some(sw)) // guaranteed to be Some, panic if None
+            action(state, sw.identifier.to_string(), Some(sw)) // guaranteed to be Some, panic if None
         }
-        state
     } 
  
-    pub fn get_stopwatches_and<S, I>(
+    pub fn get_stopwatches_and<I>(
         &mut self,
-        mut state: S,
+        state: &mut ActionState<'_>,
         identifiers: I,
-        action: ActionGetStopwatch<S>
-    ) -> S
+        action: ActionGetStopwatch
+    )
     where
         I: IntoIterator<Item = String>
     {
         for raw_str in identifiers.into_iter() {
             let raw_identifier = RawIdentifier::new(raw_str.clone());
             let sw = self.get_stopwatch(&raw_identifier).map(|(sw, _mk)| sw);
-            state = action(state, raw_str, sw);
+            action(state, raw_str, sw);
         }
-        state
     }
 
-    pub fn get_mut_stopwatches_and<S, I>(
+    pub fn get_mut_stopwatches_and<I>(
         &mut self,
-        mut state: S,
+        state: &mut ActionState,
         identifiers: I,
-        action: ActionGetMutStopwatch<S>
-    ) -> S
+        action: ActionGetMutStopwatch
+    )
     where
         I: IntoIterator<Item = String>
     {
         for raw_str in identifiers.into_iter() {
             let raw_identifier = RawIdentifier::new(raw_str.clone());
             let sw = self.get_mut_stopwatch(&raw_identifier).map(|(sw, _mk)| sw);
-            state = action(state, raw_str, sw);
+            action(state, raw_str, sw);
         }
-        state
     }
 
-    pub fn take_stopwatches_and<S, I>(
+    pub fn take_stopwatches_and<I>(
         &mut self,
-        mut state: S,
+        state: &mut ActionState,
         identifiers: I,
-        action: ActionTakeStopwatch<S>
-    ) -> S
+        action: ActionTakeStopwatch
+    )
     where
         I: IntoIterator<Item = String>
     {
         for raw_str in identifiers.into_iter() {
             let raw_identifier = RawIdentifier::new(raw_str.clone());
             let sw = self.take_stopwatch(&raw_identifier).map(|(sw, _mk)| sw);
-            state = action(state, raw_str, sw);
+            action(state, raw_str, sw);
         }
-        state
     }
 }
 
@@ -246,12 +250,7 @@ impl AccessOrder {
 
     pub fn iter(&self) -> impl Iterator<Item = &UniqueId> {
         self.order.iter().rev()
-    }
-
-    pub fn iter_id_string<'a>(&'a self) -> impl Iterator<Item = String> + 'a {
-        self.iter().map(|id| id.to_string())
-    }
- 
+    } 
 
     pub fn access_stopwatch(&mut self, id: UniqueId) -> Option<usize> {
         let index = self.delete_stopwatch(id);
@@ -332,20 +331,20 @@ fn not_found(reply: &mut Reply, raw_identifier: String) {
     reply.add_errors([FindStopwatchError { raw_identifier, duplicates: vec![] }.into()]);
 }
 
-fn info_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<&Stopwatch>) -> (Reply, &'a Request) {
+fn info_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<&Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let verbose = req.common_args.verbose;
+            let verbose = request.common_args.verbose;
             reply.extend_successful([(raw_id, StopwatchDetails::from_stopwatch(sw, verbose))]);
             if let SpecificAnswer::Info(InfoAnswer::All(ref mut all)) = reply.specific_answer {
                 all.access_order.push(sw.identifier.to_string())
             }
         },
         None => {
-            not_found(&mut reply, raw_id);
+            not_found(reply, raw_id);
         }
     }
-    (reply, req)
 }
 
 /// Short for add_to_reply_maybe_invalid_state
@@ -382,63 +381,63 @@ fn atrmis(
     }
 }
 
-fn stop_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<&mut Stopwatch>) -> (Reply, &'a Request) {
+fn stop_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<&mut Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let verbose = req.common_args.verbose;
+            let verbose = request.common_args.verbose;
             let state = sw.end();
-            atrmis(&mut reply, raw_id, sw, verbose, state, state == State::Ended);
+            atrmis(reply, raw_id, sw, verbose, state, state == State::Ended);
         },
-        None => not_found(&mut reply, raw_id)
+        None => not_found(reply, raw_id)
     }
-    (reply, req)
 }
 
-fn play_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<&mut Stopwatch>) -> (Reply, &'a Request) {
+fn play_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<&mut Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let v = req.common_args.verbose;
+            let v = request.common_args.verbose;
             let state = sw.play();
-            atrmis(&mut reply, raw_id, sw, v, state, matches!(state, State::Playing | State::Ended));
+            atrmis(reply, raw_id, sw, v, state, matches!(state, State::Playing | State::Ended));
         },
-        None => not_found(&mut reply, raw_id)
+        None => not_found(reply, raw_id)
     }
-    (reply, req)
 }
 
-fn pause_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<&mut Stopwatch>) -> (Reply, &'a Request) {
+fn pause_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<&mut Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let v = req.common_args.verbose;
+            let v = request.common_args.verbose;
             let state = sw.pause();
-            atrmis(&mut reply, raw_id, sw, v, state, matches!(state, State::Paused | State::Ended));
+            atrmis(reply, raw_id, sw, v, state, matches!(state, State::Paused | State::Ended));
         },
-        None => not_found(&mut reply, raw_id)
+        None => not_found(reply, raw_id)
     }
-    (reply, req)
 }
 
-fn lap_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<&mut Stopwatch>) -> (Reply, &'a Request) {
+fn lap_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<&mut Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let v = req.common_args.verbose;
+            let v = request.common_args.verbose;
             let state = sw.new_lap(true);
-            atrmis(&mut reply, raw_id, sw, v, state, state.ended());
+            atrmis(reply, raw_id, sw, v, state, state.ended());
         },
-        None => not_found(&mut reply, raw_id)
+        None => not_found(reply, raw_id)
     }
-    (reply, req)
 }
 
-fn delete_action<'a>((mut reply, req): (Reply, &'a Request), raw_id: String, sw: Option<Stopwatch>) -> (Reply, &'a Request) {
+fn delete_action<'rq>(state: &mut ActionState<'rq>, raw_id: String, sw: Option<Stopwatch>) {
+    let ActionState { reply, request } = state;
     match sw {
         Some(sw) => {
-            let v = req.common_args.verbose;
-            atrmis(&mut reply, raw_id, &sw, v, sw.state(), false);
+            let v = request.common_args.verbose;
+            atrmis(reply, raw_id, &sw, v, sw.state(), false);
         },
-        None => not_found(&mut reply, raw_id)
+        None => not_found(reply, raw_id)
     }
-    (reply, req)
 }
 
 /// Run a [`Manager`].
@@ -447,49 +446,36 @@ pub async fn manage(mut manager: Manager, mut req_rx: JobReceiver) {
     while let Some(message) = req_rx.recv().await {
         trace!("manage received message");
         let req = message.action;
-        let raw_ids = req.common_args.raw_identifiers.iter().map(String::clone);
+        let identifiers = &req.common_args.raw_identifiers;
         let reply = match req.specific_args {
-            SpecificArgs::Start(_) => {
-                start(&mut manager, &req).await
+            SpecificArgs::Start(_) => start(&mut manager, &req).await,
+            SpecificArgs::Info(_) => if identifiers.len() == 0 {
+                Reply::new(InfoAnswer::All(InfoAll::default()).into())
+            } else {
+                Reply::new(InfoAnswer::Basic.into())
             },
-            SpecificArgs::Info(_) => {
-                if req.common_args.raw_identifiers.len() == 0 {
-                    let reply = Reply::new(InfoAnswer::All(InfoAll::default()).into());
-                    let (reply, _) = manager.get_all_stopwatches_and((reply, &req), info_action);
-                    reply
-                } else {
-                    let reply = Reply::new(InfoAnswer::Basic.into());
-                    let (reply, _) = manager.get_stopwatches_and((reply, &req), raw_ids, info_action);
-                    reply
-                }
-            },
-            SpecificArgs::Stop(_) => {
-                let reply = Reply::new(StopAnswer.into());
-                let (reply, _) = manager.get_mut_stopwatches_and((reply, &req), raw_ids, stop_action);
-                reply
-            },
-            SpecificArgs::Play(_) => {
-                let reply = Reply::new(PlayAnswer.into());
-                let (reply, _) = manager.get_mut_stopwatches_and((reply, &req), raw_ids, play_action);
-                reply
-            },
-            SpecificArgs::Pause(_) => {
-                let reply = Reply::new(PauseAnswer.into());
-                let (reply, _) = manager.get_mut_stopwatches_and((reply, &req), raw_ids, pause_action);
-                reply
-            },
-            SpecificArgs::Lap(_) => {
-                let reply = Reply::new(LapAnswer.into());
-                let (reply, _) = manager.get_mut_stopwatches_and((reply, &req), raw_ids, lap_action);
-                reply
-            },
-            SpecificArgs::Delete(_) => {
-                let reply = Reply::new(DeleteAnswer.into());
-                let (reply, _) = manager.take_stopwatches_and((reply, &req), raw_ids, delete_action);
-                reply
-            }
+            SpecificArgs::Stop(_) => Reply::new(StopAnswer.into()),
+            SpecificArgs::Play(_) => Reply::new(PlayAnswer.into()),
+            SpecificArgs::Pause(_) => Reply::new(PauseAnswer.into()),
+            SpecificArgs::Lap(_) => Reply::new(LapAnswer.into()),
+            SpecificArgs::Delete(_) => Reply::new(DeleteAnswer.into())
         };
-        if let Err(e) = message.res_tx.send(JobResponse { output: reply.into() }) {
+        let mut state = ActionState::new(reply, &req);
+        let raw_ids = identifiers.iter().map(String::clone);
+        match req.specific_args {
+            SpecificArgs::Start(_) => {},
+            SpecificArgs::Info(_) => if identifiers.len() == 0 {
+                manager.get_all_stopwatches_and(&mut state, info_action);
+            } else {
+                manager.get_stopwatches_and(&mut state, raw_ids, info_action);
+            },
+            SpecificArgs::Stop(_) => manager.get_mut_stopwatches_and(&mut state, raw_ids, stop_action),
+            SpecificArgs::Play(_) => manager.get_mut_stopwatches_and(&mut state, raw_ids, play_action),
+            SpecificArgs::Pause(_) => manager.get_mut_stopwatches_and(&mut state, raw_ids, pause_action),
+            SpecificArgs::Lap(_) => manager.get_mut_stopwatches_and(&mut state, raw_ids, lap_action),
+            SpecificArgs::Delete(_) => manager.take_stopwatches_and(&mut state, raw_ids, delete_action)
+        }
+        if let Err(e) = message.res_tx.send(JobResponse { output: state.reply.into() }) {
             error!("{}", e);
         } else {
             debug!("manage just handled a request and sent back a response");
