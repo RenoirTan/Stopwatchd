@@ -5,7 +5,7 @@
  - [x] Allow `swd` to be configured from a file.
    - [x] Respond to `SIGHUP`.
    - [x] Update config on `SIGHUP`.
- - [ ] Refactoring
+ - [x] Refactoring
    - [x] Reduce the number of files under `stopwatchd::communication`.
    - [x] Simplify the API for `swctl::formatted`.
    - [x] Rework naming
@@ -14,11 +14,11 @@
      - [x] Rename `UuidName` to `Identifier`.
      - [x] Make all uuids start with `@xxxx...` right-justified with zeroes to 12 hex chars
      - [x] Ban names that start with `@`.
-   - [ ] Rewrite `swd::manager`.
-     - [ ] Each action is a function that implements `Fn(&mut Reply, &RawIdentifier) -> Result<???>` I don't even know anymore.
-     - [ ] Manager has 3 functions that takes in a callback function to run an action on a stopwatch.
-     - [ ] `NameRegister` remembers which `UniqueId` is associated to a `Name`.
-     - [ ] `AccessOrder` is a `Vec` of `UniqueId`, with the last item being the last accessed. Iterating the sequence in the correct order requires reversing the iterator in order to start from the back.
+   - [x] Rewrite `swd::manager`.
+     - [x] Each action is a function that implements `Fn(&mut Reply, &RawIdentifier) -> Result<???>` I don't even know anymore.
+     - [x] Manager has 3 functions that takes in a callback function to run an action on a stopwatch.
+     - [x] `NameRegister` remembers which `UniqueId` is associated to a `Name`.
+     - [x] `AccessOrder` is a `Vec` of `UniqueId`, with the last item being the last accessed. Iterating the sequence in the correct order requires reversing the iterator in order to start from the back.
  - [ ] Work on `sw-attach`, maybe with ncurses.
  - [ ] Other init systems:
    - [ ] openrc
