@@ -52,11 +52,16 @@ path = "src/bin/swd/mod.rs"
 name = "swctl"
 path = "src/bin/swctl/mod.rs"
 
+[[bin]]
+name = "swtui"
+path = "src/bin/swtui/mod.rs"
+
 [features]
-default = ["swd-config", "users"]
+default = ["swd-config", "users", "swtui"]
 swd-config = ["dep:toml"]
 users = ["dep:users"]
 debug-ipc = []
+swtui = ["dep:pancurses"]
 
 [dependencies]
 chrono = "0.4.23"
@@ -65,6 +70,7 @@ clap = { version = "4.1.4", features = ["derive"] }
 futures = "0.3.26"
 hex = "0.4.3"
 log = "0.4.17"
+pancurses = { version = "0.17.0", optional = true }
 serde = { version = "1.0.152", features = ["derive"] }
 signal-hook = "0.3.14"
 signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
