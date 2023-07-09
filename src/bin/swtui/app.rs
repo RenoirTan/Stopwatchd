@@ -5,7 +5,7 @@ use super::ui::Ui;
 
 pub fn start() {
     let cli = cli::Cli::parse();
-    print!("{:?}", cli);
+    println!("{:?}", cli);
     let ui = Ui::default();
     ui.reset();
     ui.window.getch();
