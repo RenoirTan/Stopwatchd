@@ -40,38 +40,55 @@ impl Border {
         } else {
             (ColorPair::Active, ColorPair::Inactive)
         };
+
+        // we're working on the list panel (left) now
         list_panel_color.set_color(&ui.window, false);
+
+        // draw top left and bottom left characters
         ui.window.mvaddstr(g.top_left.y, g.top_left.x, self.top_left_char.to_string());
         ui.window.mvaddstr(g.bottom_right.y, g.top_left.x, self.bottom_left_char.to_string());
         for x in 1..g.separator_x {
+            // draw top border
             ui.window.mvaddstr(g.top_left.y, x, self.horizontal_char.to_string());
+            // draw bottom border
             ui.window.mvaddstr(g.bottom_right.y, x, self.horizontal_char.to_string());
         }
         for y in 1..g.bottom_right.y {
+            // draw left border
             ui.window.mvaddstr(y, g.top_left.x, self.vertical_char.to_string());
-            if !focus_active {
-                ui.window.mvaddstr(y, g.separator_x, self.vertical_char.to_string());
-            }
-        }
-        if focus_active {
-            focus_panel_color.set_color(&ui.window, false);
-            ui.window.mvaddstr(g.top_left.y, g.separator_x, self.top_left_char.to_string());
-            ui.window.mvaddstr(g.bottom_right.y, g.separator_x, self.bottom_left_char.to_string());
-        } else {
-            list_panel_color.set_color(&ui.window, false);
-            ui.window.mvaddstr(g.top_left.y, g.separator_x, self.top_right_char.to_string());
-            ui.window.mvaddstr(g.bottom_right.y, g.separator_x, self.bottom_right_char.to_string());
-        }
+        } 
+
+        // now we're working on the focus panel (right)
         focus_panel_color.set_color(&ui.window, false);
+
+        // draw top right and bottom right characters
+        ui.window.mvaddstr(g.top_left.y, g.bottom_right.x, self.top_right_char.to_string());
+        ui.window.mvaddstr(g.bottom_right.y, g.bottom_right.x, self.bottom_right_char.to_string());
         for x in g.separator_x+1..g.bottom_right.x {
+            // top border
             ui.window.mvaddstr(g.top_left.y, x, self.horizontal_char.to_string());
+            // bottom border
             ui.window.mvaddstr(g.bottom_right.y, x, self.horizontal_char.to_string());
         }
         for y in 1..g.bottom_right.y {
+            // right border
             ui.window.mvaddstr(y, g.bottom_right.x, self.vertical_char.to_string());
-            if focus_active {
-                ui.window.mvaddstr(y, g.separator_x, self.vertical_char.to_string());
-            }
+        }
+
+        // draw central separator
+        ColorPair::Active.set_color(&ui.window, false);
+        ui.window.mvaddstr(g.top_left.y, g.separator_x, if focus_active {
+            self.top_left_char.to_string()
+        } else {
+            self.top_right_char.to_string()
+        });
+        ui.window.mvaddstr(g.bottom_right.y, g.separator_x, if focus_active {
+            self.bottom_left_char.to_string()
+        } else {
+            self.bottom_right_char.to_string()
+        });
+        for y in 1..g.bottom_right.y {
+            ui.window.mvaddstr(y, g.separator_x, self.vertical_char.to_string());
         }
     }
 }
