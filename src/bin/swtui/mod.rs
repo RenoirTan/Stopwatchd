@@ -4,6 +4,8 @@ mod app;
 mod cli;
 #[cfg(feature = "swtui")]
 mod ui;
+#[cfg(feature = "swtui")]
+mod util;
 
 fn main() {
     #[cfg(feature = "swtui")]
