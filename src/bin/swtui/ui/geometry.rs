@@ -23,6 +23,17 @@ pub struct BordersGeometry {
     pub separator_x: i32
 }
 
+impl BordersGeometry {
+    pub fn list_panel_geometry(&self) -> (i32, i32, i32, i32) {
+        // minimum size of list panel guaranteed
+        let left = self.top_left.x + 1;
+        let right = self.separator_x - 1;
+        let top = self.top_left.y + 1;
+        let bottom = self.bottom_right.y - 1;
+        (left, right, top, bottom)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct BarLocation {
     pub y: i32

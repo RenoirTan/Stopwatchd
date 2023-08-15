@@ -1,25 +1,29 @@
 pub mod border;
 pub mod color;
 pub mod geometry;
+pub mod list_panel;
 
 use std::cmp::{max, min};
 use self::{
     border::Border,
-    geometry::{Size, Location, BordersGeometry, BarLocation}
+    geometry::{Size, Location, BordersGeometry, BarLocation},
+    list_panel::ListPanel
 };
 
 pub struct Ui {
     pub window: pancurses::Window,
-    pub border: Border
+    pub border: Border,
+    pub list_panel: ListPanel
 }
 
 impl Ui {
-    pub fn new(window: pancurses::Window, border: Border) -> Self {
-        Self { window, border }
+    pub fn new(window: pancurses::Window, border: Border, list_panel: ListPanel) -> Self {
+        Self { window, border, list_panel }
     }
 
     pub fn reset(&self) {
         self.border.draw(self, false);
+        self.list_panel.clear(self);
         self.window.refresh();
     }
 
@@ -54,7 +58,7 @@ impl AsRef<pancurses::Window> for Ui {
 
 impl Default for Ui {
     fn default() -> Self {
-        Self::new(pancurses::initscr(), Border::new_unicode())
+        Self::new(pancurses::initscr(), Border::new_unicode(), ListPanel)
     }
 }
 
