@@ -36,5 +36,5 @@ pub fn init_color() {
 
     pancurses::init_pair(ColorPair::Active as i16, pancurses::COLOR_WHITE, bg);
     pancurses::init_pair(ColorPair::Inactive as i16, pancurses::COLOR_BLACK, bg);
-    pancurses::init_pair(ColorPair::Active as i16, pancurses::COLOR_CYAN, bg);
+    pancurses::init_pair(ColorPair::Selected as i16, pancurses::COLOR_CYAN, bg);
 }

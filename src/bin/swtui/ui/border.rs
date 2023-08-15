@@ -36,9 +36,9 @@ impl Border {
     pub fn draw(&self, ui: &Ui, focus_active: bool) {
         let g = ui.borders_geometry();
         let (list_panel_color, focus_panel_color) = if focus_active {
-            (ColorPair::Inactive, ColorPair::Active)
+            (ColorPair::Inactive, ColorPair::Selected)
         } else {
-            (ColorPair::Active, ColorPair::Inactive)
+            (ColorPair::Selected, ColorPair::Inactive)
         };
 
         // we're working on the list panel (left) now
@@ -76,7 +76,7 @@ impl Border {
         }
 
         // draw central separator
-        ColorPair::Active.set_color(&ui.window, false);
+        ColorPair::Selected.set_color(&ui.window, false);
         ui.window.mvaddstr(g.top_left.y, g.separator_x, if focus_active {
             self.top_left_char.to_string()
         } else {
