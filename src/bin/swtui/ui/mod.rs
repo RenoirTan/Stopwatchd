@@ -4,6 +4,8 @@ pub mod geometry;
 pub mod list_panel;
 
 use std::cmp::{max, min};
+use stopwatchd::{communication::details::StopwatchDetails, models::stopwatch::Stopwatch, identifiers::Name};
+
 use self::{
     border::Border,
     geometry::{Size, Location, BordersGeometry, BarLocation},
@@ -22,8 +24,18 @@ impl Ui {
     }
 
     pub fn reset(&self) {
+        let sw_1 = Stopwatch::new(Name::fixed("some random name"));
+        let sw_2 = Stopwatch::new(Name::fixed("super duper duper duper duper duper long name"));
         self.border.draw(self, false);
-        self.list_panel.clear(self);
+        self.list_panel.draw(
+            self,
+            &[
+                StopwatchDetails::from_stopwatch(&sw_1, false),
+                StopwatchDetails::from_stopwatch(&sw_2, false)
+            ],
+            0,
+            0
+        );
         self.window.refresh();
     }
 
