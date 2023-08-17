@@ -3,8 +3,10 @@ pub mod color;
 pub mod geometry;
 pub mod list_panel;
 
-use std::cmp::{max, min};
-use stopwatchd::{communication::details::StopwatchDetails, models::stopwatch::Stopwatch, identifiers::Name};
+use std::{
+    cmp::{max, min},
+    sync::Arc
+};
 
 use self::{
     border::Border,
@@ -13,13 +15,13 @@ use self::{
 };
 
 pub struct Ui {
-    pub window: pancurses::Window,
+    pub window: Arc<pancurses::Window>,
     pub border: Border,
     pub list_panel: ListPanel
 }
 
 impl Ui {
-    pub fn new(window: pancurses::Window, border: Border, list_panel: ListPanel) -> Self {
+    pub fn new(window: Arc<pancurses::Window>, border: Border, list_panel: ListPanel) -> Self {
         Self { window, border, list_panel }
     }
 
@@ -62,7 +64,7 @@ impl AsRef<pancurses::Window> for Ui {
 
 impl Default for Ui {
     fn default() -> Self {
-        Self::new(pancurses::initscr(), Border::new_unicode(), ListPanel)
+        Self::new(Arc::new(pancurses::initscr()), Border::new_unicode(), ListPanel)
     }
 }
 
