@@ -29,10 +29,7 @@ impl Ui {
         self.border.draw(self, false);
         self.list_panel.draw(
             self,
-            &[
-                StopwatchDetails::from_stopwatch(&sw_1, false),
-                StopwatchDetails::from_stopwatch(&sw_2, false)
-            ],
+            &[sw_1.identifier, sw_2.identifier],
             0,
             0
         );

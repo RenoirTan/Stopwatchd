@@ -1,4 +1,4 @@
-use stopwatchd::communication::details::StopwatchDetails;
+use stopwatchd::identifiers::Identifier;
 use crate::{
     ui::{Ui, color::ColorPair},
     util::center_text
@@ -21,7 +21,7 @@ impl ListPanel {
         }
     }
 
-    pub fn draw(&self, ui: &Ui, stopwatches: &[StopwatchDetails], selected: usize, start: usize) {
+    pub fn draw(&self, ui: &Ui, stopwatches: &[Identifier], selected: usize, start: usize) {
         self.clear(ui); // reset the screen
         // nothing to do if no stopwatches
         if stopwatches.len() == 0 {
@@ -39,8 +39,7 @@ impl ListPanel {
                 ColorPair::Inactive.set_color(&ui.window, false);
             }
             let y = top + i as i32; // where to write
-            let sw = &stopwatches[index];
-            let identifier = sw.identifier.to_string();
+            let identifier = stopwatches[index].to_string();
             let (l_x, r_x) = center_text(identifier.len(), (left as usize, right as usize))
                 .unwrap();
             let l_x = l_x as i32;
