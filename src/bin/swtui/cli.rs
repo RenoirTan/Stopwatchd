@@ -15,5 +15,10 @@ pub struct Cli {
     /// Whether to communicate with system swd instead of user-started swd.
     #[cfg(feature = "users")]
     #[arg(long = "system", global = true)]
-    pub system_swd: bool
+    pub system_swd: bool,
+
+    /// Show the cursor in the terminal. You shouldn't have to turn this on
+    /// unless you are trying to debug something.
+    #[arg(short = 'c', long = "cursor", global = true)]
+    pub show_cursor: bool
 }
