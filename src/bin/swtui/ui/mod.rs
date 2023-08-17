@@ -9,7 +9,7 @@ use stopwatchd::{communication::details::StopwatchDetails, models::stopwatch::St
 use self::{
     border::Border,
     geometry::{Size, Location, BordersGeometry, BarLocation},
-    list_panel::ListPanel
+    list_panel::{ListPanel, ListPanelState}
 };
 
 pub struct Ui {
@@ -24,15 +24,10 @@ impl Ui {
     }
 
     pub fn reset(&self) {
-        let sw_1 = Stopwatch::new(Name::fixed("some random name"));
-        let sw_2 = Stopwatch::new(Name::fixed("super duper duper duper duper duper long name"));
         self.border.draw(self, false);
-        self.list_panel.draw(
-            self,
-            &[sw_1.identifier, sw_2.identifier],
-            0,
-            0
-        );
+        let mut lp_state = ListPanelState::generate_fake_names(100);
+        lp_state.selected = 3;
+        self.list_panel.draw(self, &lp_state);
         self.window.refresh();
     }
 
