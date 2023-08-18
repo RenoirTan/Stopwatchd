@@ -16,30 +16,32 @@ unsafe impl Sync for SyncWindow { }
 unsafe impl Send for SyncWindow { }
 
 async fn inner_keypress_detector(sync_window: &SyncWindow) -> Option<pancurses::Input> {
-    trace!("swtui::keypress::inner_keypress_detector");
+    trace!("[swtui::keypress::inner_keypress_detector] entry");
     let SyncWindow(window) = sync_window;
     window.nodelay(false);
     window.keypad(true);
-    trace!("start listening for keypress detector");
+    trace!("[swtui::keypress::inner_keypress_detector] waiting .getch()");
     let ch = window.getch();
-    trace!("keypress detected from window");
+    trace!("[swtui::keypress::inner_keypress_detector] keypress: {:?}", ch);
     ch
 }
 
 async fn looping_keypress_detector(sync_window: SyncWindow, tx: KeypressSender) {
-    trace!("swtui::keypress::looping_keypress_detector");
+    trace!("[swtui::keypress::looping_keypress_detector]");
     loop {
+        trace!("[swtui::keypress::looping_keypress_detector] next iter");
         match inner_keypress_detector(&sync_window).await {
             Some(ch) => {
-                tx.send(ch);
-                trace!("transmitted keypress");
+                let _ = tx.send(ch);
+                trace!("[swtui::keypress::looping_keypress_detector] transmitted keypress");
             },
             None => {
-                trace!("bye bye");
+                trace!("[swtui::keypress::looping_keypress_detector] bye bye");
                 break;
             }
         }
     }
+    trace!("[swtui::keypress::looping_keypress_detector] exiting");
 }
 
 pub fn keypress_detector(
