@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 #[cfg(feature = "swtui")]
 mod app;
 #[cfg(feature = "swtui")]
@@ -12,7 +15,10 @@ mod util;
 #[tokio::main]
 async fn main() {
     #[cfg(feature = "swtui")]
-    app::start().await;
+    {
+        app::start().await;
+        trace!("die");
+    }
     #[cfg(not(feature = "swtui"))]
     println!("bruh");
 }

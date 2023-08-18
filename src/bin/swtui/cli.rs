@@ -1,4 +1,5 @@
 use clap::Parser;
+use stopwatchd::logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL};
 
 #[derive(Parser, Clone, Debug)]
 #[command(author, version, about)]
@@ -20,5 +21,9 @@ pub struct Cli {
     /// Show the cursor in the terminal. You shouldn't have to turn this on
     /// unless you are trying to debug something.
     #[arg(short = 'c', long = "cursor", global = true)]
-    pub show_cursor: bool
+    pub show_cursor: bool,
+
+    /// Set the log level for the daemon.
+    #[arg(short, long, default_value_t = DEFAULT_LOGGER_LEVEL.into(), value_enum)]
+    pub log_level: LogLevel,
 }

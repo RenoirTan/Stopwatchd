@@ -5,7 +5,7 @@ use std::fmt;
 use clap::ValueEnum;
 use log::LevelFilter;
 
-#[derive(Copy, Clone, ValueEnum)]
+#[derive(Copy, Clone, Debug, ValueEnum)]
 pub enum LogLevel {
     Off,
     Error,
