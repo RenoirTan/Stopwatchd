@@ -4,7 +4,7 @@ use clap::Parser;
 use stopwatchd::logging;
 
 use crate::cli as cli;
-use crate::keypress::{make_keypress_channels, keypress_detector};
+use crate::keypress::keypress_detector;
 use crate::ui::{Ui, color::init_color};
 
 pub async fn start() {
@@ -24,15 +24,15 @@ pub async fn start() {
         pancurses::curs_set(0);
         trace!("[swtui::app::start] hiding cursor");
     }
-    let (keypress_tx, mut keypress_rx) = make_keypress_channels();
-    let keypress_handle = tokio::spawn(keypress_detector(Arc::clone(&ui.window), keypress_tx));
+    let (keypress_fut, mut keypress_rx, stop_keypress_tx) = keypress_detector(Arc::clone(&ui.window));
+    let keypress_handle = tokio::spawn(keypress_fut);
     trace!("[swtui::app::start] spawned keypress_detector");
     debug!("[swtui::app::start] first time resetting ui");
     ui.reset();
     trace!("[swtui::app::start] awaiting a keypress to exit");
     keypress_rx.recv().await;
     trace!("[swtui::app::start] keypress received");
-    let _ = keypress_handle.abort();
-    // let _ = keypress_handle.await;
+    stop_keypress_tx.send(()).unwrap();
+    keypress_handle.await.unwrap();
     trace!("[swtui::app::start] keypress handle aborted");
 }

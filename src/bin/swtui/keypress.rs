@@ -1,13 +1,23 @@
 use std::sync::Arc;
 
 use futures::Future;
-use tokio::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel};
+use tokio::sync::{
+    mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
+    oneshot
+};
 
 pub type KeypressSender = UnboundedSender<pancurses::Input>;
 pub type KeypressReceiver = UnboundedReceiver<pancurses::Input>;
 
-pub fn make_keypress_channels() -> (KeypressSender, KeypressReceiver) {
+fn make_keypress_channels() -> (KeypressSender, KeypressReceiver) {
     unbounded_channel()
+}
+
+pub type StopKeypressSender = oneshot::Sender<()>;
+pub type StopKeypressReceiver = oneshot::Receiver<()>;
+
+fn make_stop_keypress_channels() -> (StopKeypressSender, StopKeypressReceiver) {
+    oneshot::channel()
 }
 
 struct SyncWindow(Arc<pancurses::Window>);
@@ -26,17 +36,30 @@ async fn inner_keypress_detector(sync_window: &SyncWindow) -> Option<pancurses::
     ch
 }
 
-async fn looping_keypress_detector(sync_window: SyncWindow, tx: KeypressSender) {
+async fn looping_keypress_detector(
+    sync_window: SyncWindow,
+    tx: KeypressSender,
+    mut rx: StopKeypressReceiver
+) {
     trace!("[swtui::keypress::looping_keypress_detector]");
     loop {
         trace!("[swtui::keypress::looping_keypress_detector] next iter");
-        match inner_keypress_detector(&sync_window).await {
+        let ch = tokio::select! {
+            _ = &mut rx => {
+                trace!("[swtui::keypress::looping_keypress_detector] stop received");
+                break;
+            },
+            ch = inner_keypress_detector(&sync_window) => {
+                ch
+            }
+        };
+        match ch {
             Some(ch) => {
                 let _ = tx.send(ch);
-                trace!("[swtui::keypress::looping_keypress_detector] transmitted keypress");
+                trace!("[swtui::keypress::looping_keypress_detector] transmitted Some");
             },
             None => {
-                trace!("[swtui::keypress::looping_keypress_detector] bye bye");
+                trace!("[swtui::keypress::looping_keypress_detector] got None");
                 break;
             }
         }
@@ -45,8 +68,10 @@ async fn looping_keypress_detector(sync_window: SyncWindow, tx: KeypressSender) 
 }
 
 pub fn keypress_detector(
-    window: Arc<pancurses::Window>,
-    tx: KeypressSender
-) -> impl Future<Output=()> {
-    looping_keypress_detector(SyncWindow(window), tx)
+    window: Arc<pancurses::Window>
+) -> (impl Future<Output=()>, KeypressReceiver, StopKeypressSender) {
+    trace!("[swtui::keypress::keypress_detector]");
+    let (kp_tx, kp_rx) = make_keypress_channels();
+    let (stop_tx, stop_rx) = make_stop_keypress_channels();
+    (looping_keypress_detector(SyncWindow(window), kp_tx, stop_rx), kp_rx, stop_tx)
 }
