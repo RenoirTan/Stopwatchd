@@ -1,10 +1,6 @@
 use std::{
     future::Future,
-    pin::Pin,
-    sync::{Arc, Mutex},
-    task::{Context, Poll},
-    thread,
-    time::Duration
+    sync::Arc
 };
 
 use tokio::sync::{
@@ -31,53 +27,13 @@ struct SyncWindow(Arc<pancurses::Window>);
 unsafe impl Sync for SyncWindow { }
 unsafe impl Send for SyncWindow { }
 
-struct KeypressDetector {
-    inner: Arc<Mutex<KeypressDetectorInner>>
-}
-
-struct KeypressDetectorInner {
-    pub sync_window: SyncWindow,
-    pub ch: Option<pancurses::Input>
-}
-
-impl KeypressDetector {
-    fn new(sync_window: SyncWindow) -> Self {
-        let inner = Arc::new(Mutex::new(KeypressDetectorInner { sync_window, ch: None }));
-        Self { inner }
+fn waiter(sync_window: SyncWindow, inner_tx: KeypressSender) {
+    loop {
+        sync_window.0.nodelay(false);
+        sync_window.0.keypad(true);
+        let ch = sync_window.0.getch().unwrap();
+        let _ = inner_tx.send(ch);
     }
-}
-
-impl Future for KeypressDetector {
-    type Output = pancurses::Input;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut inner = self.inner.lock().unwrap();
-        match inner.ch.take() {
-            None => {
-                inner.sync_window.0.nodelay(true);
-                inner.sync_window.0.keypad(true);
-                inner.ch = inner.sync_window.0.getch();
-                // wait 10ms before waking up again
-                // unfortunately i don't think there is a way for pancurses to
-                // generate interrupts for keypresses
-                // so i have to use a timer to check back occasionally
-                let waker = cx.waker().clone();
-                let duration = Duration::from_millis(10);
-                thread::spawn(move || {
-                    thread::sleep(duration);
-                    waker.wake();
-                });
-                Poll::Pending
-            },
-            Some(ch) => {
-                Poll::Ready(ch)
-            }
-        }
-    }
-}
-
-fn detect_keypress(window: Arc<pancurses::Window>) -> impl Future<Output = pancurses::Input> {
-    KeypressDetector::new(SyncWindow(window))
 }
 
 async fn looping_keypress_detector(
@@ -86,6 +42,8 @@ async fn looping_keypress_detector(
     mut rx: StopKeypressReceiver
 ) {
     trace!("[swtui::keypress::looping_keypress_detector]");
+    let (inner_tx, mut inner_rx) = make_keypress_channels();
+    let _detector = std::thread::spawn(move || waiter(sync_window, inner_tx));
     loop {
         trace!("[swtui::keypress::looping_keypress_detector] next iter");
         let ch = tokio::select! {
@@ -93,8 +51,8 @@ async fn looping_keypress_detector(
                 trace!("[swtui::keypress::looping_keypress_detector] stop received");
                 break;
             },
-            ch = detect_keypress(sync_window.0.clone()) => {
-                ch
+            ch = inner_rx.recv() => {
+                ch.unwrap()
             }
         };
         let _ = tx.send(ch);
