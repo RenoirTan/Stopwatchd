@@ -2,7 +2,9 @@ use std::{
     future::Future,
     pin::Pin,
     sync::{Arc, Mutex},
-    task::{Context, Poll}
+    task::{Context, Poll},
+    thread,
+    time::Duration
 };
 
 use tokio::sync::{
@@ -52,8 +54,19 @@ impl Future for KeypressDetector {
         let mut inner = self.inner.lock().unwrap();
         match inner.ch.take() {
             None => {
+                inner.sync_window.0.nodelay(true);
+                inner.sync_window.0.keypad(true);
                 inner.ch = inner.sync_window.0.getch();
-                cx.waker().wake_by_ref(); // VERY IMPORTANT
+                // wait 10ms before waking up again
+                // unfortunately i don't think there is a way for pancurses to
+                // generate interrupts for keypresses
+                // so i have to use a timer to check back occasionally
+                let waker = cx.waker().clone();
+                let duration = Duration::from_millis(10);
+                thread::spawn(move || {
+                    thread::sleep(duration);
+                    waker.wake();
+                });
                 Poll::Pending
             },
             Some(ch) => {
@@ -64,8 +77,6 @@ impl Future for KeypressDetector {
 }
 
 fn detect_keypress(window: Arc<pancurses::Window>) -> impl Future<Output = pancurses::Input> {
-    window.nodelay(true);
-    window.keypad(true);
     KeypressDetector::new(SyncWindow(window))
 }
 
@@ -87,7 +98,7 @@ async fn looping_keypress_detector(
             }
         };
         let _ = tx.send(ch);
-        trace!("[swtui::keypress::looping_keypress_detector] transmitted Some");
+        trace!("[swtui::keypress::looping_keypress_detector] transmitted {:?}", ch);
     }
     trace!("[swtui::keypress::looping_keypress_detector] exiting");
 }
