@@ -1,6 +1,10 @@
-use std::sync::Arc;
+use std::{
+    future::Future,
+    pin::Pin,
+    sync::{Arc, Mutex},
+    task::{Context, Poll}
+};
 
-use futures::Future;
 use tokio::sync::{
     mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
     oneshot
@@ -25,15 +29,44 @@ struct SyncWindow(Arc<pancurses::Window>);
 unsafe impl Sync for SyncWindow { }
 unsafe impl Send for SyncWindow { }
 
-async fn inner_keypress_detector(sync_window: &SyncWindow) -> Option<pancurses::Input> {
-    trace!("[swtui::keypress::inner_keypress_detector] entry");
-    let SyncWindow(window) = sync_window;
-    window.nodelay(false);
+struct KeypressDetector {
+    inner: Arc<Mutex<KeypressDetectorInner>>
+}
+
+struct KeypressDetectorInner {
+    pub sync_window: SyncWindow,
+    pub ch: Option<pancurses::Input>
+}
+
+impl KeypressDetector {
+    fn new(sync_window: SyncWindow) -> Self {
+        let inner = Arc::new(Mutex::new(KeypressDetectorInner { sync_window, ch: None }));
+        Self { inner }
+    }
+}
+
+impl Future for KeypressDetector {
+    type Output = pancurses::Input;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut inner = self.inner.lock().unwrap();
+        match inner.ch.take() {
+            None => {
+                inner.ch = inner.sync_window.0.getch();
+                cx.waker().wake_by_ref(); // VERY IMPORTANT
+                Poll::Pending
+            },
+            Some(ch) => {
+                Poll::Ready(ch)
+            }
+        }
+    }
+}
+
+fn detect_keypress(window: Arc<pancurses::Window>) -> impl Future<Output = pancurses::Input> {
+    window.nodelay(true);
     window.keypad(true);
-    trace!("[swtui::keypress::inner_keypress_detector] waiting .getch()");
-    let ch = window.getch();
-    trace!("[swtui::keypress::inner_keypress_detector] keypress: {:?}", ch);
-    ch
+    KeypressDetector::new(SyncWindow(window))
 }
 
 async fn looping_keypress_detector(
@@ -49,20 +82,12 @@ async fn looping_keypress_detector(
                 trace!("[swtui::keypress::looping_keypress_detector] stop received");
                 break;
             },
-            ch = inner_keypress_detector(&sync_window) => {
+            ch = detect_keypress(sync_window.0.clone()) => {
                 ch
             }
         };
-        match ch {
-            Some(ch) => {
-                let _ = tx.send(ch);
-                trace!("[swtui::keypress::looping_keypress_detector] transmitted Some");
-            },
-            None => {
-                trace!("[swtui::keypress::looping_keypress_detector] got None");
-                break;
-            }
-        }
+        let _ = tx.send(ch);
+        trace!("[swtui::keypress::looping_keypress_detector] transmitted Some");
     }
     trace!("[swtui::keypress::looping_keypress_detector] exiting");
 }

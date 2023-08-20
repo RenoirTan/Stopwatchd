@@ -30,7 +30,7 @@ pub async fn start() {
     debug!("[swtui::app::start] first time resetting ui");
     ui.reset();
     trace!("[swtui::app::start] awaiting a keypress to exit");
-    keypress_rx.recv().await;
+    let _ch = keypress_rx.recv().await;
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();
     keypress_handle.await.unwrap();
