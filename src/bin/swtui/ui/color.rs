@@ -6,7 +6,11 @@ pub enum ColorPair {
     /// Inactive items, windows and borders
     Inactive = 2,
     /// An item being hovered over
-    Selected = 3
+    Selected = 3,
+    /// Colour of the bar
+    Bar = 4,
+    /// Colour of the keyboard shortcut in the bar
+    BarKey = 5
 }
 
 impl ColorPair {
@@ -37,4 +41,6 @@ pub fn init_color() {
     pancurses::init_pair(ColorPair::Active as i16, pancurses::COLOR_WHITE, bg);
     pancurses::init_pair(ColorPair::Inactive as i16, pancurses::COLOR_BLACK, bg);
     pancurses::init_pair(ColorPair::Selected as i16, pancurses::COLOR_CYAN, bg);
+    pancurses::init_pair(ColorPair::Bar as i16, pancurses::COLOR_BLACK, pancurses::COLOR_CYAN);
+    pancurses::init_pair(ColorPair::BarKey as i16, pancurses::COLOR_WHITE, bg);
 }

@@ -1,3 +1,4 @@
+pub mod bar;
 pub mod border;
 pub mod color;
 pub mod geometry;
@@ -9,6 +10,7 @@ use std::{
 };
 
 use self::{
+    bar::Bar,
     border::Border,
     geometry::{Size, Location, BordersGeometry, BarLocation},
     list_panel::{ListPanel, ListPanelState}
@@ -17,19 +19,27 @@ use self::{
 pub struct Ui {
     pub window: Arc<pancurses::Window>,
     pub border: Border,
-    pub list_panel: ListPanel
+    pub list_panel: ListPanel,
+    pub bar: Bar
 }
 
 impl Ui {
-    pub fn new(window: Arc<pancurses::Window>, border: Border, list_panel: ListPanel) -> Self {
-        Self { window, border, list_panel }
+    pub fn new(
+        window: Arc<pancurses::Window>,
+        border: Border,
+        list_panel: ListPanel,
+        bar: Bar
+    ) -> Self {
+        Self { window, border, list_panel, bar }
     }
 
     pub fn reset(&self) {
-        self.border.draw(self, false);
+        let focus_active = true;
+        self.border.draw(self, focus_active);
         let mut lp_state = ListPanelState::generate_fake_names(100);
         lp_state.selected = 3;
         self.list_panel.draw(self, &lp_state);
+        self.bar.draw(self, focus_active);
         self.window.refresh();
     }
 
@@ -64,7 +74,12 @@ impl AsRef<pancurses::Window> for Ui {
 
 impl Default for Ui {
     fn default() -> Self {
-        Self::new(Arc::new(pancurses::initscr()), Border::new_unicode(), ListPanel)
+        Self::new(
+            Arc::new(pancurses::initscr()),
+            Border::new_unicode(),
+            ListPanel,
+            Bar
+        )
     }
 }
 
