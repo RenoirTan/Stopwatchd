@@ -29,8 +29,6 @@ unsafe impl Send for SyncWindow { }
 
 fn waiter(sync_window: SyncWindow, inner_tx: KeypressSender) {
     loop {
-        sync_window.0.nodelay(false);
-        sync_window.0.keypad(true);
         let ch = sync_window.0.getch().unwrap();
         let _ = inner_tx.send(ch);
     }

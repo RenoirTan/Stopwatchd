@@ -30,6 +30,9 @@ impl Ui {
         list_panel: ListPanel,
         bar: Bar
     ) -> Self {
+        window.nodelay(false);
+        window.keypad(true);
+        pancurses::noecho();
         Self { window, border, list_panel, bar }
     }
 
