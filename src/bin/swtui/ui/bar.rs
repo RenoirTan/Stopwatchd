@@ -7,11 +7,12 @@ pub struct Bar;
 
 impl Bar {
     pub fn draw(&self, ui: &Ui, focus_active: bool) {
+        let mut x = 0;
         self.draw_background(ui);
         if focus_active {
-            self.draw_focus_panel_shortcuts(ui);
+            self.draw_focus_panel_shortcuts(ui, &mut x);
         } else {
-            self.draw_list_panel_shortcuts(ui);
+            self.draw_list_panel_shortcuts(ui, &mut x);
         }
     }
 
@@ -23,64 +24,64 @@ impl Bar {
         ui.window.mvaddstr(bar_location.y, 0, bar);
     }
 
-    fn draw_list_panel_shortcuts(&self, ui: &Ui) {
+    fn draw_list_panel_shortcuts(&self, ui: &Ui, x: &mut i32) {
         let y = ui.bar_location().y;
         // let width = ui.dimensions().x;
         
         // Up
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 0, "Up");
+        *x = ui.add_string(*x, y, "Up");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 2, "Scroll Up");
+        *x = ui.add_string(*x, y, "Scroll Up ");
 
         // Down
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 12, "Down");
+        *x = ui.add_string(*x, y, "Down");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 16, "Scroll Down");
+        *x = ui.add_string(*x, y, "Scroll Down ");
 
-        self.draw_global_shortcuts(ui, 28);
+        self.draw_global_shortcuts(ui, x);
     }
 
-    fn draw_focus_panel_shortcuts(&self, ui: &Ui) {
+    fn draw_focus_panel_shortcuts(&self, ui: &Ui, x: &mut i32) {
         let y = ui.bar_location().y;
 
         // Space: Play or Pause
         // TODO: Pass a state as an argument that tells the bar whether
         // the current stopwatch is playing or not
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 0, "Space");
+        *x = ui.add_string(*x, y, "Space");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 5, "Play");
+        *x = ui.add_string(*x, y, "Play ");
 
         // Enter: Lap
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 10, "Enter");
+        *x = ui.add_string(*x, y, "Enter");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 15, "New Lap");
+        *x = ui.add_string(*x, y, "New Lap ");
 
         // S: Stop
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 23, "S");
+        *x = ui.add_string(*x, y, "S");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 24, "Stop");
+        *x = ui.add_string(*x, y, "Stop ");
 
         // D: Delete
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 29, "D");
+        *x = ui.add_string(*x, y, "D");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, 30, "Delete");
+        *x = ui.add_string(*x, y, "Delete ");
 
-        self.draw_global_shortcuts(ui, 37);
+        self.draw_global_shortcuts(ui, x);
     }
 
-    fn draw_global_shortcuts(&self, ui: &Ui, min_x: i32) {
+    fn draw_global_shortcuts(&self, ui: &Ui, x: &mut i32) {
         let y = ui.bar_location().y;
 
         // F10: Quit
         ColorPair::BarKey.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, min_x+0, "F10");
+        *x = ui.add_string(*x, y, "F10");
         ColorPair::Bar.set_color(&ui.window, false);
-        ui.window.mvaddstr(y, min_x+3, "Quit");
+        *x = ui.add_string(*x, y, "Quit ");
     }
 }

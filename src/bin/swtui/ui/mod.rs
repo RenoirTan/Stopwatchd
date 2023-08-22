@@ -67,6 +67,11 @@ impl Ui {
         let Size { x: _x, y } = self.dimensions();
         BarLocation { y: y-1 }
     }
+
+    pub fn add_string<S: AsRef<str>>(&self, x: i32, y: i32, s: S) -> i32 {
+        self.window.mvaddstr(y, x, &s);
+        x + s.as_ref().len() as i32
+    }
 }
 
 impl AsRef<pancurses::Window> for Ui {
