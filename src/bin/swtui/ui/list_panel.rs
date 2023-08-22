@@ -10,10 +10,6 @@ use crate::{
 pub struct ListPanel;
 
 impl ListPanel {
-    pub fn new() -> Self {
-        Self
-    }
-
     pub fn clear(&self, ui: &Ui) {
         let (left, right, top, bottom) = ui.borders_geometry().list_panel_geometry();
         ColorPair::Active.set_color(&ui.window, false);
@@ -78,6 +74,15 @@ impl ListPanelState {
             let stopwatch = Stopwatch::new(name);
             identifiers.push(stopwatch.identifier);
         }
+        let selected = 0;
+        let start = 0;
+        Self { identifiers, selected, start }
+    }
+}
+
+impl Default for ListPanelState {
+    fn default() -> Self {
+        let identifiers = vec![];
         let selected = 0;
         let start = 0;
         Self { identifiers, selected, start }

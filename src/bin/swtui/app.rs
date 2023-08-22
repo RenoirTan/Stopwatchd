@@ -5,6 +5,7 @@ use stopwatchd::logging;
 
 use crate::cli as cli;
 use crate::keypress::keypress_detector;
+use crate::ui::list_panel::ListPanelState;
 use crate::ui::{Ui, color::init_color};
 
 pub async fn start() {
@@ -16,7 +17,9 @@ pub async fn start() {
         .expect("could not setup logging");
     debug!("[swtui::app::start] swtui is now outputting logs");
 
-    let ui = Ui::default();
+    let mut ui = Ui::default();
+    ui.list_panel_state = ListPanelState::generate_fake_names(100);
+    ui.list_panel_state.selected = 10;
     trace!("[swtui::app::start] initialized swtui::ui::Ui");
     init_color();
     trace!("[swtui::app::start] initialized ncurses colors");
@@ -28,12 +31,22 @@ pub async fn start() {
     let keypress_handle = tokio::spawn(keypress_fut);
     trace!("[swtui::app::start] spawned keypress_detector");
     debug!("[swtui::app::start] first time resetting ui");
-    ui.reset();
+    ui.draw();
     trace!("[swtui::app::start] awaiting F10 to exit");
     while let Some(ch) = keypress_rx.recv().await {
-        if ch == pancurses::Input::KeyF10 {
-            break;
+        match ch {
+            pancurses::Input::KeyF10 => {
+                break;
+            },
+            pancurses::Input::KeyLeft => {
+                ui.focus_active = false;
+            },
+            pancurses::Input::KeyRight => {
+                ui.focus_active = true;
+            }
+            _ => {}
         }
+        ui.draw();
     }
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();

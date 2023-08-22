@@ -20,7 +20,9 @@ pub struct Ui {
     pub window: Arc<pancurses::Window>,
     pub border: Border,
     pub list_panel: ListPanel,
-    pub bar: Bar
+    pub list_panel_state: ListPanelState,
+    pub bar: Bar,
+    pub focus_active: bool
 }
 
 impl Ui {
@@ -28,21 +30,20 @@ impl Ui {
         window: Arc<pancurses::Window>,
         border: Border,
         list_panel: ListPanel,
-        bar: Bar
+        list_panel_state: ListPanelState,
+        bar: Bar,
+        focus_active: bool
     ) -> Self {
         window.nodelay(false);
         window.keypad(true);
         pancurses::noecho();
-        Self { window, border, list_panel, bar }
+        Self { window, border, list_panel, list_panel_state, bar, focus_active }
     }
 
-    pub fn reset(&self) {
-        let focus_active = true;
-        self.border.draw(self, focus_active);
-        let mut lp_state = ListPanelState::generate_fake_names(100);
-        lp_state.selected = 3;
-        self.list_panel.draw(self, &lp_state);
-        self.bar.draw(self, focus_active);
+    pub fn draw(&self) {
+        self.border.draw(self, self.focus_active);
+        self.list_panel.draw(self, &self.list_panel_state);
+        self.bar.draw(self, self.focus_active);
         self.window.refresh();
     }
 
@@ -86,7 +87,9 @@ impl Default for Ui {
             Arc::new(pancurses::initscr()),
             Border::new_unicode(),
             ListPanel,
-            Bar
+            ListPanelState::default(),
+            Bar,
+            false
         )
     }
 }

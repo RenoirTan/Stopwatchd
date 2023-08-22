@@ -27,6 +27,11 @@ impl Bar {
     fn draw_list_panel_shortcuts(&self, ui: &Ui, x: &mut i32) {
         let y = ui.bar_location().y;
         // let width = ui.dimensions().x;
+
+        ColorPair::BarKey.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Right");
+        ColorPair::Bar.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Select ");
         
         // Up
         ColorPair::BarKey.set_color(&ui.window, false);
@@ -45,6 +50,11 @@ impl Bar {
 
     fn draw_focus_panel_shortcuts(&self, ui: &Ui, x: &mut i32) {
         let y = ui.bar_location().y;
+
+        ColorPair::BarKey.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Left");
+        ColorPair::Bar.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Back ");
 
         // Space: Play or Pause
         // TODO: Pass a state as an argument that tells the bar whether
