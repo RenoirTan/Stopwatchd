@@ -50,6 +50,12 @@ pub async fn start() {
             },
             pancurses::Input::KeyUp if !ui.focus_active => {
                 ui.scroll(true);
+            },
+            pancurses::Input::KeyHome if !ui.focus_active => {
+                ui.scroll_home();
+            },
+            pancurses::Input::KeyEnd if !ui.focus_active => {
+                ui.scroll_end();
             }
             _ => {}
         }

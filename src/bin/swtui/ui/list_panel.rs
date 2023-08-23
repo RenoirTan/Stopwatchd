@@ -94,6 +94,20 @@ impl ListPanelState {
         self.selected_in_range(up, window_height);
     }
 
+    pub (in crate::ui) fn scroll_home(&mut self, window_height: usize) {
+        self.selected = 0;
+        self.selected_in_range(true, window_height);
+    }
+
+    pub (in crate::ui) fn scroll_end(&mut self, window_height: usize) {
+        self.selected = if self.identifiers.len() == 0 {
+            0
+        } else {
+            self.identifiers.len() - 1
+        };
+        self.selected_in_range(false, window_height);
+    }
+
     fn selected_in_range(&mut self, up: bool, window_height: usize) {
         let up_index = self.start;
         let down_index = self.start + window_height;

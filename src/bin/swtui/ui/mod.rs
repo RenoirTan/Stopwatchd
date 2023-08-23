@@ -74,10 +74,24 @@ impl Ui {
         x + s.as_ref().len() as i32
     }
 
-    pub fn scroll(&mut self, up: bool) {
+    fn list_panel_height(&self) -> i32 {
         let (_l, _r, top, bottom) = self.borders_geometry().list_panel_geometry();
-        let height = bottom - top + 1;
+        bottom - top + 1
+    }
+
+    pub fn scroll(&mut self, up: bool) {
+        let height = self.list_panel_height();
         self.list_panel_state.scroll_inner(up, height as usize);
+    }
+
+    pub fn scroll_home(&mut self) {
+        let height = self.list_panel_height();
+        self.list_panel_state.scroll_home(height as usize);
+    }
+
+    pub fn scroll_end(&mut self) {
+        let height = self.list_panel_height();
+        self.list_panel_state.scroll_end(height as usize);
     }
 }
 
