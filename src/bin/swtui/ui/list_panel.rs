@@ -78,6 +78,35 @@ impl ListPanelState {
         let start = 0;
         Self { identifiers, selected, start }
     }
+
+    pub (in crate::ui) fn scroll_inner(&mut self, up: bool, window_height: usize) {
+        let up_index = self.start;
+        let down_index = self.start + window_height;
+        if up {
+            self.selected = if self.selected <= 0 { 0 } else { self.selected - 1 };
+            if self.selected < up_index || self.selected >= down_index {
+                self.start = self.selected;
+            }
+        } else {
+            self.selected = if self.identifiers.len() == 0 {
+                0
+            } else if self.selected + 1 >= self.identifiers.len() {
+                self.identifiers.len() - 1
+            } else {
+                self.selected + 1
+            };
+            if self.selected < up_index || self.selected >= down_index {
+                self.start = if
+                    self.identifiers.len() < window_height
+                    || self.selected < window_height
+                {
+                    0
+                } else {
+                    self.selected - window_height + 1
+                };
+            }
+        }
+    }
 }
 
 impl Default for ListPanelState {

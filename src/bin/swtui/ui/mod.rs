@@ -73,6 +73,12 @@ impl Ui {
         self.window.mvaddstr(y, x, &s);
         x + s.as_ref().len() as i32
     }
+
+    pub fn scroll(&mut self, up: bool) {
+        let (_l, _r, top, bottom) = self.borders_geometry().list_panel_geometry();
+        let height = bottom - top + 1;
+        self.list_panel_state.scroll_inner(up, height as usize);
+    }
 }
 
 impl AsRef<pancurses::Window> for Ui {

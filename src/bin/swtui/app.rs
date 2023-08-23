@@ -43,6 +43,13 @@ pub async fn start() {
             },
             pancurses::Input::KeyRight => {
                 ui.focus_active = true;
+            },
+            // when active window is list panel
+            pancurses::Input::KeyDown if !ui.focus_active => {
+                ui.scroll(false);
+            },
+            pancurses::Input::KeyUp if !ui.focus_active => {
+                ui.scroll(true);
             }
             _ => {}
         }
