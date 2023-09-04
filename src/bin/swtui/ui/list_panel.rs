@@ -1,7 +1,4 @@
-use stopwatchd::{
-    identifiers::{Identifier, Name},
-    models::stopwatch::Stopwatch
-};
+use stopwatchd::identifiers::{Identifier, Name, UniqueId};
 use crate::{
     ui::{Ui, color::ColorPair},
     util::center_text
@@ -71,8 +68,8 @@ impl ListPanelState {
                 4 => "",
                 _ => panic!("impossible")
             });
-            let stopwatch = Stopwatch::new(name);
-            identifiers.push(stopwatch.identifier);
+            let identifier = Identifier::new(UniqueId::generate(), name);
+            identifiers.push(identifier);
         }
         let selected = 0;
         let start = 0;
