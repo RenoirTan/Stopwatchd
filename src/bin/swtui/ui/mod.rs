@@ -1,6 +1,7 @@
 pub mod bar;
 pub mod border;
 pub mod color;
+pub mod focus_panel;
 pub mod geometry;
 pub mod list_panel;
 
@@ -13,7 +14,8 @@ use self::{
     bar::Bar,
     border::Border,
     geometry::{Size, Location, BordersGeometry, BarLocation},
-    list_panel::{ListPanel, ListPanelState}
+    list_panel::{ListPanel, ListPanelState},
+    focus_panel::{FocusPanel, FocusPanelState}
 };
 
 pub struct Ui {
@@ -21,6 +23,8 @@ pub struct Ui {
     pub border: Border,
     pub list_panel: ListPanel,
     pub list_panel_state: ListPanelState,
+    pub focus_panel: FocusPanel,
+    pub focus_panel_state: FocusPanelState,
     pub bar: Bar,
     pub focus_active: bool
 }
@@ -31,13 +35,24 @@ impl Ui {
         border: Border,
         list_panel: ListPanel,
         list_panel_state: ListPanelState,
+        focus_panel: FocusPanel,
+        focus_panel_state: FocusPanelState,
         bar: Bar,
         focus_active: bool
     ) -> Self {
         window.nodelay(false);
         window.keypad(true);
         pancurses::noecho();
-        Self { window, border, list_panel, list_panel_state, bar, focus_active }
+        Self {
+            window,
+            border,
+            list_panel,
+            list_panel_state,
+            focus_panel,
+            focus_panel_state,
+            bar,
+            focus_active
+        }
     }
 
     pub fn draw(&self) {
@@ -108,6 +123,8 @@ impl Default for Ui {
             Border::new_unicode(),
             ListPanel,
             ListPanelState::default(),
+            FocusPanel,
+            FocusPanelState::default(),
             Bar,
             false
         )

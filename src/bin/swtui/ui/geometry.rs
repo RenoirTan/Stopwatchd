@@ -32,6 +32,14 @@ impl BordersGeometry {
         let bottom = self.bottom_right.y - 1;
         (left, right, top, bottom)
     }
+
+    pub fn focus_panel_geometry(&self) -> (i32, i32, i32, i32) {
+        let left = self.separator_x + 1;
+        let right = self.bottom_right.x - 1;
+        let top = self.top_left.y + 1;
+        let bottom = self.bottom_right.y - 1;
+        (left, right, top, bottom)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
