@@ -10,6 +10,8 @@ use std::{
     sync::Arc
 };
 
+use stopwatchd::communication::details::StopwatchDetails;
+
 use self::{
     bar::Bar,
     border::Border,
@@ -26,7 +28,7 @@ pub struct Ui {
     pub focus_panel: FocusPanel,
     pub focus_panel_state: FocusPanelState,
     pub bar: Bar,
-    pub focus_active: bool
+    focus_active: bool
 }
 
 impl Ui {
@@ -58,6 +60,7 @@ impl Ui {
     pub fn draw(&self) {
         self.border.draw(self, self.focus_active);
         self.list_panel.draw(self, &self.list_panel_state);
+        self.focus_panel.draw(self, &self.focus_panel_state);
         self.bar.draw(self, self.focus_active);
         self.window.refresh();
     }
@@ -107,6 +110,23 @@ impl Ui {
     pub fn scroll_end(&mut self) {
         let height = self.list_panel_height();
         self.list_panel_state.scroll_end(height as usize);
+    }
+
+    pub fn set_focus_active(&mut self, yes: bool) {
+        self.focus_active = yes;
+        if yes {
+            self.focus_panel_state.selected = self.list_panel_state.identifiers
+                .get(self.list_panel_state.selected)
+                .cloned();
+            self.focus_panel_state.details = match self.focus_panel_state.selected {
+                Some(ref id) => Some(StopwatchDetails::dummy(id.clone())),
+                None => None
+            };
+        }
+    }
+
+    pub fn is_focus_active(&self) -> bool {
+        self.focus_active
     }
 }
 

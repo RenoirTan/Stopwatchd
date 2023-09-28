@@ -39,22 +39,22 @@ pub async fn start() {
                 break;
             },
             pancurses::Input::KeyLeft => {
-                ui.focus_active = false;
+                ui.set_focus_active(false);
             },
             pancurses::Input::KeyRight => {
-                ui.focus_active = true;
+                ui.set_focus_active(true);
             },
             // when active window is list panel
-            pancurses::Input::KeyDown if !ui.focus_active => {
+            pancurses::Input::KeyDown if !ui.is_focus_active() => {
                 ui.scroll(false);
             },
-            pancurses::Input::KeyUp if !ui.focus_active => {
+            pancurses::Input::KeyUp if !ui.is_focus_active() => {
                 ui.scroll(true);
             },
-            pancurses::Input::KeyHome if !ui.focus_active => {
+            pancurses::Input::KeyHome if !ui.is_focus_active() => {
                 ui.scroll_home();
             },
-            pancurses::Input::KeyEnd if !ui.focus_active => {
+            pancurses::Input::KeyEnd if !ui.is_focus_active() => {
                 ui.scroll_end();
             }
             _ => {}
