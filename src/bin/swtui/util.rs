@@ -22,8 +22,8 @@ use std::cmp::min;
 /// (like when right_border < left_border).
 pub fn center_text(
     text_len: usize,
-    (left_border, right_border): (usize, usize)
-) -> Option<(usize, usize)> {
+    (left_border, right_border): (i32, i32)
+) -> Option<(i32, i32)> {
     if right_border < left_border {
         return None;
     }
@@ -33,8 +33,8 @@ pub fn center_text(
     }
     let text_left_len = text_len / 2;
     let text_right_len = text_len - text_left_len - 1;
-    let min_x = mid_x - min(mid_x-left_border, text_left_len);
-    let max_x = mid_x + min(right_border-mid_x, text_right_len);
+    let min_x = mid_x - min(mid_x-left_border, text_left_len as i32);
+    let max_x = mid_x + min(right_border-mid_x, text_right_len as i32);
     Some((min_x, max_x))
 }
 

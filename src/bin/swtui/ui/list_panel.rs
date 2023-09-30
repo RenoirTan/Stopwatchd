@@ -37,8 +37,7 @@ impl ListPanel {
             }
             let y = top + i as i32; // where to write
             let identifier = stopwatches[index].to_string();
-            let (l_x, r_x) = center_text(identifier.len(), (left as usize, right as usize))
-                .unwrap();
+            let (l_x, r_x) = center_text(identifier.len(), (left, right)).unwrap();
             let l_x = l_x as i32;
             let r_x = r_x as i32;
             // only write the first r_x - l_x + 1 characters of the identifier

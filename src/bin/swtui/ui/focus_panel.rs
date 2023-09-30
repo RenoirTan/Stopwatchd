@@ -21,8 +21,7 @@ impl FocusPanel {
         let (left, right, top, bottom) = ui.borders_geometry().focus_panel_geometry();
         if let Some(ref d) = details {
             let display_name = d.identifier.to_string();
-            let (l_x, r_x) = center_text(display_name.len(), (left as usize, right as usize))
-                .unwrap();
+            let (l_x, r_x) = center_text(display_name.len(), (left, right)).unwrap();
             ui.window.mvaddnstr(top, l_x as i32, &display_name, (r_x - l_x + 1) as i32);
             let row_filler = "x".repeat((right - left + 1) as usize);
             for y in top+1..=bottom {
