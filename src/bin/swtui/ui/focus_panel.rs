@@ -19,6 +19,7 @@ impl FocusPanel {
         let FocusPanelState { selected, details } = state;
         self.clear(ui);
         let (left, right, top, bottom) = ui.borders_geometry().focus_panel_geometry();
+        ColorPair::Active.set_color(&ui.window, false);
         if let Some(ref d) = details {
             let display_name = d.identifier.to_string();
             let (l_x, r_x) = center_text(display_name.len(), (left, right)).unwrap();
