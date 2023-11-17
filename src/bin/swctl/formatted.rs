@@ -5,7 +5,7 @@ use std::fmt;
 use clap::ValueEnum;
 use stopwatchd::{
     communication::{details::StopwatchDetails, server::ServerError},
-    fmt::{Formatter, std_duration_to_naive},
+    fmt::Formatter,
     models::lap::FinishedLap
 };
 use tabled::{Table, Tabled, settings::Style};
@@ -99,10 +99,9 @@ impl BasicDetails {
         } else {
             String::new()
         };
-        let total_time = formatter.format_duration(std_duration_to_naive(details.total_time));
+        let total_time = formatter.format_duration(details.total_time);
         let laps_count = format!("{}", details.laps_count());
-        let current_lap_time = formatter.format_duration(
-            std_duration_to_naive(details.current_lap_time())
+        let current_lap_time = formatter.format_duration(details.current_lap_time()
         );
         Self { id, name, state, start_time, total_time, laps_count, current_lap_time }
     }
@@ -156,7 +155,7 @@ impl VerboseDetails {
         } else {
             String::new()
         };
-        let duration = formatter.format_duration(std_duration_to_naive(lap.duration));
+        let duration = formatter.format_duration(lap.duration);
         Self { id, stopwatch_id, start, duration }
     }
 }

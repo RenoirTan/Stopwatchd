@@ -35,13 +35,23 @@ impl Formatter {
         time.into().format(&self.datetime_format).to_string()
     }
 
-    /// Format a duration object into a [`String`].
-    pub fn format_duration<D>(&self, duration: D) -> String
+    /// Format a [`NaiveTime`] object into a [`String`].
+    pub fn format_naive_time<D>(&self, duration: D) -> String
     where
         D: Into<NaiveTime>
     {
         let time = duration.into();
         time.format(&self.duration_format).to_string()
+    }
+
+    /// Format a [`Duration`] object into a [`String`].
+    pub fn format_duration<D>(&self, duration: D) -> String
+    where
+        D: Into<Duration>
+    {
+        let duration = duration.into();
+        let naive_time = std_duration_to_naive(duration);
+        self.format_naive_time(naive_time)
     }
 }
 
