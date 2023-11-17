@@ -1,9 +1,12 @@
 //! Command line interface for `swctl`.
 
 use clap::{Parser, Subcommand, Args};
-use stopwatchd::logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL};
+use stopwatchd::{
+    fmt::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT},
+    logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL}
+};
 
-use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT, Styles};
+use crate::formatted::Styles;
 
 #[derive(Parser, Clone)]
 #[command(author, version, about)]

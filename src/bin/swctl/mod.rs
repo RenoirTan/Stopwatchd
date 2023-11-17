@@ -8,6 +8,7 @@ extern crate log;
 use clap::Parser;
 use formatted::{ErrorRecord, BasicDetails, BasicDetailsNoDT, VerboseDetails, VerboseDetailsNoDT};
 use stopwatchd::{
+    fmt::Formatter,
     logging,
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
@@ -22,7 +23,7 @@ use stopwatchd::{
 use tabled::{builder::Builder, Tabled};
 use tokio::net::UnixStream;
 
-use crate::formatted::{Formatter, Styles};
+use crate::formatted::Styles;
 
 mod cli;
 mod formatted;
