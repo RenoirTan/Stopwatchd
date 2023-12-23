@@ -49,9 +49,15 @@ impl Formatter {
     where
         D: Into<Duration>
     {
-        let duration = duration.into();
-        let naive_time = std_duration_to_naive(duration);
-        self.format_naive_time(naive_time)
+        // TODO: Handle more than 24 hours, which [`NaiveTime`] does not support.
+        let s = std_duration_to_naive(duration.into()).format(&self.duration_format).to_string();
+        s
+    }
+}
+
+impl Default for Formatter {
+    fn default() -> Self {
+        Self::new(DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT)
     }
 }
 

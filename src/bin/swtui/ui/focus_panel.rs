@@ -1,6 +1,12 @@
-use stopwatchd::{communication::details::StopwatchDetails, identifiers::Identifier};
+use stopwatchd::{
+    communication::details::StopwatchDetails,
+    identifiers::Identifier
+};
 
-use crate::{ui::{Ui, color::ColorPair}, util::center_text};
+use crate::{
+    ui::{Ui, color::ColorPair},
+    util::center_text
+};
 
 pub struct FocusPanel;
 
@@ -29,7 +35,10 @@ impl FocusPanel {
 
             // Time
             ColorPair::Active.set_color(&ui.window, false);
-            let _display_time = d.total_time;
+            let display_time = ui.formatter.format_duration(d.total_time);
+            let (l_x, r_x) = center_text(display_time.len(), (left, right)).unwrap();
+            ColorPair::Active.set_color(&ui.window, true);
+            ui.window.mvaddnstr(top+1, l_x, &display_time, r_x - l_x + 1);
         } else if let Some(identifier) = selected.as_ref() {
             let err_msg = "Could not find:";
             let mid_y = (bottom - top) / 2;

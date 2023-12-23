@@ -10,7 +10,10 @@ use std::{
     sync::Arc
 };
 
-use stopwatchd::communication::details::StopwatchDetails;
+use stopwatchd::{
+    communication::details::StopwatchDetails,
+    fmt::Formatter
+};
 
 use self::{
     bar::Bar,
@@ -28,7 +31,8 @@ pub struct Ui {
     pub focus_panel: FocusPanel,
     pub focus_panel_state: FocusPanelState,
     pub bar: Bar,
-    focus_active: bool
+    focus_active: bool,
+    pub formatter: Formatter
 }
 
 impl Ui {
@@ -40,7 +44,8 @@ impl Ui {
         focus_panel: FocusPanel,
         focus_panel_state: FocusPanelState,
         bar: Bar,
-        focus_active: bool
+        focus_active: bool,
+        formatter: Formatter
     ) -> Self {
         window.nodelay(false);
         window.keypad(true);
@@ -53,7 +58,8 @@ impl Ui {
             focus_panel,
             focus_panel_state,
             bar,
-            focus_active
+            focus_active,
+            formatter
         }
     }
 
@@ -146,7 +152,8 @@ impl Default for Ui {
             FocusPanel,
             FocusPanelState::default(),
             Bar,
-            false
+            false,
+            Formatter::default()
         )
     }
 }
