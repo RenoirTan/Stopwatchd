@@ -13,7 +13,7 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        client::{Request, send_request_bytes},
+        client::{Request, send_request_bytes, receive_reply_bytes},
         server::{Reply, ServerError},
         details::StopwatchDetails,
         reply_specifics::{SpecificAnswer, InfoAnswer}
@@ -71,12 +71,8 @@ async fn run(cli: cli::Cli) -> i32 {
     let stream = send_request_bytes(&ssock_path, message_bytes).await
         .expect(&format!("could not send request to {}", ssock_path_str));
 
-    trace!("checking if can read from server");
-    stream.readable().await
-        .expect(&format!("{} is not readable", ssock_path_str));
-    let mut braw = Vec::with_capacity(4096);
     info!("reading response from server");
-    stream.try_read_buf(&mut braw)
+    let braw = receive_reply_bytes(stream).await
         .expect(&format!("could not read reply message from {}", ssock_path_str));
 
     #[cfg(feature = "debug-ipc")]

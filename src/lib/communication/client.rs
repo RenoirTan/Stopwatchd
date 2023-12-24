@@ -91,6 +91,15 @@ where
     Ok(stream)
 }
 
+/// Receive reply from `swd`, consuming the [`UnixStream`] used to connect to
+/// the socket in the process to prevent reuse.
+pub async fn receive_reply_bytes(stream: UnixStream) -> io::Result<Vec<u8>> {
+    stream.readable().await?;
+    let mut braw = Vec::with_capacity(4096);
+    stream.try_read_buf(&mut braw)?;
+    Ok(braw)
+}
+
 #[cfg(test)]
 mod test {
     use crate::{

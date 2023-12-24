@@ -14,7 +14,7 @@ use std::{
 use stopwatchd::{
     communication::{
         details::StopwatchDetails,
-        client::{CommonArgs, Request},
+        client::{CommonArgs, Request, receive_reply_bytes},
         request_specifics::{SpecificArgs, InfoArgs},
         server::Reply,
         reply_specifics::{SpecificAnswer, InfoAnswer}
@@ -86,12 +86,8 @@ impl Ui {
         let stream = request.send_to_socket(&ssock_path).await
             .expect(&format!("could not send request to {}", ssock_path_str));
 
-        trace!("[swtui::ui::Ui::refresh_list] checking if can read from server");
-        stream.readable().await
-            .expect(&format!("{} is not readable", ssock_path_str));
-        let mut braw = Vec::with_capacity(4096);
         info!("[swtui::ui::Ui::refresh_list] reading response from server");
-        stream.try_read_buf(&mut braw)
+        let braw = receive_reply_bytes(stream).await
             .expect(&format!("could not read reply message from {}", ssock_path_str));
 
         let reply = Reply::from_bytes(&braw)
