@@ -7,14 +7,23 @@ pub mod list_panel;
 
 use std::{
     cmp::{max, min},
-    sync::Arc
+    sync::Arc,
+    path::Path
 };
 
 use stopwatchd::{
-    communication::details::StopwatchDetails,
+    communication::{
+        details::StopwatchDetails,
+        client::{CommonArgs, Request},
+        request_specifics::{SpecificArgs, InfoArgs},
+        server::Reply,
+        reply_specifics::{SpecificAnswer, InfoAnswer}
+    },
     fmt::Formatter,
-    models::stopwatch::State
+    models::stopwatch::State,
+    traits::Codecable
 };
+use tokio::net::UnixStream;
 
 use self::{
     bar::Bar,
@@ -61,6 +70,42 @@ impl Ui {
             bar,
             focus_active,
             formatter
+        }
+    }
+
+    pub async fn refresh_list<P: AsRef<Path>>(&mut self, stream: &UnixStream, ssock_path: P) {
+        let common_args = CommonArgs::default();
+        let specific_args = SpecificArgs::Info(InfoArgs);
+        let request = Request::new(common_args, specific_args);
+        let message_bytes = request.to_bytes()
+            .expect("could not serialize request to bytes");
+        let ssock_path_str = ssock_path.as_ref().display();
+        
+        debug!("sending refresh request");
+        stream.try_write(&message_bytes)
+            .expect(&format!("could not write request message to {}", ssock_path_str));
+
+        trace!("checking if can read from server");
+        stream.readable().await
+            .expect(&format!("{} is not readable", ssock_path_str));
+        let mut braw = Vec::with_capacity(4096);
+        info!("reading response from server");
+        stream.try_read_buf(&mut braw)
+            .expect(&format!("could not read reply message from {}", ssock_path_str));
+
+        let reply = Reply::from_bytes(&braw)
+            .expect(&format!("could not convert message to reply"));
+
+        if !reply.errors.is_empty() {
+            panic!("reply to refresh request returns error, requires reworking");
+        }
+        if let SpecificAnswer::Info(InfoAnswer::All(ref all)) = reply.specific_answer {
+            self.list_panel_state.identifiers = all.access_order
+                .iter()
+                .map(|s| reply.successful.get(s).unwrap().identifier.clone())
+                .collect();
+        } else {
+            panic!("refresh request should be replied with InfoAnswer::All");
         }
     }
 

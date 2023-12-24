@@ -1,12 +1,18 @@
 use std::{process, sync::Arc};
 
 use clap::Parser;
-use stopwatchd::logging;
+use stopwatchd::{
+    logging,
+    pidfile::{open_pidfile, get_swd_pid, pidfile_path},
+    runtime::{get_uid, server_socket_path}
+};
+use tokio::net::UnixStream;
 
-use crate::cli as cli;
-use crate::keypress::keypress_detector;
-use crate::ui::list_panel::ListPanelState;
-use crate::ui::{Ui, color::init_color};
+use crate::{
+    cli,
+    keypress::keypress_detector,
+    ui::{Ui, color::init_color}
+};
 
 pub async fn start() {
     let cli = cli::Cli::parse();
@@ -17,9 +23,33 @@ pub async fn start() {
         .expect("could not setup logging");
     debug!("[swtui::app::start] swtui is now outputting logs");
 
+    #[cfg(not(feature = "users"))]
+    let uid = get_uid();
+    #[cfg(feature = "users")]
+    let uid = if cli.system_swd { None } else { get_uid() };
+
+    let swd_pid = {
+        let ppath = pidfile_path(uid);
+        let mut pidfile = open_pidfile(false, uid)
+            .expect(&format!("could not open pidfile: {:?}", ppath));
+        get_swd_pid(&mut pidfile)
+            .expect(&format!("could not get swd PID from {:?}", ppath))
+    };
+    debug!("swd_pid is {}", swd_pid);
+
+    let ssock_path = server_socket_path(Some(swd_pid), uid);
+    let ssock_path_str = ssock_path.to_string_lossy();
+    trace!("connecting to {:?}", ssock_path);
+    let stream = UnixStream::connect(&ssock_path).await
+        .expect(&format!("could not connect to {}", ssock_path_str));
+    trace!("connected to {:?}", ssock_path);
+
+    trace!("checking if can write to server");
+    stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
+
     let mut ui = Ui::default();
-    ui.list_panel_state = ListPanelState::generate_fake_names(100);
-    ui.list_panel_state.selected = 10;
+    ui.refresh_list(&stream, &ssock_path).await;
+    ui.list_panel_state.selected = 0;
     trace!("[swtui::app::start] initialized swtui::ui::Ui");
     init_color();
     trace!("[swtui::app::start] initialized ncurses colors");
@@ -63,6 +93,7 @@ pub async fn start() {
             _ => {}
         }
         ui.draw();
+        ui.refresh_list(&stream, &ssock_path).await;
     }
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();
