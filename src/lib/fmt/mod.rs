@@ -49,8 +49,15 @@ impl Formatter {
     where
         D: Into<Duration>
     {
-        // TODO: Handle more than 24 hours, which [`NaiveTime`] does not support.
-        let s = std_duration_to_naive(duration.into()).format(&self.duration_format).to_string();
+        // TODO: Unfix this format
+        let duration: Duration = duration.into();
+        let seconds = duration.as_secs();
+        let hours = seconds / 3600;
+        let minutes = (seconds/60) % 60;
+        let seconds = seconds % 60;
+        let milliseconds = duration.as_millis() % 1000;
+        let s = format!("{}:{}:{}.{}", hours, minutes, seconds, milliseconds);
+        // let s = std_duration_to_naive(duration.into()).format(&self.duration_format).to_string();
         s
     }
 }
