@@ -13,7 +13,7 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        client::Request,
+        client::{Request, send_request_bytes},
         server::{Reply, ServerError},
         details::StopwatchDetails,
         reply_specifics::{SpecificAnswer, InfoAnswer}
@@ -21,7 +21,6 @@ use stopwatchd::{
     traits::Codecable
 };
 use tabled::{builder::Builder, Tabled};
-use tokio::net::UnixStream;
 
 use crate::formatted::Styles;
 
@@ -57,14 +56,8 @@ async fn run(cli: cli::Cli) -> i32 {
     debug!("swd_pid is {}", swd_pid);
 
     let ssock_path = server_socket_path(Some(swd_pid), uid);
-    let ssock_path_str = ssock_path.to_string_lossy();
+    let ssock_path_str = ssock_path.display();
     trace!("connecting to {:?}", ssock_path);
-    let stream = UnixStream::connect(&ssock_path).await
-        .expect(&format!("could not connect to {}", ssock_path_str));
-    trace!("connected to {:?}", ssock_path);
-
-    trace!("checking if can write to server");
-    stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
 
     let request = request::args_to_request(&cli);
     let message_bytes = request.to_bytes()
@@ -75,9 +68,8 @@ async fn run(cli: cli::Cli) -> i32 {
         println!("From swctl.{} to swd.{}: {:?}", pid, swd_pid, message_bytes);
     }
 
-    info!("sending request to server");
-    stream.try_write(&message_bytes)
-        .expect(&format!("could not write request message to {}", ssock_path_str));
+    let stream = send_request_bytes(&ssock_path, message_bytes).await
+        .expect(&format!("could not send request to {}", ssock_path_str));
 
     trace!("checking if can read from server");
     stream.readable().await

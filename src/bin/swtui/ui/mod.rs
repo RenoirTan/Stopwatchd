@@ -23,7 +23,6 @@ use stopwatchd::{
     models::stopwatch::State,
     traits::Codecable
 };
-use tokio::net::UnixStream;
 
 use self::{
     bar::Bar,
@@ -77,23 +76,15 @@ impl Ui {
         let common_args = CommonArgs::default();
         let specific_args = SpecificArgs::Info(InfoArgs);
         let request = Request::new(common_args, specific_args);
-        let message_bytes = request.to_bytes()
-            .expect("[swtui::ui::Ui::refresh_list] could not serialize request to bytes");
         let ssock_path_str = ssock_path.as_ref().display();
 
         // We must constantly reconnect because `swd` drops the other end
         // of the line once it has replied the first time and [`UnixListener`]
         // has to be triggered again.
         trace!("connecting to {}", ssock_path_str);
-        let stream = UnixStream::connect(&ssock_path).await
-            .expect(&format!("could not connect to {}", ssock_path_str));
-        trace!("connected to {}", ssock_path_str);
-        
-        trace!("[swtui::ui::Ui::refresh_list] checking if can write to server");
-        stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
-        debug!("[swtui::ui::Ui::refresh_list] sending refresh request");
-        stream.try_write(&message_bytes)
-            .expect(&format!("could not write request message to {}", ssock_path_str));
+        // TODO: show separate messages depending on known errors
+        let stream = request.send_to_socket(&ssock_path).await
+            .expect(&format!("could not send request to {}", ssock_path_str));
 
         trace!("[swtui::ui::Ui::refresh_list] checking if can read from server");
         stream.readable().await

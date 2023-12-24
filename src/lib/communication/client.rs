@@ -1,8 +1,11 @@
 //! Messages passed from clients to `swd` server.
 
-use serde::{Serialize, Deserialize};
+use std::{io, path::Path};
 
-use crate::util::iter_into_vec;
+use serde::{Serialize, Deserialize};
+use tokio::net::UnixStream;
+
+use crate::{util::iter_into_vec, traits::Codecable};
 
 pub use super::request_specifics::SpecificArgs;
 
@@ -61,6 +64,31 @@ impl Request {
     pub fn new(common_args: CommonArgs, specific_args: SpecificArgs) -> Self {
         Self { common_args, specific_args }
     }
+
+    /// Send this [`Request`] through a socket to `swd`. A [`UnixStream`] is
+    /// returned so that a reply can be read from it.
+    pub async fn send_to_socket<P: AsRef<Path>>(&self, ssock_path: P) -> io::Result<UnixStream> {
+        send_request_bytes(ssock_path, &self.to_bytes()?).await
+    }
+}
+
+/// Standardised way to connect to the appropriate socket.
+pub async fn connect_to_socket<P: AsRef<Path>>(ssock_path: P) -> io::Result<UnixStream> {
+    UnixStream::connect(ssock_path).await
+}
+
+/// Send some bytes through a socket to `swd`. A [`Request`] can be serialised
+/// to bytes using the [`Codecable::to_bytes`] trait method. A [`UnixStream`] is
+/// returned so that a reply can be read from it.
+pub async fn send_request_bytes<P, B>(ssock_path: P, bytes: B) -> io::Result<UnixStream>
+where
+    P: AsRef<Path>,
+    B: AsRef<[u8]>
+{
+    let stream = connect_to_socket(ssock_path).await?;
+    stream.writable().await?;
+    stream.try_write(bytes.as_ref())?;
+    Ok(stream)
 }
 
 #[cfg(test)]
