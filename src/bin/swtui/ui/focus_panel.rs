@@ -37,8 +37,13 @@ impl FocusPanel {
             ColorPair::Active.set_color(&ui.window, false);
             let display_time = ui.formatter.format_duration(d.total_time);
             let (l_x, r_x) = center_text(display_time.len(), (left, right)).unwrap();
-            ColorPair::Active.set_color(&ui.window, true);
             ui.window.mvaddnstr(top+1, l_x, &display_time, r_x - l_x + 1);
+
+            // State
+            ColorPair::Active.set_color(&ui.window, true);
+            let display_state = format!("{}", d.state);
+            let (l_x, r_x) = center_text(display_state.len(), (left, right)).unwrap();
+            ui.window.mvaddnstr(top+2, l_x, &display_state, r_x - l_x + 1);
         } else if let Some(identifier) = selected.as_ref() {
             let err_msg = "Could not find:";
             let mid_y = (bottom - top) / 2;

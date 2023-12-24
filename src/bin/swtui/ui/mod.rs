@@ -12,7 +12,8 @@ use std::{
 
 use stopwatchd::{
     communication::details::StopwatchDetails,
-    fmt::Formatter
+    fmt::Formatter,
+    models::stopwatch::State
 };
 
 use self::{
@@ -133,6 +134,17 @@ impl Ui {
 
     pub fn is_focus_active(&self) -> bool {
         self.focus_active
+    }
+
+    pub fn toggle_state(&mut self) {
+        // TODO: Send command to swd
+        if let Some(ref mut d) = self.focus_panel_state.details {
+            match d.state {
+                State::Playing => d.state = State::Paused,
+                State::Paused => d.state = State::Playing,
+                State::Ended => {}
+            }
+        }
     }
 }
 

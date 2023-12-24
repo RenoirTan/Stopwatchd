@@ -1,5 +1,8 @@
+use stopwatchd::models::stopwatch::State;
+
 use crate::ui::{
     color::ColorPair,
+    focus_panel::FocusPanelState,
     Ui
 };
 
@@ -57,7 +60,22 @@ impl Bar {
         *x = ui.add_string(*x, y, "Back ");
 
         // Space: Play or Pause
-        // TODO: Pass a state as an argument that tells the bar whether
+        let FocusPanelState { selected: _selected, details } = &ui.focus_panel_state;
+        let details = details.as_ref();
+        if let Some(d) = details {
+            ColorPair::BarKey.set_color(&ui.window, false);
+            match d.state {
+                State::Playing | State::Paused => *x = ui.add_string(*x, y, "Space"),
+                State::Ended => {}
+            }
+            ColorPair::Bar.set_color(&ui.window, false);
+            match d.state {
+                State::Playing => *x = ui.add_string(*x, y, "Pause"),
+                State::Paused => *x = ui.add_string(*x, y, "Play"),
+                State::Ended => {}
+            }
+        }
+
         // the current stopwatch is playing or not
         ColorPair::BarKey.set_color(&ui.window, false);
         *x = ui.add_string(*x, y, "Space");

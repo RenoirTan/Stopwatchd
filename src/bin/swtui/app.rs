@@ -56,7 +56,10 @@ pub async fn start() {
             },
             pancurses::Input::KeyEnd if !ui.is_focus_active() => {
                 ui.scroll_end();
-            }
+            },
+            pancurses::Input::Character(' ') if ui.is_focus_active() => {
+                ui.toggle_state();
+            },
             _ => {}
         }
         ui.draw();
