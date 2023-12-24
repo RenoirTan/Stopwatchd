@@ -7,6 +7,7 @@ use tokio::net::UnixStream;
 
 use crate::{util::iter_into_vec, traits::Codecable};
 
+use super::request_specifics::InfoArgs;
 pub use super::request_specifics::SpecificArgs;
 
 /// Common arguments for requests.
@@ -63,6 +64,20 @@ impl Request {
     /// Create a new [`Request`].
     pub fn new(common_args: CommonArgs, specific_args: SpecificArgs) -> Self {
         Self { common_args, specific_args }
+    }
+
+    /// Create a [`Request`] that queries all stopwatches. Like: swctl info
+    pub fn info_all(verbose: bool) -> Self {
+        let common_args = CommonArgs::new(vec![], verbose);
+        let specific_args = SpecificArgs::Info(InfoArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    /// Create a [`Request`] that queries some known stopwatches.
+    pub fn info_some(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Info(InfoArgs);
+        Self::new(common_args, specific_args)
     }
 
     /// Send this [`Request`] through a socket to `swd`. A [`UnixStream`] is

@@ -39,7 +39,8 @@ pub async fn start() {
     let ssock_path = server_socket_path(Some(swd_pid), uid);
 
     let mut ui = Ui::default();
-    ui.refresh_list(&ssock_path).await;
+    ui.ssock_path = ssock_path;
+    ui.refresh_list().await;
     ui.list_panel_state.selected = 0;
     trace!("[swtui::app::start] initialized swtui::ui::Ui");
     init_color();
@@ -60,10 +61,10 @@ pub async fn start() {
                 break;
             },
             pancurses::Input::KeyLeft => {
-                ui.set_focus_active(false);
+                ui.set_focus_active(false).await;
             },
             pancurses::Input::KeyRight => {
-                ui.set_focus_active(true);
+                ui.set_focus_active(true).await;
             },
             // when active window is list panel
             pancurses::Input::KeyDown if !ui.is_focus_active() => {
@@ -84,7 +85,8 @@ pub async fn start() {
             _ => {}
         }
         ui.draw();
-        ui.refresh_list(&ssock_path).await;
+        ui.refresh_list().await;
+        ui.refresh_stopwatch().await;
     }
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();

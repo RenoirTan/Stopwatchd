@@ -8,14 +8,13 @@ pub mod list_panel;
 use std::{
     cmp::{max, min},
     sync::Arc,
-    path::Path
+    path::PathBuf
 };
 
 use stopwatchd::{
     communication::{
         details::StopwatchDetails,
-        client::{CommonArgs, Request, receive_reply_bytes},
-        request_specifics::{SpecificArgs, InfoArgs},
+        client::{Request, receive_reply_bytes},
         server::Reply,
         reply_specifics::{SpecificAnswer, InfoAnswer}
     },
@@ -41,7 +40,8 @@ pub struct Ui {
     pub focus_panel_state: FocusPanelState,
     pub bar: Bar,
     focus_active: bool,
-    pub formatter: Formatter
+    pub formatter: Formatter,
+    pub ssock_path: PathBuf
 }
 
 impl Ui {
@@ -54,7 +54,8 @@ impl Ui {
         focus_panel_state: FocusPanelState,
         bar: Bar,
         focus_active: bool,
-        formatter: Formatter
+        formatter: Formatter,
+        ssock_path: PathBuf
     ) -> Self {
         window.nodelay(false);
         window.keypad(true);
@@ -68,22 +69,21 @@ impl Ui {
             focus_panel_state,
             bar,
             focus_active,
-            formatter
+            formatter,
+            ssock_path
         }
     }
 
-    pub async fn refresh_list<P: AsRef<Path>>(&mut self, ssock_path: P) {
-        let common_args = CommonArgs::default();
-        let specific_args = SpecificArgs::Info(InfoArgs);
-        let request = Request::new(common_args, specific_args);
-        let ssock_path_str = ssock_path.as_ref().display();
+    pub async fn refresh_list(&mut self) {
+        let request = Request::info_all(false);
+        let ssock_path_str = self.ssock_path.display();
 
         // We must constantly reconnect because `swd` drops the other end
         // of the line once it has replied the first time and [`UnixListener`]
         // has to be triggered again.
-        trace!("connecting to {}", ssock_path_str);
+        trace!("[swtui::ui::Ui::refresh_list] connecting to {}", ssock_path_str);
         // TODO: show separate messages depending on known errors
-        let stream = request.send_to_socket(&ssock_path).await
+        let stream = request.send_to_socket(&self.ssock_path).await
             .expect(&format!("could not send request to {}", ssock_path_str));
 
         info!("[swtui::ui::Ui::refresh_list] reading response from server");
@@ -101,6 +101,37 @@ impl Ui {
                 .iter()
                 .map(|s| reply.successful.get(s).unwrap().identifier.clone())
                 .collect();
+        } else {
+            panic!("refresh request should be replied with InfoAnswer::All");
+        }
+    }
+
+    // TODO: when refreshing a stopwatch, the access order changes and mucks
+    // everything up
+    pub async fn refresh_stopwatch(&mut self) {
+        if self.focus_panel_state.selected.is_none() { return; }
+        let identifier = self.focus_panel_state.selected.as_ref().unwrap();
+        let raw_id = identifier.to_string();
+        let request = Request::info_some(vec![raw_id.clone()], true);
+        let ssock_path_str = self.ssock_path.display();
+
+        trace!("[swtui::ui::Ui::refresh_stopwatch] connecting to {}", ssock_path_str);
+        // TODO: show separate messages depending on known errors
+        let stream = request.send_to_socket(&self.ssock_path).await
+            .expect(&format!("could not send request to {}", ssock_path_str));
+
+        info!("[swtui::ui::Ui::refresh_stopwatch] reading response from server");
+        let braw = receive_reply_bytes(stream).await
+            .expect(&format!("could not read reply message from {}", ssock_path_str));
+
+        let mut reply = Reply::from_bytes(&braw)
+            .expect(&format!("could not convert message to reply"));
+
+        if !reply.errors.is_empty() {
+            panic!("reply to stopwatch refresh request returns error, requires reworking");
+        }
+        if let SpecificAnswer::Info(InfoAnswer::Basic) = reply.specific_answer {
+            self.focus_panel_state.details = reply.successful.remove(&raw_id);
         } else {
             panic!("refresh request should be replied with InfoAnswer::All");
         }
@@ -161,16 +192,16 @@ impl Ui {
         self.list_panel_state.scroll_end(height as usize);
     }
 
-    pub fn set_focus_active(&mut self, yes: bool) {
+    pub async fn set_focus_active(&mut self, yes: bool) {
         self.focus_active = yes;
         if yes {
             self.focus_panel_state.selected = self.list_panel_state.identifiers
                 .get(self.list_panel_state.selected)
                 .cloned();
-            self.focus_panel_state.details = match self.focus_panel_state.selected {
-                Some(ref id) => Some(StopwatchDetails::dummy(id.clone())),
-                None => None
-            };
+            match self.focus_panel_state.selected {
+                Some(ref _id) => self.refresh_stopwatch().await,
+                None => self.focus_panel_state.details = None
+            }
         }
     }
 
@@ -207,7 +238,8 @@ impl Default for Ui {
             FocusPanelState::default(),
             Bar,
             false,
-            Formatter::default()
+            Formatter::default(),
+            PathBuf::new()
         )
     }
 }
