@@ -6,7 +6,6 @@ use stopwatchd::{
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{get_uid, server_socket_path}
 };
-use tokio::net::UnixStream;
 
 use crate::{
     cli,
