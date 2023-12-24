@@ -38,17 +38,9 @@ pub async fn start() {
     debug!("swd_pid is {}", swd_pid);
 
     let ssock_path = server_socket_path(Some(swd_pid), uid);
-    let ssock_path_str = ssock_path.to_string_lossy();
-    trace!("connecting to {:?}", ssock_path);
-    let stream = UnixStream::connect(&ssock_path).await
-        .expect(&format!("could not connect to {}", ssock_path_str));
-    trace!("connected to {:?}", ssock_path);
-
-    trace!("checking if can write to server");
-    stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
 
     let mut ui = Ui::default();
-    ui.refresh_list(&stream, &ssock_path).await;
+    ui.refresh_list(&ssock_path).await;
     ui.list_panel_state.selected = 0;
     trace!("[swtui::app::start] initialized swtui::ui::Ui");
     init_color();
@@ -93,7 +85,7 @@ pub async fn start() {
             _ => {}
         }
         ui.draw();
-        ui.refresh_list(&stream, &ssock_path).await;
+        ui.refresh_list(&ssock_path).await;
     }
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();

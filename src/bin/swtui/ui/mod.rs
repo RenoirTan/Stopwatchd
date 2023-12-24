@@ -73,23 +73,33 @@ impl Ui {
         }
     }
 
-    pub async fn refresh_list<P: AsRef<Path>>(&mut self, stream: &UnixStream, ssock_path: P) {
+    pub async fn refresh_list<P: AsRef<Path>>(&mut self, ssock_path: P) {
         let common_args = CommonArgs::default();
         let specific_args = SpecificArgs::Info(InfoArgs);
         let request = Request::new(common_args, specific_args);
         let message_bytes = request.to_bytes()
-            .expect("could not serialize request to bytes");
+            .expect("[swtui::ui::Ui::refresh_list] could not serialize request to bytes");
         let ssock_path_str = ssock_path.as_ref().display();
+
+        // We must constantly reconnect because `swd` drops the other end
+        // of the line once it has replied the first time and [`UnixListener`]
+        // has to be triggered again.
+        trace!("connecting to {}", ssock_path_str);
+        let stream = UnixStream::connect(&ssock_path).await
+            .expect(&format!("could not connect to {}", ssock_path_str));
+        trace!("connected to {}", ssock_path_str);
         
-        debug!("sending refresh request");
+        trace!("[swtui::ui::Ui::refresh_list] checking if can write to server");
+        stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
+        debug!("[swtui::ui::Ui::refresh_list] sending refresh request");
         stream.try_write(&message_bytes)
             .expect(&format!("could not write request message to {}", ssock_path_str));
 
-        trace!("checking if can read from server");
+        trace!("[swtui::ui::Ui::refresh_list] checking if can read from server");
         stream.readable().await
             .expect(&format!("{} is not readable", ssock_path_str));
         let mut braw = Vec::with_capacity(4096);
-        info!("reading response from server");
+        info!("[swtui::ui::Ui::refresh_list] reading response from server");
         stream.try_read_buf(&mut braw)
             .expect(&format!("could not read reply message from {}", ssock_path_str));
 

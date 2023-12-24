@@ -55,6 +55,7 @@ pub struct ListPanelState {
 }
 
 impl ListPanelState {
+    #[allow(unused)]
     pub fn generate_fake_names(number_of_stopwatches: usize) -> Self {
         let mut identifiers = Vec::new();
         for i in 0..number_of_stopwatches {
