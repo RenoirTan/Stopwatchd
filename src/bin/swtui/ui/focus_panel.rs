@@ -25,7 +25,6 @@ impl FocusPanel {
         let FocusPanelState { selected, details } = state;
         self.clear(ui);
         let (left, right, top, bottom) = ui.borders_geometry().focus_panel_geometry();
-        ColorPair::Active.set_color(&ui.window, false);
         if let Some(ref d) = details {
             // Name
             let display_name = d.identifier.to_string();
@@ -45,6 +44,7 @@ impl FocusPanel {
             let (l_x, r_x) = center_text(display_state.len(), (left, right)).unwrap();
             ui.window.mvaddnstr(top+2, l_x, &display_state, r_x - l_x + 1);
         } else if let Some(identifier) = selected.as_ref() {
+            ColorPair::Active.set_color(&ui.window, false);
             let err_msg = "Could not find:";
             let mid_y = (bottom - top) / 2;
             let (l_x, r_x) = center_text(err_msg.len(), (left, right)).unwrap();
@@ -53,6 +53,7 @@ impl FocusPanel {
             let (l_x, r_x) = center_text(id_str.len(), (left, right)).unwrap();
             ui.window.mvaddnstr(mid_y + 1, l_x, id_str, r_x - l_x + 1);
         } else {
+            ColorPair::Active.set_color(&ui.window, true);
             let welcome = "Stopwatchd";
             let mid_y = (bottom - top) / 2;
             let (l_x, r_x) = center_text(welcome.len(), (left, right)).unwrap();
