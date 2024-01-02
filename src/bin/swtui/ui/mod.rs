@@ -6,7 +6,6 @@ pub mod geometry;
 pub mod list_panel;
 
 use std::{
-    cmp::{max, min},
     sync::Arc,
     path::PathBuf
 };
@@ -25,7 +24,7 @@ use stopwatchd::{
 use self::{
     bar::Bar,
     border::Border,
-    geometry::{Size, Location, BordersGeometry, BarLocation},
+    geometry::{Size, BordersGeometry, BarLocation},
     list_panel::{ListPanel, ListPanelState},
     focus_panel::{FocusPanel, FocusPanelState}
 };
@@ -47,9 +46,7 @@ impl Ui {
     pub fn new(
         window: Arc<pancurses::Window>,
         border: Border,
-        list_panel: ListPanel,
         list_panel_state: ListPanelState,
-        focus_panel: FocusPanel,
         focus_panel_state: FocusPanelState,
         bar: Bar,
         focus_active: bool,
@@ -59,6 +56,9 @@ impl Ui {
         window.nodelay(false);
         window.keypad(true);
         pancurses::noecho();
+        let g = BordersGeometry::from_window(&window);
+        let list_panel = ListPanel::new(Arc::new(ListPanel::newwin(g)));
+        let focus_panel = FocusPanel::new(Arc::new(FocusPanel::newwin(g)));
         Self {
             window,
             border,
@@ -137,28 +137,21 @@ impl Ui {
     }
 
     pub fn draw(&self) {
-        self.border.draw(self, self.focus_active);
-        self.list_panel.draw(self, &self.list_panel_state);
-        self.focus_panel.draw(self, &self.focus_panel_state);
         self.bar.draw(self, self.focus_active);
-        self.window.refresh();
+        self.window.refresh(); // must be placed here or the other windows will be cleared
+        self.list_panel.draw(self);
+        self.list_panel.refresh();
+        self.focus_panel.draw(self);
+        self.focus_panel.refresh();
     }
 
     /// (rows, columns) or (y, x)
     pub fn dimensions(&self) -> Size {
-        let (y, x) = self.window.get_max_yx();
-        Size { x, y }
+        Size::window_dimensions(&self.window)
     }
 
     pub fn borders_geometry(&self) -> BordersGeometry {
-        let Size { x, y } = self.dimensions();
-        BordersGeometry {
-            top_left: Location { x: 0, y: 0 },
-            // Leave 1 line at the bottom for bar
-            bottom_right: Location { x: x-1, y: y-2 },
-            // 21 <= x <= 49
-            separator_x: min(max(x/3, 21), 49)
-        }
+        BordersGeometry::from_window(&self.window)
     }
 
     pub fn bar_location(&self) -> BarLocation {
@@ -171,23 +164,18 @@ impl Ui {
         x + s.as_ref().len() as i32
     }
 
-    fn list_panel_height(&self) -> i32 {
-        let (_l, _r, top, bottom) = self.borders_geometry().list_panel_geometry();
-        bottom - top + 1
-    }
-
     pub fn scroll(&mut self, up: bool) {
-        let height = self.list_panel_height();
+        let height = self.list_panel.height();
         self.list_panel_state.scroll_inner(up, height as usize);
     }
 
     pub fn scroll_home(&mut self) {
-        let height = self.list_panel_height();
+        let height = self.list_panel.height();
         self.list_panel_state.scroll_home(height as usize);
     }
 
     pub fn scroll_end(&mut self) {
-        let height = self.list_panel_height();
+        let height = self.list_panel.height();
         self.list_panel_state.scroll_end(height as usize);
     }
 
@@ -231,9 +219,7 @@ impl Default for Ui {
         Self::new(
             Arc::new(pancurses::initscr()),
             Border::new_unicode(),
-            ListPanel,
             ListPanelState::default(),
-            FocusPanel,
             FocusPanelState::default(),
             Bar,
             false,
