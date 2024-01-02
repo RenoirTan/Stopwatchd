@@ -69,6 +69,7 @@ pub async fn start() {
                 // TODO: swctl start name
                 pancurses::Input::Character('\n') => {
                     ui.prompt_state.visible = false;
+                    ui.start_stopwatch().await;
                     ui.prompt_state.name.clear();
                 },
                 pancurses::Input::Character(c) => {
