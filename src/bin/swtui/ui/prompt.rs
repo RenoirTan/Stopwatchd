@@ -44,17 +44,26 @@ impl Prompt {
 
     pub fn draw(&self, ui: &Ui) {
         self.clear();
+        self.window.refresh();
         self.border(ui);
+        ColorPair::Active.set_color(&self.window, true);
         self.window.mvaddstr(1, 1, "Name for stopwatch:");
-        let length = ui.prompt_state.name.len();
+        // TODO: CJK characters occupy 2 cells each according to ncurses!
+        let chars: Vec<char> = ui.prompt_state.name.chars().collect();
+        // let chars = &ui.prompt_state.name;
+        let length = chars.len();
         let (left, right, _top, _bottom) = self.geometry();
-        let max_displayed_len = (right - left + 1) as usize;
+        let max_displayed_len = (right - left) as usize; // last column is for cursor
         let displayed = if length > max_displayed_len {
-            &ui.prompt_state.name[length-max_displayed_len..]
+            &chars[length-max_displayed_len..]
         } else {
-            &ui.prompt_state.name
+            &chars
         };
-        self.window.mvaddnstr(2, 1, displayed, max_displayed_len as i32);
+        ColorPair::Active.set_color(&self.window, false);
+        let stringified: String = displayed.iter().collect();
+        self.window.mvaddnstr(2, 1, &stringified, max_displayed_len as i32);
+        ColorPair::Selected.set_color(&self.window, false);
+        self.window.addnstr("_", 1);
     }
 }
 

@@ -69,7 +69,7 @@ pub async fn start() {
                 pancurses::Input::Character('\n') => {
                     ui.prompt_state.visible = false;
                     ui.start_stopwatch().await;
-                    ui.prompt_state.name.clear();
+                    ui.prompt_state.reset();
                 },
                 pancurses::Input::Character(c) => {
                     ui.prompt_state.add_char(c);
