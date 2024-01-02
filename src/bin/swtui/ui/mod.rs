@@ -4,6 +4,7 @@ pub mod color;
 pub mod focus_panel;
 pub mod geometry;
 pub mod list_panel;
+pub mod prompt;
 
 use std::{
     sync::Arc,
@@ -26,7 +27,8 @@ use self::{
     border::Border,
     geometry::{Size, BordersGeometry, BarLocation},
     list_panel::{ListPanel, ListPanelState},
-    focus_panel::{FocusPanel, FocusPanelState}
+    focus_panel::{FocusPanel, FocusPanelState},
+    prompt::{Prompt, PromptState}
 };
 
 pub struct Ui {
@@ -36,6 +38,8 @@ pub struct Ui {
     pub list_panel_state: ListPanelState,
     pub focus_panel: FocusPanel,
     pub focus_panel_state: FocusPanelState,
+    pub prompt: Prompt,
+    pub prompt_state: PromptState,
     pub bar: Bar,
     focus_active: bool,
     pub formatter: Formatter,
@@ -48,6 +52,7 @@ impl Ui {
         border: Border,
         list_panel_state: ListPanelState,
         focus_panel_state: FocusPanelState,
+        prompt_state: PromptState,
         bar: Bar,
         focus_active: bool,
         formatter: Formatter,
@@ -59,6 +64,7 @@ impl Ui {
         let g = BordersGeometry::from_window(&window);
         let list_panel = ListPanel::new(Arc::new(ListPanel::newwin(g)));
         let focus_panel = FocusPanel::new(Arc::new(FocusPanel::newwin(g)));
+        let prompt = Prompt::new(Arc::new(Prompt::newwin()));
         Self {
             window,
             border,
@@ -66,6 +72,8 @@ impl Ui {
             list_panel_state,
             focus_panel,
             focus_panel_state,
+            prompt,
+            prompt_state,
             bar,
             focus_active,
             formatter,
@@ -143,6 +151,10 @@ impl Ui {
         self.list_panel.refresh();
         self.focus_panel.draw(self);
         self.focus_panel.refresh();
+        if self.prompt_state.visible {
+            self.prompt.draw(self);
+            self.prompt.refresh();
+        }
     }
 
     /// (rows, columns) or (y, x)
@@ -206,6 +218,10 @@ impl Ui {
             }
         }
     }
+
+    pub fn prompt_name(&mut self) {
+        self.prompt_state.visible = true;
+    }
 }
 
 impl AsRef<pancurses::Window> for Ui {
@@ -221,6 +237,7 @@ impl Default for Ui {
             Border::new_unicode(),
             ListPanelState::default(),
             FocusPanelState::default(),
+            PromptState::default(),
             Bar,
             false,
             Formatter::default(),

@@ -48,6 +48,12 @@ impl Bar {
         ColorPair::Bar.set_color(&ui.window, false);
         *x = ui.add_string(*x, y, "Scroll Down ");
 
+        // N: New
+        ColorPair::BarKey.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "N");
+        ColorPair::Bar.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "New");
+
         self.draw_global_shortcuts(ui, x);
     }
 

@@ -88,6 +88,14 @@ pub async fn start() {
             pancurses::Input::Character(' ') if ui.is_focus_active() => {
                 ui.toggle_state();
             },
+            pancurses::Input::Character('n') if !ui.is_focus_active() => {
+                ui.prompt_name();
+            },
+            // ESC
+            // TODO: make sure this is OS-agnostic
+            pancurses::Input::Character('\u{1b}') if ui.prompt_state.visible => {
+                ui.prompt_state.visible = false;
+            }
             _ => {}
         }
         ui.draw();
