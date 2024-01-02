@@ -47,6 +47,8 @@ pub fn set_panic_hook() {
         println!("{}", panic_info);
         println!("stack backtrace:\n{}", backtrace);
         error!("{}", panic_info);
+        // TODO: decide whether I need this line or not
+        error!("stack backtrace:\n{}", backtrace);
     }));
 }
 

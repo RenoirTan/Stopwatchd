@@ -13,7 +13,6 @@ use std::{
 
 use stopwatchd::{
     communication::{
-        details::StopwatchDetails,
         client::{Request, receive_reply_bytes},
         server::Reply,
         reply_specifics::{SpecificAnswer, InfoAnswer}

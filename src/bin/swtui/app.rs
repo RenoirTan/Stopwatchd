@@ -22,6 +22,9 @@ pub async fn start() {
         .expect("could not setup logging");
     debug!("[swtui::app::start] swtui is now outputting logs");
 
+    // TODO: make this optional
+    logging::set_panic_hook();
+
     #[cfg(not(feature = "users"))]
     let uid = get_uid();
     #[cfg(feature = "users")]
@@ -57,6 +60,9 @@ pub async fn start() {
     trace!("[swtui::app::start] awaiting F10 to exit");
     while let Some(ch) = keypress_rx.recv().await {
         match ch {
+            pancurses::Input::KeyF9 => {
+                panic!("[swtui::app::start] F9");
+            },
             pancurses::Input::KeyF10 => {
                 break;
             },
