@@ -29,7 +29,7 @@ impl FocusPanel {
 
     pub fn geometry(&self) -> (i32, i32, i32, i32) {
         let (max_y, max_x) = self.window.get_max_yx();
-        (1, max_x-1, 1, max_y-1)
+        (1, max_x-2, 1, max_y-2) // don't include border
     }
 
     pub fn clear(&self) {

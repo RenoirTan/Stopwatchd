@@ -25,7 +25,7 @@ impl Prompt {
 
     pub fn geometry(&self) -> (i32, i32, i32, i32) {
         let (max_y, max_x) = self.window.get_max_yx();
-        (1, max_x-1, 1, max_y-1)
+        (1, max_x-2, 1, max_y-2)
     }
 
     pub fn clear(&self) {
@@ -48,7 +48,7 @@ impl Prompt {
         self.window.mvaddstr(1, 1, "Name for stopwatch:");
         let length = ui.prompt_state.name.len();
         let (left, right, _top, _bottom) = self.geometry();
-        let max_displayed_len = (right - left) as usize;
+        let max_displayed_len = (right - left + 1) as usize;
         let displayed = if length > max_displayed_len {
             &ui.prompt_state.name[length-max_displayed_len..]
         } else {
