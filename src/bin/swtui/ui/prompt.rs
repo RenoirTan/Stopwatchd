@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    cmp::{min, max},
+    sync::Arc
+};
 
 use crate::ui::{Ui, color::ColorPair};
 
@@ -8,8 +11,12 @@ pub struct Prompt {
 
 impl Prompt {
     pub fn newwin(main: &pancurses::Window) -> pancurses::Window {
-        // TODO: don't use hardcoded values
-        main.subwin(4, 64, 1, 1).unwrap()
+        let rows = 4;
+        let max_x = main.get_max_x();
+        let columns = min(max(max_x/2, 16), max_x); // 16 <= columns <= max_x
+        let beg_y = (main.get_max_y() - rows) / 2;
+        let beg_x = (max_x - columns) / 2;
+        main.subwin(rows, columns, beg_y, beg_x).unwrap()
     }
 
     pub fn new(window: Arc<pancurses::Window>) -> Self {
@@ -40,12 +47,14 @@ impl Prompt {
         self.border(ui);
         self.window.mvaddstr(1, 1, "Name for stopwatch:");
         let length = ui.prompt_state.name.len();
-        let displayed = if length > 62 {
-            &ui.prompt_state.name[length-62..]
+        let (left, right, _top, _bottom) = self.geometry();
+        let max_displayed_len = (right - left) as usize;
+        let displayed = if length > max_displayed_len {
+            &ui.prompt_state.name[length-max_displayed_len..]
         } else {
             &ui.prompt_state.name
         };
-        self.window.mvaddnstr(2, 1, displayed, 62);
+        self.window.mvaddnstr(2, 1, displayed, max_displayed_len as i32);
     }
 }
 
