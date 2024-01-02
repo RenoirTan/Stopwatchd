@@ -69,6 +69,18 @@ impl PromptState {
         let name = name.into();
         Self { name, visible }
     }
+
+    pub fn reset(&mut self) {
+        self.name.clear();
+    }
+
+    pub fn add_char(&mut self, ch: char) {
+        self.name.push(ch);
+    }
+
+    pub fn backspace(&mut self) {
+        self.name.pop();
+    }
 }
 
 impl Default for PromptState {

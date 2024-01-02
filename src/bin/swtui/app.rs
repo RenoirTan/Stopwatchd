@@ -66,17 +66,16 @@ pub async fn start() {
                 pancurses::Input::Character('\u{1b}') => {
                     ui.prompt_state.visible = false;
                 },
-                // TODO: swctl start name
                 pancurses::Input::Character('\n') => {
                     ui.prompt_state.visible = false;
                     ui.start_stopwatch().await;
                     ui.prompt_state.name.clear();
                 },
                 pancurses::Input::Character(c) => {
-                    ui.prompt_state.name.push(c);
+                    ui.prompt_state.add_char(c);
                 },
                 pancurses::Input::KeyBackspace => {
-                    ui.prompt_state.name.pop();
+                    ui.prompt_state.backspace();
                 }
                 _ => {} // TODO: WHAT
             }
