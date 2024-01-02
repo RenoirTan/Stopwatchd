@@ -59,36 +59,61 @@ pub async fn start() {
     ui.draw();
     trace!("[swtui::app::start] awaiting F10 to exit");
     while let Some(ch) = keypress_rx.recv().await {
-        match ch {
-            pancurses::Input::KeyF9 => {
-                panic!("[swtui::app::start] F9");
-            },
-            pancurses::Input::KeyF10 => {
-                break;
-            },
-            pancurses::Input::KeyLeft => {
-                ui.set_focus_active(false).await;
-            },
-            pancurses::Input::KeyRight => {
-                ui.set_focus_active(true).await;
-            },
-            // when active window is list panel
-            pancurses::Input::KeyDown if !ui.is_focus_active() => {
-                ui.scroll(false);
-            },
-            pancurses::Input::KeyUp if !ui.is_focus_active() => {
-                ui.scroll(true);
-            },
-            pancurses::Input::KeyHome if !ui.is_focus_active() => {
-                ui.scroll_home();
-            },
-            pancurses::Input::KeyEnd if !ui.is_focus_active() => {
-                ui.scroll_end();
-            },
-            pancurses::Input::Character(' ') if ui.is_focus_active() => {
-                ui.toggle_state();
-            },
-            _ => {}
+        if ui.prompt_state.visible {
+            match ch {
+                // ESC
+                // TODO: make sure this is OS-agnostic
+                pancurses::Input::Character('\u{1b}') => {
+                    ui.prompt_state.visible = false;
+                },
+                // TODO: swctl start name
+                pancurses::Input::Character('\n') => {
+                    ui.prompt_state.visible = false;
+                    ui.prompt_state.name.clear();
+                },
+                pancurses::Input::Character(c) => {
+                    ui.prompt_state.name.push(c);
+                },
+                pancurses::Input::KeyBackspace => {
+                    ui.prompt_state.name.pop();
+                }
+                _ => {} // TODO: WHAT
+            }
+        } else {
+            match ch {
+                pancurses::Input::KeyF9 => {
+                    panic!("[swtui::app::start] F9");
+                },
+                pancurses::Input::KeyF10 => {
+                    break;
+                },
+                pancurses::Input::KeyLeft => {
+                    ui.set_focus_active(false).await;
+                },
+                pancurses::Input::KeyRight => {
+                    ui.set_focus_active(true).await;
+                },
+                // when active window is list panel
+                pancurses::Input::KeyDown if !ui.is_focus_active() => {
+                    ui.scroll(false);
+                },
+                pancurses::Input::KeyUp if !ui.is_focus_active() => {
+                    ui.scroll(true);
+                },
+                pancurses::Input::KeyHome if !ui.is_focus_active() => {
+                    ui.scroll_home();
+                },
+                pancurses::Input::KeyEnd if !ui.is_focus_active() => {
+                    ui.scroll_end();
+                },
+                pancurses::Input::Character(' ') if ui.is_focus_active() => {
+                    ui.toggle_state();
+                },
+                pancurses::Input::Character('n') if !ui.is_focus_active() => {
+                    ui.prompt_name();
+                },
+                _ => {}
+            }
         }
         ui.draw();
         ui.refresh_list().await;

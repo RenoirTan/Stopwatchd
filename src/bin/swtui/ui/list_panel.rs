@@ -1,39 +1,74 @@
+use std::sync::Arc;
+
 use stopwatchd::identifiers::{Identifier, Name, UniqueId};
 use crate::{
-    ui::{Ui, color::ColorPair},
+    ui::{Ui, color::ColorPair, geometry::BordersGeometry},
     util::center_text
 };
 
-pub struct ListPanel;
+pub struct ListPanel {
+    pub window: Arc<pancurses::Window>
+}
 
 impl ListPanel {
-    pub fn clear(&self, ui: &Ui) {
-        let (left, right, top, bottom) = ui.borders_geometry().list_panel_geometry();
-        ColorPair::Active.set_color(&ui.window, false);
+    pub fn newwin(main: &pancurses::Window, g: BordersGeometry) -> pancurses::Window {
+        let nlines = g.bottom_right.y - g.top_left.y; // lowest row ignored for bar
+        let ncols = g.focus_x - g.top_left.x;
+        let begy = g.top_left.y;
+        let begx = g.top_left.x;
+        main.subwin(nlines, ncols, begy, begx).unwrap()
+    }
+
+    pub fn new(window: Arc<pancurses::Window>) -> Self {
+        Self { window }
+    }
+
+    pub fn geometry(&self) -> (i32, i32, i32, i32) {
+        let (max_y, max_x) = self.window.get_max_yx();
+        (1, max_x-1, 1, max_y-1)
+    }
+
+    pub fn height(&self) -> i32 {
+        let (_l, _r, top, bottom) = self.geometry();
+        bottom - top + 1
+    }
+
+    pub fn clear(&self) {
+        let (left, right, top, bottom) = self.geometry();
+        ColorPair::Active.set_color(&self.window, false);
         for x in left..=right {
             for y in top..=bottom {
-                ui.window.mvaddch(y, x, ' ');
+                self.window.mvaddch(y, x, ' ');
             }
         }
     }
 
-    pub fn draw(&self, ui: &Ui, state: &ListPanelState) {
-        let ListPanelState { identifiers: stopwatches, selected, start } = state;
-        self.clear(ui); // reset the screen
+    pub fn border(&self, ui: &Ui) {
+        ui.border.border(
+            &self.window,
+            if ui.is_focus_active() { ColorPair::Inactive } else { ColorPair::Selected },
+            false
+        );
+    }
+
+    pub fn draw(&self, ui: &Ui) {
+        let ListPanelState { identifiers: stopwatches, selected, start } = &ui.list_panel_state;
+        self.clear(); // reset the screen
+        self.border(ui);
         // nothing to do if no stopwatches
         if stopwatches.len() == 0 {
             return;
         }
-        let (left, right, top, bottom) = ui.borders_geometry().list_panel_geometry();
+        let (left, right, top, bottom) = self.geometry();
         // number of stopwatches that can fit on screen
         let height = (bottom - top + 1) as usize;
         for i in 0..height {
             let index = start + i;
             if index >= stopwatches.len() { break; } // goodbye
             if index == *selected {
-                ColorPair::Selected.set_color(&ui.window, true);
+                ColorPair::Selected.set_color(&self.window, true);
             } else {
-                ColorPair::Inactive.set_color(&ui.window, false);
+                ColorPair::Inactive.set_color(&self.window, false);
             }
             let y = top + i as i32; // where to write
             let identifier = stopwatches[index].to_string();
@@ -41,7 +76,7 @@ impl ListPanel {
             let l_x = l_x as i32;
             let r_x = r_x as i32;
             // only write the first r_x - l_x + 1 characters of the identifier
-            ui.window.mvaddnstr(y, l_x, identifier, r_x - l_x + 1);
+            self.window.mvaddnstr(y, l_x, identifier, r_x - l_x + 1);
         }
         assert!(*selected < stopwatches.len());
     }
