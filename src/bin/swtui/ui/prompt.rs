@@ -7,9 +7,9 @@ pub struct Prompt {
 }
 
 impl Prompt {
-    pub fn newwin() -> pancurses::Window {
+    pub fn newwin(main: &pancurses::Window) -> pancurses::Window {
         // TODO: don't use hardcoded values
-        pancurses::newwin(4, 64, 1, 1)
+        main.subwin(4, 64, 1, 1).unwrap()
     }
 
     pub fn new(window: Arc<pancurses::Window>) -> Self {
@@ -40,10 +40,6 @@ impl Prompt {
         self.border(ui);
         self.window.mvaddstr(1, 1, "Name for stopwatch:");
         self.window.mv(2, 1);
-    }
-
-    pub fn refresh(&self) {
-        self.window.refresh();
     }
 }
 

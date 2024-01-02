@@ -15,12 +15,12 @@ pub struct FocusPanel {
 }
 
 impl FocusPanel {
-    pub fn newwin(g: BordersGeometry) -> pancurses::Window {
+    pub fn newwin(main: &pancurses::Window, g: BordersGeometry) -> pancurses::Window {
         let nlines = g.bottom_right.y - g.top_left.y; // lowest row ignored for bar
         let ncols = g.bottom_right.x - g.focus_x + 1;
         let begy = g.top_left.y;
         let begx = g.focus_x;
-        pancurses::newwin(nlines, ncols, begy, begx)
+        main.subwin(nlines, ncols, begy, begx).unwrap()
     }
 
     pub fn new(window: Arc<pancurses::Window>) -> Self {
@@ -89,10 +89,6 @@ impl FocusPanel {
             let (l_x, r_x) = center_text(welcome.len(), (left, right)).unwrap();
             self.window.mvaddnstr(mid_y, l_x, welcome, r_x - l_x + 1);
         }
-    }
-
-    pub fn refresh(&self) {
-        self.window.refresh();
     }
 }
 

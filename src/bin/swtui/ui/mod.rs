@@ -62,9 +62,9 @@ impl Ui {
         window.keypad(true);
         pancurses::noecho();
         let g = BordersGeometry::from_window(&window);
-        let list_panel = ListPanel::new(Arc::new(ListPanel::newwin(g)));
-        let focus_panel = FocusPanel::new(Arc::new(FocusPanel::newwin(g)));
-        let prompt = Prompt::new(Arc::new(Prompt::newwin()));
+        let list_panel = ListPanel::new(Arc::new(ListPanel::newwin(&window, g)));
+        let focus_panel = FocusPanel::new(Arc::new(FocusPanel::newwin(&window, g)));
+        let prompt = Prompt::new(Arc::new(Prompt::newwin(&window)));
         Self {
             window,
             border,
@@ -146,15 +146,17 @@ impl Ui {
 
     pub fn draw(&self) {
         self.bar.draw(self, self.focus_active);
-        self.window.refresh(); // must be placed here or the other windows will be cleared
+        // self.window.refresh(); // must be placed here or the other windows will be cleared
         self.list_panel.draw(self);
-        self.list_panel.refresh();
+        // self.list_panel.refresh();
         self.focus_panel.draw(self);
-        self.focus_panel.refresh();
+        // self.focus_panel.refresh();
         if self.prompt_state.visible {
             self.prompt.draw(self);
-            self.prompt.refresh();
+            // self.prompt.refresh();
         }
+        self.window.touch();
+        self.window.refresh();
     }
 
     /// (rows, columns) or (y, x)

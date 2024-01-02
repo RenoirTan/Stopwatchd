@@ -11,12 +11,12 @@ pub struct ListPanel {
 }
 
 impl ListPanel {
-    pub fn newwin(g: BordersGeometry) -> pancurses::Window {
+    pub fn newwin(main: &pancurses::Window, g: BordersGeometry) -> pancurses::Window {
         let nlines = g.bottom_right.y - g.top_left.y; // lowest row ignored for bar
         let ncols = g.focus_x - g.top_left.x;
         let begy = g.top_left.y;
         let begx = g.top_left.x;
-        pancurses::newwin(nlines, ncols, begy, begx)
+        main.subwin(nlines, ncols, begy, begx).unwrap()
     }
 
     pub fn new(window: Arc<pancurses::Window>) -> Self {
@@ -79,10 +79,6 @@ impl ListPanel {
             self.window.mvaddnstr(y, l_x, identifier, r_x - l_x + 1);
         }
         assert!(*selected < stopwatches.len());
-    }
-
-    pub fn refresh(&self) {
-        self.window.refresh();
     }
 }
 
