@@ -39,7 +39,13 @@ impl Prompt {
         self.clear();
         self.border(ui);
         self.window.mvaddstr(1, 1, "Name for stopwatch:");
-        self.window.mv(2, 1);
+        let length = ui.prompt_state.name.len();
+        let displayed = if length > 62 {
+            &ui.prompt_state.name[length-62..]
+        } else {
+            &ui.prompt_state.name
+        };
+        self.window.mvaddnstr(2, 1, displayed, 62);
     }
 }
 
@@ -53,11 +59,6 @@ impl PromptState {
     pub fn new(name: impl Into<String>, visible: bool) -> Self {
         let name = name.into();
         Self { name, visible }
-    }
-
-    pub fn set_name(&mut self, name: impl Into<String>) {
-        let name = name.into();
-        self.name = name;
     }
 }
 
