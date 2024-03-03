@@ -13,10 +13,10 @@ use std::{
 
 use stopwatchd::{
     communication::{
-        client::{Request, receive_reply_bytes, CommonArgs},
-        server::Reply,
-        reply_specifics::{SpecificAnswer, InfoAnswer},
-        request_specifics::{SpecificArgs, StartArgs}
+        client::{receive_reply_bytes, ClientSender, CommonArgs, Request},
+        reply_specifics::{InfoAnswer, SpecificAnswer},
+        request_specifics::{SpecificArgs, StartArgs},
+        server::Reply
     },
     fmt::Formatter,
     models::stopwatch::State,
@@ -121,19 +121,8 @@ impl Ui {
         let identifier = self.focus_panel_state.selected.as_ref().unwrap();
         let raw_id = identifier.to_string();
         let request = Request::info_some(vec![raw_id.clone()], true);
-        let ssock_path_str = self.ssock_path.display();
-
-        trace!("[swtui::ui::Ui::refresh_stopwatch] connecting to {}", ssock_path_str);
-        // TODO: show separate messages depending on known errors
-        let stream = request.send_to_socket(&self.ssock_path).await
-            .expect(&format!("could not send request to {}", ssock_path_str));
-
-        info!("[swtui::ui::Ui::refresh_stopwatch] reading response from server");
-        let braw = receive_reply_bytes(stream).await
-            .expect(&format!("could not read reply message from {}", ssock_path_str));
-
-        let mut reply = Reply::from_bytes(&braw)
-            .expect(&format!("could not convert message to reply"));
+        
+        let mut reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 
         if !reply.errors.is_empty() {
             panic!("reply to stopwatch refresh request returns error, requires reworking");

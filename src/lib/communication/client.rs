@@ -1,13 +1,19 @@
 //! Messages passed from clients to `swd` server.
 
-use std::{io, path::Path};
+use std::{
+    io,
+    path::Path
+};
 
 use serde::{Serialize, Deserialize};
 use tokio::net::UnixStream;
 
 use crate::{util::iter_into_vec, traits::Codecable};
 
-use super::request_specifics::InfoArgs;
+use super::{
+    request_specifics::InfoArgs,
+    server::Reply
+};
 pub use super::request_specifics::SpecificArgs;
 
 /// Common arguments for requests.
@@ -113,6 +119,22 @@ pub async fn receive_reply_bytes(stream: UnixStream) -> io::Result<Vec<u8>> {
     let mut braw = Vec::with_capacity(4096);
     stream.try_read_buf(&mut braw)?;
     Ok(braw)
+}
+
+pub struct ClientSender<'p> {
+    pub ssock_path: &'p Path
+}
+
+impl<'p> ClientSender<'p> {
+    pub fn new(ssock_path: &'p Path) -> Self {
+        Self { ssock_path }
+    }
+
+    pub async fn send(&self, request: Request) -> io::Result<Reply> {
+        let stream = request.send_to_socket(self.ssock_path).await?;
+        let braw = receive_reply_bytes(stream).await?;
+        Reply::from_bytes(&braw)
+    }
 }
 
 #[cfg(test)]
