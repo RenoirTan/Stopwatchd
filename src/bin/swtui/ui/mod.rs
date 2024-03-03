@@ -84,22 +84,8 @@ impl Ui {
 
     pub async fn refresh_list(&mut self) {
         let request = Request::info_all(false);
-        let ssock_path_str = self.ssock_path.display();
-
-        // We must constantly reconnect because `swd` drops the other end
-        // of the line once it has replied the first time and [`UnixListener`]
-        // has to be triggered again.
-        trace!("[swtui::ui::Ui::refresh_list] connecting to {}", ssock_path_str);
-        // TODO: show separate messages depending on known errors
-        let stream = request.send_to_socket(&self.ssock_path).await
-            .expect(&format!("could not send request to {}", ssock_path_str));
-
-        info!("[swtui::ui::Ui::refresh_list] reading response from server");
-        let braw = receive_reply_bytes(stream).await
-            .expect(&format!("could not read reply message from {}", ssock_path_str));
-
-        let reply = Reply::from_bytes(&braw)
-            .expect(&format!("could not convert message to reply"));
+        
+        let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 
         if !reply.errors.is_empty() {
             panic!("reply to refresh request returns error, requires reworking");
