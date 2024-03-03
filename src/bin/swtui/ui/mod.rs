@@ -203,22 +203,9 @@ impl Ui {
 
     pub async fn start_stopwatch(&mut self) {
         let name = self.prompt_state.name.clone();
-        let common_args = CommonArgs::new(vec![name], false);
-        let specific_args = SpecificArgs::Start(StartArgs { fix_bad_names: true });
-        let request = Request::new(common_args, specific_args);
-        let ssock_path_str = self.ssock_path.display();
-
-        trace!("[swtui::ui::Ui::start_stopwatch] connecting to {}", ssock_path_str);
-        // TODO: show separate messages depending on known errors
-        let stream = request.send_to_socket(&self.ssock_path).await
-            .expect(&format!("could not send request to {}", ssock_path_str));
-
-        info!("[swtui::ui::Ui::start_stopwatch] reading response from server");
-        let braw = receive_reply_bytes(stream).await
-            .expect(&format!("could not read reply message from {}", ssock_path_str));
-
-        let reply = Reply::from_bytes(&braw)
-            .expect(&format!("could not convert message to reply"));
+        let request = Request::start(vec![name], false, StartArgs { fix_bad_names: true });
+        
+        let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 
         if reply.errors.len() >= 1 {
             error!("[swtui::ui::Ui::start_stopwatch] uh oh");

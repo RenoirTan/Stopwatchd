@@ -11,7 +11,7 @@ use tokio::net::UnixStream;
 use crate::{util::iter_into_vec, traits::Codecable};
 
 use super::{
-    request_specifics::InfoArgs,
+    request_specifics::{InfoArgs, StartArgs},
     server::Reply
 };
 pub use super::request_specifics::SpecificArgs;
@@ -83,6 +83,12 @@ impl Request {
     pub fn info_some(raw_identifiers: Vec<String>, verbose: bool) -> Self {
         let common_args = CommonArgs::new(raw_identifiers, verbose);
         let specific_args = SpecificArgs::Info(InfoArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn start(raw_identifiers: Vec<String>, verbose: bool, args: StartArgs) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Start(args);
         Self::new(common_args, specific_args)
     }
 
