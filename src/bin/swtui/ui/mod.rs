@@ -188,8 +188,8 @@ impl Ui {
         // TODO: Send command to swd
         let (mut reply, identifier) = if let Some(ref mut d) = self.focus_panel_state.details {
             let request = match d.state {
-                State::Playing => Request::pause(vec![d.identifier.to_string()], false),
-                State::Paused => Request::play(vec![d.identifier.to_string()], false),
+                State::Playing => Request::pause(vec![d.identifier.to_string()], true),
+                State::Paused => Request::play(vec![d.identifier.to_string()], true),
                 State::Ended => return ()
             };
 
@@ -217,7 +217,7 @@ impl Ui {
 
     pub async fn start_stopwatch(&mut self) {
         let name = self.prompt_state.name.clone();
-        let request = Request::start(vec![name], false, StartArgs { fix_bad_names: true });
+        let request = Request::start(vec![name], true, StartArgs { fix_bad_names: true });
         
         let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 
@@ -233,7 +233,7 @@ impl Ui {
             let request = match d.state {
                 State::Playing | State::Paused => Request::stop(
                     vec![d.identifier.to_string()],
-                    false
+                    true
                 ),
                 State::Ended => return ()
             };
@@ -261,7 +261,7 @@ impl Ui {
             let request = match d.state {
                 State::Playing | State::Paused => Request::lap(
                     vec![d.identifier.to_string()],
-                    false
+                    true
                 ),
                 State::Ended => return ()
             };
@@ -286,7 +286,7 @@ impl Ui {
 
     pub async fn delete_stopwatch(&mut self) {
         let reply = if let Some(ref mut d) = self.focus_panel_state.details {
-            let request = Request::delete(vec![d.identifier.to_string()], false);
+            let request = Request::delete(vec![d.identifier.to_string()], true);
 
             let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 

@@ -85,6 +85,29 @@ impl FocusPanel {
             let lap_count = format!("Lap Count: {}", d.laps_count());
             let (l_x, r_x) = center_text(lap_count.len(), (left, right)).unwrap();
             self.window.mvaddnstr(top+4, l_x, &lap_count, r_x - l_x + 1);
+
+            // Display all laps if exists
+            if let Some(ref vi) = d.verbose_info {
+                ColorPair::Active.set_color(&self.window, true);
+                let display_laps = "Laps:";
+                let (l_x, r_x) = center_text(display_laps.len(), (left, right)).unwrap();
+                self.window.mvaddnstr(top+5, l_x, display_laps, r_x - l_x + 1);
+
+                let mut row = top + 6;
+                for (index, lap) in vi.laps.iter().rev().enumerate() { // latest laps first
+                    if row > bottom {
+                        break;
+                    }
+
+                    let lap_number = d.laps_count() - index;
+                    let lap_time = ui.formatter.format_duration(lap.duration);
+                    let display_lap = format!("{}: {}", lap_number, lap_time);
+                    let (l_x, r_x) = center_text(display_lap.len(), (left, right)).unwrap();
+                    self.window.mvaddnstr(row, l_x, &display_lap, r_x - l_x + 1);
+
+                    row += 1;
+                }
+            }
         } else if let Some(identifier) = selected.as_ref() {
             ColorPair::Active.set_color(&self.window, false);
             let err_msg = "Could not find:";
