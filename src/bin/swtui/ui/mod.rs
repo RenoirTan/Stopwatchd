@@ -189,7 +189,6 @@ impl Ui {
     }
 
     pub async fn toggle_state(&mut self) {
-        // TODO: Send command to swd
         let (mut reply, identifier) = if let Some(ref mut d) = self.focus_panel_state.details {
             let request = match d.state {
                 State::Playing => Request::pause(vec![d.identifier.to_string()], true),
