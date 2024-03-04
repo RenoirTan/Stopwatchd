@@ -150,6 +150,18 @@ swtui
 
 To use, it simply type `swtui` in your terminal as shown above.
 
+```bash
+swtui --focus my-stopwatch
+```
+
+`swtui` can be forced to focus on a stopwatch using the `--focus` flag, given its name or UUID. If the stopwatch does not exist, `swtui` will simply not focus on any stopwatch.
+
+```bash
+swtui --new another
+```
+
+If you need to start a stopwatch straight from the command line, there is always the `--new` flag that allows you to create a stopwatch given its name. `swtui` automatically focuses on the new stopwatch.
+
 ## Configuring
 
 `swd` can be configured if the `swd-config` cargo feature is activated. If so, `swd` reads `/etc/stopwatchd.toml`. `swd` sessions spawned by a non-root user is configured using `$XDG_CONFIG_HOME/stopwatchd.toml` instead. A different config file can be specified using the `--config` flag.
