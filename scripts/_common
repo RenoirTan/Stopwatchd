@@ -22,6 +22,7 @@ outdir=${outdir:-"$(pwd)/out"}
 _reldir="./target/release"
 _swdpath="${_reldir}/swd"
 _swctlpath="${_reldir}/swctl"
+_swtuipath="${_reldir}/swtui"
 _servicepath="./res/init/systemd/stopwatchd.service"
 _swdconfpath="./res/conf/swd.toml"
 

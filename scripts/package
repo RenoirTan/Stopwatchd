@@ -20,6 +20,7 @@ fi
 mkdir -p "${pkgdir}/${bindir}"
 install -Dm 755 "${_swdpath}" "${pkgdir}/${bindir}/swd"
 install -Dm 755 "${_swctlpath}" "${pkgdir}/${bindir}/swctl"
+install -Dm 755 "${_swtuipath}" "${pkgdir}/${bindir}/swtui"
 echo "OK!"
 
 # /usr/share/doc/stopwatchd
