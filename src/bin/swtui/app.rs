@@ -125,17 +125,21 @@ pub async fn handle_keypress(ui: &mut Ui, ch: pancurses::Input) -> bool {
                 ui.set_focus_active(true).await;
             },
             // when active window is list panel
-            pancurses::Input::KeyDown if !ui.is_focus_active() => {
-                ui.scroll(false);
+            pancurses::Input::KeyDown => if ui.is_focus_active() {
+                ui.scroll_focus_panel(false);
+            } else {
+                ui.scroll_list_panel(false);
             },
-            pancurses::Input::KeyUp if !ui.is_focus_active() => {
-                ui.scroll(true);
+            pancurses::Input::KeyUp => if ui.is_focus_active() {
+                ui.scroll_focus_panel(true);
+            } else {
+                ui.scroll_list_panel(true);
             },
             pancurses::Input::KeyHome if !ui.is_focus_active() => {
-                ui.scroll_home();
+                ui.scroll_list_home();
             },
             pancurses::Input::KeyEnd if !ui.is_focus_active() => {
-                ui.scroll_end();
+                ui.scroll_list_end();
             },
             pancurses::Input::Character(' ') if ui.is_focus_active() => {
                 ui.toggle_state().await;

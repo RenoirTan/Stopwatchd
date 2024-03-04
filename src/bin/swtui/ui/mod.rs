@@ -112,7 +112,7 @@ impl Ui {
             panic!("reply to stopwatch refresh request returns error, requires reworking");
         }
         if let SpecificAnswer::Info(InfoAnswer::Basic) = reply.specific_answer {
-            self.focus_panel_state.details = reply.successful.remove(&raw_id);
+            self.focus_panel_state.update(reply.successful.remove(&raw_id));
         } else {
             panic!("refresh request should be replied with InfoAnswer::All");
         }
@@ -152,30 +152,34 @@ impl Ui {
         x + s.as_ref().len() as i32
     }
 
-    pub fn scroll(&mut self, up: bool) {
+    pub fn scroll_list_panel(&mut self, up: bool) {
         let height = self.list_panel.height();
         self.list_panel_state.scroll_inner(up, height as usize);
     }
 
-    pub fn scroll_home(&mut self) {
+    pub fn scroll_list_home(&mut self) {
         let height = self.list_panel.height();
         self.list_panel_state.scroll_home(height as usize);
     }
 
-    pub fn scroll_end(&mut self) {
+    pub fn scroll_list_end(&mut self) {
         let height = self.list_panel.height();
         self.list_panel_state.scroll_end(height as usize);
     }
 
+    pub fn scroll_focus_panel(&mut self, up: bool) {
+        self.focus_panel_state.scroll_inner(up);
+    }
     pub async fn set_focus_active(&mut self, yes: bool) {
         self.focus_active = yes;
         if yes {
-            self.focus_panel_state.selected = self.list_panel_state.identifiers
+            let new_identifier = self.list_panel_state.identifiers
                 .get(self.list_panel_state.selected)
                 .cloned();
+            self.focus_panel_state.update_selected(new_identifier);
             match self.focus_panel_state.selected {
                 Some(ref _id) => self.refresh_stopwatch().await,
-                None => self.focus_panel_state.details = None
+                None => self.focus_panel_state.update(None)
             }
         }
     }
@@ -205,7 +209,7 @@ impl Ui {
         };
 
         if matches!(reply.specific_answer, SpecificAnswer::Play(_) | SpecificAnswer::Pause(_)) {
-            self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
+            self.focus_panel_state.update(reply.successful.remove(&identifier.to_string()));
         } else {
             panic!("server did not reply with SpecificAnswer::Play or Pause!");
         }
@@ -250,7 +254,7 @@ impl Ui {
         };
 
         if let SpecificAnswer::Stop(_) = reply.specific_answer {
-            self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
+            self.focus_panel_state.update(reply.successful.remove(&identifier.to_string()));
         } else {
             panic!("server did not reply with SpecificAnswer::Stop!");
         }
@@ -278,7 +282,7 @@ impl Ui {
         };
 
         if let SpecificAnswer::Lap(_) = reply.specific_answer {
-            self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
+            self.focus_panel_state.update(reply.successful.remove(&identifier.to_string()));
         } else {
             panic!("server did not reply with SpecificAnswer::Lap!");
         }
@@ -300,7 +304,7 @@ impl Ui {
         };
 
         if let SpecificAnswer::Delete(_) = reply.specific_answer {
-            self.focus_panel_state = FocusPanelState { selected: None, details: None };
+            self.focus_panel_state.update(None);
         } else {
             panic!("server did not reply with SpecificAnswer::Delete!");
         }

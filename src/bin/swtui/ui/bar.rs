@@ -66,7 +66,7 @@ impl Bar {
         *x = ui.add_string(*x, y, "Back ");
 
         // Space: Play or Pause
-        let FocusPanelState { selected: _selected, details } = &ui.focus_panel_state;
+        let FocusPanelState { selected: _selected, details, .. } = &ui.focus_panel_state;
         let details = details.as_ref();
         if let Some(d) = details {
             ColorPair::BarKey.set_color(&ui.window, false);
@@ -82,11 +82,16 @@ impl Bar {
             }
         }
 
-        // the current stopwatch is playing or not
+        // Scroll laps
         ColorPair::BarKey.set_color(&ui.window, false);
-        *x = ui.add_string(*x, y, "Space");
+        *x = ui.add_string(*x, y, "Up");
         ColorPair::Bar.set_color(&ui.window, false);
-        *x = ui.add_string(*x, y, "Play ");
+        *x = ui.add_string(*x, y, "Scroll Up ");
+
+        ColorPair::BarKey.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Down");
+        ColorPair::Bar.set_color(&ui.window, false);
+        *x = ui.add_string(*x, y, "Scroll Down ");
 
         // Enter: Lap
         ColorPair::BarKey.set_color(&ui.window, false);

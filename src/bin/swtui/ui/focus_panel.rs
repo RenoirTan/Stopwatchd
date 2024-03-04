@@ -51,7 +51,7 @@ impl FocusPanel {
     }
 
     pub fn draw(&self, ui: &Ui) {
-        let FocusPanelState { selected, details } = &ui.focus_panel_state;
+        let FocusPanelState { selected, details, .. } = &ui.focus_panel_state;
         self.clear();
         self.border(ui);
         let (left, right, top, bottom) = self.geometry();
@@ -95,12 +95,14 @@ impl FocusPanel {
 
                 ColorPair::Active.set_color(&self.window, false);
                 let mut row = top + 6;
-                for (index, lap) in vi.laps.iter().rev().enumerate() { // latest laps first
+                let lap_scroll = ui.focus_panel_state.lap_scroll;
+                // latest laps first
+                for (index, lap) in vi.laps.iter().rev().skip(lap_scroll).enumerate() {
                     if row > bottom {
                         break;
                     }
 
-                    let lap_number = d.laps_count() - index;
+                    let lap_number = d.laps_count() - index - lap_scroll;
                     let lap_time = ui.formatter.format_duration(lap.duration);
                     let display_lap = format!("{}: {}", lap_number, lap_time);
                     let (l_x, r_x) = center_text(display_lap.len(), (left, right)).unwrap();
@@ -130,17 +132,59 @@ impl FocusPanel {
 
 pub struct FocusPanelState {
     pub selected: Option<Identifier>,
-    pub details: Option<StopwatchDetails>
+    pub details: Option<StopwatchDetails>,
+    pub lap_scroll: usize,
 }
 
 impl FocusPanelState {
-    pub fn new(selected: Option<Identifier>, details: Option<StopwatchDetails>) -> Self {
-        Self { selected, details }
+    pub fn new(
+        selected: Option<Identifier>,
+        details: Option<StopwatchDetails>,
+        lap_scroll: usize
+    ) -> Self {
+        Self { selected, details, lap_scroll }
+    }
+
+    pub fn update_selected(&mut self, identifier: Option<Identifier>) {
+        if self.selected != identifier {
+            self.lap_scroll = 0;
+        }
+        self.selected = identifier;
+    }
+
+    pub fn update(&mut self, details: Option<StopwatchDetails>) {
+        match details {
+            Some(d) => {
+                self.update_selected(Some(d.identifier.clone()));
+                self.details = Some(d);
+            },
+            None => {
+                self.selected = None;
+                self.details = None;
+                self.lap_scroll = 0;
+            }
+        }
+    }
+
+    pub fn scroll_inner(&mut self, up: bool) {
+        if up {
+            // only scroll up if within bound
+            if self.lap_scroll >= 1 {
+                self.lap_scroll -= 1;
+            }
+        } else {
+            // only scroll down if definitely within bound
+            if let Some(ref d) = self.details {
+                if self.lap_scroll < d.laps_count() {
+                    self.lap_scroll += 1;
+                }
+            }
+        }
     }
 }
 
 impl Default for FocusPanelState {
     fn default() -> Self {
-        Self::new(None, None)
+        Self::new(None, None, 0)
     }
 }
