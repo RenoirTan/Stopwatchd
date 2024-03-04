@@ -209,8 +209,6 @@ impl Ui {
         } else {
             panic!("server did not reply with SpecificAnswer::Play or Pause!");
         }
-
-        self.refresh_list().await;
     }
 
     pub fn prompt_name(&mut self) {
