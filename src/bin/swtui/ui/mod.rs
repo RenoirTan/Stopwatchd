@@ -188,6 +188,19 @@ impl Ui {
         self.focus_active
     }
 
+    pub async fn set_focus_raw_identifier(&mut self, raw: &str) {
+        let request = Request::info_some(vec![raw.to_string()], true);
+        let mut reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
+        if reply.errors.len() >= 1 {
+            error!("[swtui::ui::Ui::set_focus_raw_identifier] uh oh");
+        }
+        if let SpecificAnswer::Info(InfoAnswer::Basic) = reply.specific_answer {
+            self.focus_panel_state.update(reply.successful.remove(raw));
+        } else {
+            panic!("server did not reply with SpecificAnswer::Info!");
+        }
+    }
+
     pub async fn toggle_state(&mut self) {
         let (mut reply, identifier) = if let Some(ref mut d) = self.focus_panel_state.details {
             let request = match d.state {

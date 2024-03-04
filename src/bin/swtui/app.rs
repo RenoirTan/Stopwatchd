@@ -55,8 +55,11 @@ pub async fn start() {
 
     // start stopwatch if --new passed
     if let Some(name) = cli.new_stopwatch {
-        ui.prompt_state.name = name;
+        ui.prompt_state.name = name.clone();
         ui.start_stopwatch().await;
+        ui.set_focus_raw_identifier(&name).await;
+    } else if let Some(raw) = cli.focus_stopwatch {
+        ui.set_focus_raw_identifier(&raw).await;
     }
 
     let (keypress_fut, mut keypress_rx, stop_keypress_tx) = keypress_detector(Arc::clone(&ui.window));
