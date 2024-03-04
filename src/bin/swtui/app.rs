@@ -9,8 +9,8 @@ use stopwatchd::{
 
 use crate::{
     cli,
-    keypress::keypress_detector,
-    ui::{Ui, color::init_color}
+    keypress::{keypress_detector, KeypressReceiver},
+    ui::{color::init_color, Ui}
 };
 
 pub async fn start() {
@@ -58,78 +58,103 @@ pub async fn start() {
     debug!("[swtui::app::start] first time resetting ui");
     ui.draw();
     trace!("[swtui::app::start] awaiting F10 to exit");
-    while let Some(ch) = keypress_rx.recv().await {
-        if ui.prompt_state.visible {
-            match ch {
-                // ESC
-                // TODO: make sure this is OS-agnostic
-                pancurses::Input::Character('\u{1b}') => {
-                    ui.prompt_state.visible = false;
-                },
-                pancurses::Input::Character('\n') => {
-                    ui.prompt_state.visible = false;
-                    ui.start_stopwatch().await;
-                    ui.prompt_state.reset();
-                },
-                pancurses::Input::Character(c) => {
-                    ui.prompt_state.add_char(c);
-                },
-                pancurses::Input::KeyBackspace => {
-                    ui.prompt_state.backspace();
-                }
-                _ => {} // TODO: WHAT
-            }
-        } else {
-            match ch {
-                pancurses::Input::KeyF9 => {
-                    panic!("[swtui::app::start] F9");
-                },
-                pancurses::Input::KeyF10 => {
-                    break;
-                },
-                pancurses::Input::KeyLeft => {
-                    ui.set_focus_active(false).await;
-                },
-                pancurses::Input::KeyRight => {
-                    ui.set_focus_active(true).await;
-                },
-                // when active window is list panel
-                pancurses::Input::KeyDown if !ui.is_focus_active() => {
-                    ui.scroll(false);
-                },
-                pancurses::Input::KeyUp if !ui.is_focus_active() => {
-                    ui.scroll(true);
-                },
-                pancurses::Input::KeyHome if !ui.is_focus_active() => {
-                    ui.scroll_home();
-                },
-                pancurses::Input::KeyEnd if !ui.is_focus_active() => {
-                    ui.scroll_end();
-                },
-                pancurses::Input::Character(' ') if ui.is_focus_active() => {
-                    ui.toggle_state().await;
-                },
-                pancurses::Input::Character('n') if !ui.is_focus_active() => {
-                    ui.prompt_name();
-                },
-                pancurses::Input::Character('s') if ui.is_focus_active() => {
-                    ui.stop_stopwatch().await;
-                },
-                pancurses::Input::Character('\n') if ui.is_focus_active() => {
-                    ui.lap_stopwatch().await;
-                },
-                pancurses::Input::Character('d') if ui.is_focus_active() => {
-                    ui.delete_stopwatch().await;
-                }
-                _ => {}
-            }
-        }
-        ui.draw();
-        ui.refresh_list().await;
-        ui.refresh_stopwatch().await;
-    }
+    
+    main_loop(&mut ui, &mut keypress_rx).await;
+
     trace!("[swtui::app::start] keypress received");
     stop_keypress_tx.send(()).unwrap();
     keypress_handle.await.unwrap();
     trace!("[swtui::app::start] keypress handle aborted");
+}
+
+
+pub async fn main_loop(ui: &mut Ui, keypress_rx: &mut KeypressReceiver) {
+    info!("[swtui::app::main_loop] start");
+
+    loop {
+        let ch = tokio::select! {
+            ch = keypress_rx.recv() => match ch {
+                Some(ch) => ch,
+                None => break
+            }
+        };
+        
+        if !handle_keypress(ui, ch).await {
+            break;
+        }
+
+        ui.draw();
+        ui.refresh_list().await;
+        ui.refresh_stopwatch().await;
+    }
+}
+
+
+pub async fn handle_keypress(ui: &mut Ui, ch: pancurses::Input) -> bool {
+    if ui.prompt_state.visible {
+        match ch {
+            // ESC
+            // TODO: make sure this is OS-agnostic
+            pancurses::Input::Character('\u{1b}') => {
+                ui.prompt_state.visible = false;
+            },
+            pancurses::Input::Character('\n') => {
+                ui.prompt_state.visible = false;
+                ui.start_stopwatch().await;
+                ui.prompt_state.reset();
+            },
+            pancurses::Input::Character(c) => {
+                ui.prompt_state.add_char(c);
+            },
+            pancurses::Input::KeyBackspace => {
+                ui.prompt_state.backspace();
+            }
+            _ => {} // TODO: WHAT
+        }
+    } else {
+        match ch {
+            pancurses::Input::KeyF9 => {
+                panic!("[swtui::app::start] F9");
+            },
+            pancurses::Input::KeyF10 => {
+                return false;
+            },
+            pancurses::Input::KeyLeft => {
+                ui.set_focus_active(false).await;
+            },
+            pancurses::Input::KeyRight => {
+                ui.set_focus_active(true).await;
+            },
+            // when active window is list panel
+            pancurses::Input::KeyDown if !ui.is_focus_active() => {
+                ui.scroll(false);
+            },
+            pancurses::Input::KeyUp if !ui.is_focus_active() => {
+                ui.scroll(true);
+            },
+            pancurses::Input::KeyHome if !ui.is_focus_active() => {
+                ui.scroll_home();
+            },
+            pancurses::Input::KeyEnd if !ui.is_focus_active() => {
+                ui.scroll_end();
+            },
+            pancurses::Input::Character(' ') if ui.is_focus_active() => {
+                ui.toggle_state().await;
+            },
+            pancurses::Input::Character('n') if !ui.is_focus_active() => {
+                ui.prompt_name();
+            },
+            pancurses::Input::Character('s') if ui.is_focus_active() => {
+                ui.stop_stopwatch().await;
+            },
+            pancurses::Input::Character('\n') if ui.is_focus_active() => {
+                ui.lap_stopwatch().await;
+            },
+            pancurses::Input::Character('d') if ui.is_focus_active() => {
+                ui.delete_stopwatch().await;
+            }
+            _ => {}
+        }
+    }
+    true
 }
