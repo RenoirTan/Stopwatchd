@@ -93,6 +93,7 @@ impl FocusPanel {
                 let (l_x, r_x) = center_text(display_laps.len(), (left, right)).unwrap();
                 self.window.mvaddnstr(top+5, l_x, display_laps, r_x - l_x + 1);
 
+                ColorPair::Active.set_color(&self.window, false);
                 let mut row = top + 6;
                 for (index, lap) in vi.laps.iter().rev().enumerate() { // latest laps first
                     if row > bottom {
