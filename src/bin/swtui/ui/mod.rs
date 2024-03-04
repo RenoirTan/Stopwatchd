@@ -186,15 +186,33 @@ impl Ui {
         self.focus_active
     }
 
-    pub fn toggle_state(&mut self) {
+    pub async fn toggle_state(&mut self) {
         // TODO: Send command to swd
-        if let Some(ref mut d) = self.focus_panel_state.details {
-            match d.state {
-                State::Playing => d.state = State::Paused,
-                State::Paused => d.state = State::Playing,
-                State::Ended => {}
+        let (mut reply, identifier) = if let Some(ref mut d) = self.focus_panel_state.details {
+            let request = match d.state {
+                State::Playing => Request::pause(vec![d.identifier.to_string()], false),
+                State::Paused => Request::play(vec![d.identifier.to_string()], false),
+                State::Ended => return ()
+            };
+
+            let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
+
+            if reply.errors.len() >= 1 {
+                error!("[swtui::ui::Ui::toggle_state] uh oh");
             }
+
+            (reply, d.identifier.clone())
+        } else {
+            return ();
+        };
+
+        if matches!(reply.specific_answer, SpecificAnswer::Play(_) | SpecificAnswer::Pause(_)) {
+            self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
+        } else {
+            panic!("server did not reply with SpecificAnswer::Play or Pause!");
         }
+
+        self.refresh_list().await;
     }
 
     pub fn prompt_name(&mut self) {
@@ -210,6 +228,8 @@ impl Ui {
         if reply.errors.len() >= 1 {
             error!("[swtui::ui::Ui::start_stopwatch] uh oh");
         }
+
+        self.refresh_list().await;
     }
 }
 

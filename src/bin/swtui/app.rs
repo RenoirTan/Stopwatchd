@@ -107,7 +107,7 @@ pub async fn start() {
                     ui.scroll_end();
                 },
                 pancurses::Input::Character(' ') if ui.is_focus_active() => {
-                    ui.toggle_state();
+                    ui.toggle_state().await;
                 },
                 pancurses::Input::Character('n') if !ui.is_focus_active() => {
                     ui.prompt_name();

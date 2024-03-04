@@ -11,7 +11,7 @@ use tokio::net::UnixStream;
 use crate::{util::iter_into_vec, traits::Codecable};
 
 use super::{
-    request_specifics::{InfoArgs, StartArgs},
+    request_specifics::{DeleteArgs, InfoArgs, LapArgs, PauseArgs, PlayArgs, StartArgs, StopArgs},
     server::Reply
 };
 pub use super::request_specifics::SpecificArgs;
@@ -89,6 +89,36 @@ impl Request {
     pub fn start(raw_identifiers: Vec<String>, verbose: bool, args: StartArgs) -> Self {
         let common_args = CommonArgs::new(raw_identifiers, verbose);
         let specific_args = SpecificArgs::Start(args);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn stop(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Stop(StopArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn play(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Play(PlayArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn pause(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Pause(PauseArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn lap(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Lap(LapArgs);
+        Self::new(common_args, specific_args)
+    }
+
+    pub fn delete(raw_identifiers: Vec<String>, verbose: bool) -> Self {
+        let common_args = CommonArgs::new(raw_identifiers, verbose);
+        let specific_args = SpecificArgs::Delete(DeleteArgs);
         Self::new(common_args, specific_args)
     }
 
