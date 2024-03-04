@@ -1,11 +1,15 @@
 use std::{
     future::Future,
-    sync::Arc
+    sync::Arc,
+    time::Duration
 };
 
-use tokio::sync::{
-    mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
-    oneshot
+use tokio::{
+    sync::{
+        mpsc::{UnboundedSender, UnboundedReceiver, unbounded_channel},
+        oneshot
+    },
+    time::sleep,
 };
 
 pub type KeypressSender = UnboundedSender<pancurses::Input>;
@@ -66,4 +70,9 @@ pub fn keypress_detector(
     let (kp_tx, kp_rx) = make_keypress_channels();
     let (stop_tx, stop_rx) = make_stop_keypress_channels();
     (looping_keypress_detector(SyncWindow(window), kp_tx, stop_rx), kp_rx, stop_tx)
+}
+
+
+pub async fn keypress_timeout() {
+    sleep(Duration::from_millis(100)).await;
 }

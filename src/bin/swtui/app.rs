@@ -9,7 +9,7 @@ use stopwatchd::{
 
 use crate::{
     cli,
-    keypress::{keypress_detector, KeypressReceiver},
+    keypress::{keypress_detector, KeypressReceiver, keypress_timeout},
     ui::{color::init_color, Ui}
 };
 
@@ -72,16 +72,15 @@ pub async fn main_loop(ui: &mut Ui, keypress_rx: &mut KeypressReceiver) {
     info!("[swtui::app::main_loop] start");
 
     loop {
-        let ch = tokio::select! {
+        tokio::select! {
             ch = keypress_rx.recv() => match ch {
-                Some(ch) => ch,
+                Some(ch) => if !handle_keypress(ui, ch).await {
+                    break;
+                }
                 None => break
-            }
+            },
+            _ = keypress_timeout() => {} // if no keypress within timeout, skip
         };
-        
-        if !handle_keypress(ui, ch).await {
-            break;
-        }
 
         ui.draw();
         ui.refresh_list().await;
