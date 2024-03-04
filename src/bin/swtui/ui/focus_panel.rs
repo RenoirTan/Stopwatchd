@@ -64,7 +64,7 @@ impl FocusPanel {
 
             // Time
             ColorPair::Active.set_color(&self.window, false);
-            let display_time = ui.formatter.format_duration(d.total_time);
+            let display_time = format!("Total: {}", ui.formatter.format_duration(d.total_time));
             let (l_x, r_x) = center_text(display_time.len(), (left, right)).unwrap();
             self.window.mvaddnstr(top+1, l_x, &display_time, r_x - l_x + 1);
 
@@ -73,6 +73,18 @@ impl FocusPanel {
             let display_state = format!("{}", d.state);
             let (l_x, r_x) = center_text(display_state.len(), (left, right)).unwrap();
             self.window.mvaddnstr(top+2, l_x, &display_state, r_x - l_x + 1);
+
+            // Lap Time
+            ColorPair::Active.set_color(&self.window, false);
+            let lap_time = format!("Lap: {}", ui.formatter.format_duration(d.current_lap_time()));
+            let (l_x, r_x) = center_text(lap_time.len(), (left, right)).unwrap();
+            self.window.mvaddnstr(top+3, l_x, &lap_time, r_x - l_x + 1);
+
+            // Lap Count
+            ColorPair::Active.set_color(&self.window, false);
+            let lap_count = format!("Lap Count: {}", d.laps_count());
+            let (l_x, r_x) = center_text(lap_count.len(), (left, right)).unwrap();
+            self.window.mvaddnstr(top+4, l_x, &lap_count, r_x - l_x + 1);
         } else if let Some(identifier) = selected.as_ref() {
             ColorPair::Active.set_color(&self.window, false);
             let err_msg = "Could not find:";
