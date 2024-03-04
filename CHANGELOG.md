@@ -35,3 +35,11 @@
 
  - Add `Cargo.lock`.
  - Fixed compile errors because of new versions of libraries.
+
+## v0.5.0
+
+ - `swtui` feature and binary.
+ - `time` feature added to `tokio` dependency.
+ - In `scripts/build`, `--no-default-features` is set if `${features}` is empty.
+ - `debug-ipc` feature and `--debug-ipc` flag for `swctl`.
+ - Time formatting utilities moved from `swctl::formatted` to `stopwatchd::fmt`.
