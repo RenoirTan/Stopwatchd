@@ -1,9 +1,12 @@
 //! Command line interface for `swctl`.
 
 use clap::{Parser, Subcommand, Args};
-use stopwatchd::logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL};
+use stopwatchd::{
+    fmt::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT},
+    logging::{cli::LogLevel, DEFAULT_LOGGER_LEVEL}
+};
 
-use crate::formatted::{DEFAULT_DATETIME_FORMAT, DEFAULT_DURATION_FORMAT, Styles};
+use crate::formatted::Styles;
 
 #[derive(Parser, Clone)]
 #[command(author, version, about)]
@@ -52,7 +55,12 @@ pub struct Cli {
     /// Whether to communicate with system swd instead of user-started swd.
     #[cfg(feature = "users")]
     #[arg(long = "system", global = true)]
-    pub system_swd: bool
+    pub system_swd: bool,
+
+    /// Prints messages sent between swctl and swd and vice versa.
+    #[cfg(feature = "debug-ipc")]
+    #[arg(long = "debug-ipc", global = true)]
+    pub debug_ipc: bool
 }
 
 #[derive(Subcommand, Clone, Debug)]

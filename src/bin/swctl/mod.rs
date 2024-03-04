@@ -8,11 +8,12 @@ extern crate log;
 use clap::Parser;
 use formatted::{ErrorRecord, BasicDetails, BasicDetailsNoDT, VerboseDetails, VerboseDetailsNoDT};
 use stopwatchd::{
+    fmt::Formatter,
     logging,
     pidfile::{open_pidfile, get_swd_pid, pidfile_path},
     runtime::{server_socket_path, get_uid},
     communication::{
-        client::Request,
+        client::{Request, send_request_bytes, receive_reply_bytes},
         server::{Reply, ServerError},
         details::StopwatchDetails,
         reply_specifics::{SpecificAnswer, InfoAnswer}
@@ -20,9 +21,8 @@ use stopwatchd::{
     traits::Codecable
 };
 use tabled::{builder::Builder, Tabled};
-use tokio::net::UnixStream;
 
-use crate::formatted::{Formatter, Styles};
+use crate::formatted::Styles;
 
 mod cli;
 mod formatted;
@@ -56,30 +56,29 @@ async fn run(cli: cli::Cli) -> i32 {
     debug!("swd_pid is {}", swd_pid);
 
     let ssock_path = server_socket_path(Some(swd_pid), uid);
-    let ssock_path_str = ssock_path.to_string_lossy();
+    let ssock_path_str = ssock_path.display();
     trace!("connecting to {:?}", ssock_path);
-    let stream = UnixStream::connect(&ssock_path).await
-        .expect(&format!("could not connect to {}", ssock_path_str));
-    trace!("connected to {:?}", ssock_path);
-
-    trace!("checking if can write to server");
-    stream.writable().await.expect(&format!("{} is not writeable", ssock_path_str));
 
     let request = request::args_to_request(&cli);
     let message_bytes = request.to_bytes()
         .expect("could not serialize request to bytes");
 
-    info!("sending request to server");
-    stream.try_write(&message_bytes)
-        .expect(&format!("could not write request message to {}", ssock_path_str));
+    #[cfg(feature = "debug-ipc")]
+    if cli.debug_ipc {
+        println!("From swctl.{} to swd.{}: {:?}", pid, swd_pid, message_bytes);
+    }
 
-    trace!("checking if can read from server");
-    stream.readable().await
-        .expect(&format!("{} is not readable", ssock_path_str));
-    let mut braw = Vec::with_capacity(4096);
+    let stream = send_request_bytes(&ssock_path, message_bytes).await
+        .expect(&format!("could not send request to {}", ssock_path_str));
+
     info!("reading response from server");
-    stream.try_read_buf(&mut braw)
+    let braw = receive_reply_bytes(stream).await
         .expect(&format!("could not read reply message from {}", ssock_path_str));
+
+    #[cfg(feature = "debug-ipc")]
+    if cli.debug_ipc {
+        println!("From swd.{} to swctl.{}: {:?}", swd_pid, pid, braw);
+    }
 
     let reply = Reply::from_bytes(&braw)
         .expect(&format!("could not convert message to reply"));

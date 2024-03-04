@@ -1,0 +1,92 @@
+Note from renoir
+It looks like tokio::task::JoinHandle::abort doesn't abort the task running swtui::keypress::looping_keypress_detector, so Arc<pancurses::Window> doesn't get dropped
+
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] swtui is now outputting logs
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] initialized swtui::ui::Ui
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] initialized ncurses colors
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] hiding cursor
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] spawned keypress_detector
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] first time resetting ui
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector]
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] awaiting a keypress to exit
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('a'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] keypress received
+8/18/23 8:44 PM	swtui.9475	[swtui::app::start] keypress handle aborted
+8/18/23 8:44 PM	swtui.9475	die
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('b'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('c'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('d'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('e'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('f'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('\n'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('g'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('h'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('i'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('j'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('k'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('l'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('m'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] keypress: Some(Character('\n'))
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] transmitted keypress
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::looping_keypress_detector] next iter
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] entry
+8/18/23 8:44 PM	swtui.9475	[swtui::keypress::inner_keypress_detector] waiting .getch()

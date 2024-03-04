@@ -1,6 +1,6 @@
 [package]
 name = "stopwatchd"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 authors = ["RenoirTan"]
 description = "Stopwatch daemon in the terminal."
@@ -20,6 +20,7 @@ assets = [
     # Probably a feature suggestion for kornelski/cargo-deb
     ["target/release/swd", "usr/bin/swd", "755"],
     ["target/release/swctl", "usr/bin/swctl", "755"],
+    ["target/release/swtui", "usr/bin/swtui", "755"],
     # This is here because cargo deb doesn't seem to support user services yet
     ["out/stopwatchd.service", "lib/systemd/user/stopwatchd.service","644"],
     ["res/conf/swd.toml", "etc/stopwatchd/swd.toml", "644"],
@@ -52,18 +53,25 @@ path = "src/bin/swd/mod.rs"
 name = "swctl"
 path = "src/bin/swctl/mod.rs"
 
+[[bin]]
+name = "swtui"
+path = "src/bin/swtui/mod.rs"
+
 [features]
-default = ["swd-config", "users"]
+default = ["swd-config", "users", "swtui"]
 swd-config = ["dep:toml"]
 users = ["dep:users"]
+debug-ipc = []
+swtui = ["dep:pancurses"]
 
 [dependencies]
-chrono = "0.4.23"
+chrono = "0.4.31"
 ciborium = "0.2.0"
 clap = { version = "4.1.4", features = ["derive"] }
 futures = "0.3.26"
 hex = "0.4.3"
 log = "0.4.17"
+pancurses = { version = "0.17.0", optional = true }
 serde = { version = "1.0.152", features = ["derive"] }
 signal-hook = "0.3.14"
 signal-hook-tokio = { version = "0.3.1", features = ["futures-v0_3"] }
@@ -75,7 +83,7 @@ uuid = { version = "1.3.0", features = ["v4", "serde"] }
 
 [dependencies.tokio]
 version = "1.25.0"
-features = ["rt", "macros", "rt-multi-thread", "net", "sync", "io-util"]
+features = ["rt", "macros", "rt-multi-thread", "net", "sync", "io-util", "time"]
 
 [profile.release]
 opt-level = 2

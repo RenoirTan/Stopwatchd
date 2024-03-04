@@ -3,6 +3,7 @@
 use std::time::{SystemTime, Duration};
 
 use serde::{Serialize, Deserialize};
+use uuid::Uuid;
 
 use crate::{
     models::{
@@ -39,6 +40,31 @@ impl StopwatchDetails {
         } else {
             None
         };
+        Self {
+            identifier,
+            state,
+            start_time,
+            total_time,
+            laps_count,
+            current_lap_time,
+            verbose_info
+        }
+    }
+
+    /// Create a dummy set of [`StopwatchDetails`].
+    pub fn dummy(identifier: Identifier) -> Self {
+        let state = State::Playing;
+        let start_time = Some(SystemTime::UNIX_EPOCH);
+        let total_time = SystemTime::now().duration_since(start_time.unwrap()).unwrap();
+        let laps = vec![FinishedLap {
+            id: Uuid::new_v4(),
+            sw_id: identifier.id,
+            start: start_time.unwrap(),
+            duration: total_time
+        }];
+        let laps_count = 1;
+        let current_lap_time = total_time;
+        let verbose_info = Some(VerboseDetails { laps });
         Self {
             identifier,
             state,

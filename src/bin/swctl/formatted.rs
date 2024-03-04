@@ -1,11 +1,11 @@
 //! Format the [`StopwatchDetails`] returned from `swd` into a printable format.
 
-use std::{time::Duration, fmt};
+use std::fmt;
 
-use chrono::{Local, DateTime, NaiveTime};
 use clap::ValueEnum;
 use stopwatchd::{
     communication::{details::StopwatchDetails, server::ServerError},
+    fmt::Formatter,
     models::lap::FinishedLap
 };
 use tabled::{Table, Tabled, settings::Style};
@@ -70,49 +70,6 @@ impl fmt::Display for Styles {
     }
 }
 
-/// Format for date and time.
-pub const DEFAULT_DATETIME_FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
-/// Format for duration.
-pub const DEFAULT_DURATION_FORMAT: &'static str = "%H:%M:%S.%3f";
-
-/// Formats details for printing.
-pub struct Formatter {
-    pub datetime_format: String,
-    pub duration_format: String
-}
-
-impl Formatter {
-    /// Create a new formatter.
-    /// 
-    /// `datetime_format` and `duration_format` use C's strftime's format
-    /// specifiers.
-    /// 
-    /// You can use [`DEFAULT_DATETIME_FORMAT`] and [`DEFAULT_DURATION_FORMAT`]
-    /// as defaults if the user doesn't specify.
-    pub fn new(datetime_format: &str, duration_format: &str) -> Self {
-        let datetime_format = datetime_format.to_string();
-        let duration_format = duration_format.to_string();
-        Self { datetime_format, duration_format }
-    }
-
-    /// Format a date and time object into a [`String`].
-    pub fn format_datetime<T>(&self, time: T) -> String
-    where
-        T: Into<DateTime<Local>>
-    {
-        time.into().format(&self.datetime_format).to_string()
-    }
-
-    /// Format a duration object into a [`String`].
-    pub fn format_duration<D>(&self, duration: D) -> String
-    where
-        D: Into<NaiveTime>
-    {
-        let time = duration.into();
-        time.format(&self.duration_format).to_string()
-    }
-}
-
 /// Record of non-verbose parts of [`StopwatchDetails`].
 #[derive(Tabled, Clone, Debug, PartialEq, Eq)]
 pub struct BasicDetails {
@@ -142,10 +99,9 @@ impl BasicDetails {
         } else {
             String::new()
         };
-        let total_time = formatter.format_duration(std_duration_to_naive(details.total_time));
+        let total_time = formatter.format_duration(details.total_time);
         let laps_count = format!("{}", details.laps_count());
-        let current_lap_time = formatter.format_duration(
-            std_duration_to_naive(details.current_lap_time())
+        let current_lap_time = formatter.format_duration(details.current_lap_time()
         );
         Self { id, name, state, start_time, total_time, laps_count, current_lap_time }
     }
@@ -199,7 +155,7 @@ impl VerboseDetails {
         } else {
             String::new()
         };
-        let duration = formatter.format_duration(std_duration_to_naive(lap.duration));
+        let duration = formatter.format_duration(lap.duration);
         Self { id, stopwatch_id, start, duration }
     }
 }
@@ -245,15 +201,6 @@ impl ErrorRecord {
         let message = format!("{}", error);
         Self { identifier, message }
     }
-}
-
-/// Convert a [`Duration`] into [`NaiveTime`]. Since [`Duration`] only stores
-/// days, minutes, seconds and smaller units, it must be converted into a format
-/// that stores larger units like days and months like [`NaiveTime`] for
-/// display.
-pub fn std_duration_to_naive(duration: Duration) -> NaiveTime {
-    NaiveTime::from_hms_opt(0, 0, 0).unwrap()
-        + chrono::Duration::from_std(duration).unwrap_or_else(|_| chrono::Duration::max_value())
 }
 
 /// Iterate through all items except for those at the specified indices.

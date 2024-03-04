@@ -10,7 +10,11 @@ print_dirvars
 cd_src
 
 echo 'Building stopwatchd... '
-cargo build --release --features "${features}"
+if [ -z "${features}"]; then
+    cargo build --release --features "${features}"
+else
+    cargo build --release --no-default-features --features "${features}"
+fi
 echo 'OK!'
 
 if is_var "${use_systemd}"; then
