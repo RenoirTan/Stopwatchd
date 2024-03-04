@@ -241,7 +241,7 @@ impl Ui {
             let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
 
             if reply.errors.len() >= 1 {
-                error!("[swtui::ui::Ui::toggle_state] uh oh");
+                error!("[swtui::ui::Ui::stop_stopwatch] uh oh");
             }
 
             (reply, d.identifier.clone())
@@ -252,7 +252,29 @@ impl Ui {
         if let SpecificAnswer::Stop(_) = reply.specific_answer {
             self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
         } else {
-            panic!("server did not reply with SpecificAnswer::Play or Pause!");
+            panic!("server did not reply with SpecificAnswer::Stop!");
+        }
+    }
+
+    pub async fn delete_stopwatch(&mut self) {
+        let reply = if let Some(ref mut d) = self.focus_panel_state.details {
+            let request = Request::delete(vec![d.identifier.to_string()], false);
+
+            let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
+
+            if reply.errors.len() >= 1 {
+                error!("[swtui::ui::Ui::delete_stopwatch] uh oh");
+            }
+
+            reply
+        } else {
+            return ();
+        };
+
+        if let SpecificAnswer::Delete(_) = reply.specific_answer {
+            self.focus_panel_state = FocusPanelState { selected: None, details: None };
+        } else {
+            panic!("server did not reply with SpecificAnswer::Delete!");
         }
     }
 }

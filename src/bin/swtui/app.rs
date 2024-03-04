@@ -114,6 +114,9 @@ pub async fn start() {
                 },
                 pancurses::Input::Character('s') if ui.is_focus_active() => {
                     ui.stop_stopwatch().await;
+                },
+                pancurses::Input::Character('d') if ui.is_focus_active() => {
+                    ui.delete_stopwatch().await;
                 }
                 _ => {}
             }
