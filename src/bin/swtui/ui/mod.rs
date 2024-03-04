@@ -256,6 +256,34 @@ impl Ui {
         }
     }
 
+    pub async fn lap_stopwatch(&mut self) {
+        let (mut reply, identifier) = if let Some(ref mut d) = self.focus_panel_state.details {
+            let request = match d.state {
+                State::Playing | State::Paused => Request::lap(
+                    vec![d.identifier.to_string()],
+                    false
+                ),
+                State::Ended => return ()
+            };
+
+            let reply = ClientSender::new(&self.ssock_path).send(request).await.unwrap();
+
+            if reply.errors.len() >= 1 {
+                error!("[swtui::ui::Ui::lap_stopwatch] uh oh");
+            }
+
+            (reply, d.identifier.clone())
+        } else {
+            return ();
+        };
+
+        if let SpecificAnswer::Lap(_) = reply.specific_answer {
+            self.focus_panel_state.details = reply.successful.remove(&identifier.to_string());
+        } else {
+            panic!("server did not reply with SpecificAnswer::Lap!");
+        }
+    }
+
     pub async fn delete_stopwatch(&mut self) {
         let reply = if let Some(ref mut d) = self.focus_panel_state.details {
             let request = Request::delete(vec![d.identifier.to_string()], false);
