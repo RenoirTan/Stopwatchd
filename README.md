@@ -180,3 +180,5 @@ Feature names in **bold** are compiled by default.
 | - | - |
 | **swd-config** | `swd` can be configured with files. |
 | **users** | One `swd` can run for each user on a system instead of only just one per system. |
+| **swtui** | Compile a working version of `swtui`. If disabled, `swtui` will be compiled but only prints out "NO SWTUI". |
+| debug-ipc | Show additional details for inter-process communication. |
