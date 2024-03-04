@@ -52,13 +52,20 @@ pub async fn start() {
         pancurses::curs_set(0);
         trace!("[swtui::app::start] hiding cursor");
     }
+
+    // start stopwatch if --new passed
+    if let Some(name) = cli.new_stopwatch {
+        ui.prompt_state.name = name;
+        ui.start_stopwatch().await;
+    }
+
     let (keypress_fut, mut keypress_rx, stop_keypress_tx) = keypress_detector(Arc::clone(&ui.window));
     let keypress_handle = tokio::spawn(keypress_fut);
     trace!("[swtui::app::start] spawned keypress_detector");
     debug!("[swtui::app::start] first time resetting ui");
     ui.draw();
     trace!("[swtui::app::start] awaiting F10 to exit");
-    
+
     main_loop(&mut ui, &mut keypress_rx).await;
 
     trace!("[swtui::app::start] keypress received");
