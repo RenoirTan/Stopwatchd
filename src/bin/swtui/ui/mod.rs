@@ -13,14 +13,12 @@ use std::{
 
 use stopwatchd::{
     communication::{
-        client::{receive_reply_bytes, ClientSender, CommonArgs, Request},
+        client::{ClientSender, Request},
         reply_specifics::{InfoAnswer, SpecificAnswer},
-        request_specifics::{SpecificArgs, StartArgs},
-        server::Reply
+        request_specifics::StartArgs,
     },
     fmt::Formatter,
-    models::stopwatch::State,
-    traits::Codecable
+    models::stopwatch::State
 };
 
 use self::{
