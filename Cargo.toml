@@ -20,6 +20,7 @@ assets = [
     # Probably a feature suggestion for kornelski/cargo-deb
     ["target/release/swd", "usr/bin/swd", "755"],
     ["target/release/swctl", "usr/bin/swctl", "755"],
+    ["target/release/swtui", "usr/bin/swtui", "755"],
     # This is here because cargo deb doesn't seem to support user services yet
     ["out/stopwatchd.service", "lib/systemd/user/stopwatchd.service","644"],
     ["res/conf/swd.toml", "etc/stopwatchd/swd.toml", "644"],
