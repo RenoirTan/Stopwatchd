@@ -140,18 +140,15 @@ swctl delete aaa
 
 To delete a stopwatch from memory and disk, use `swctl delete`.
 
-**FUTURE**
+### `swtui`
+
+From version 0.5.0 onwards, Stopwatchd has a TUI utility called `swtui` that allows you to view and control stopwatches graphically, built using [pancurses](https://github.com/ihalila/pancurses). By default, `swtui` is compiled and shipped along with the rest of Stopwatchd. If you don't want this, you can disable the `swtui` feature. As always, more information is available in the [build guide](/BUILD.md).
 
 ```bash
-sw start
-# bcdefg
-sw attach bcdefg
-# Press enter for a new lap
-#       ctrl+z for pause
-#       ctrl+c to stop
+swtui
 ```
 
-Live interaction with a stopwatch is also possible by attaching your console to the stopwatch using the `sw-attach` command. If you want to attach a console when you start a stopwatch, just run `sw-attach --start`.
+To use, it simply type `swtui` in your terminal as shown above.
 
 ## Configuring
 

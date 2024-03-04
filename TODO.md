@@ -19,7 +19,7 @@
      - [x] Manager has 3 functions that takes in a callback function to run an action on a stopwatch.
      - [x] `NameRegister` remembers which `UniqueId` is associated to a `Name`.
      - [x] `AccessOrder` is a `Vec` of `UniqueId`, with the last item being the last accessed. Iterating the sequence in the correct order requires reversing the iterator in order to start from the back.
- - [ ] Work on `sw-attach`, maybe with ncurses.
+ - [x] Work on `swtui`, maybe with ncurses.
  - [ ] Other init systems:
    - [ ] openrc
    - [ ] ...
