@@ -20,5 +20,5 @@ async fn main() {
         trace!("die");
     }
     #[cfg(not(feature = "swtui"))]
-    println!("bruh");
+    println!("NO SWTUI");
 }

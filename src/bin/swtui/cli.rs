@@ -26,4 +26,8 @@ pub struct Cli {
     /// Set the log level for the daemon.
     #[arg(short, long, default_value_t = DEFAULT_LOGGER_LEVEL.into(), value_enum)]
     pub log_level: LogLevel,
+
+    /// Whether swtui has been enabled.
+    #[arg(long = "enabled", global = true)]
+    pub yes_swtui: bool
 }

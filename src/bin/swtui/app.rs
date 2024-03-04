@@ -15,6 +15,12 @@ use crate::{
 
 pub async fn start() {
     let cli = cli::Cli::parse();
+
+    if cli.yes_swtui {
+        println!("YES SWTUI");
+        return;
+    }
+
     println!("{:?}", cli);
 
     let pid = process::id();
