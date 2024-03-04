@@ -92,6 +92,8 @@ where
 /// # Example
 /// 
 /// ```
+/// use stopwatchd::impl_into_enum_variant;
+///
 /// enum Variants {
 ///     A(TypeA),
 ///     B(TypeB)

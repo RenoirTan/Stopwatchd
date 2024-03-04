@@ -37,6 +37,8 @@ impl CommonArgs {
     /// # Example
     /// 
     /// ```
+    /// use stopwatchd::communication::client::CommonArgs;
+    ///
     /// // `&str` implements `Into<Identifier>`
     /// let identifiers = ["sw1", "sw2"];
     /// let verbose = false;
