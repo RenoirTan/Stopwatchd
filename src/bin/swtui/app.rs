@@ -112,6 +112,9 @@ pub async fn start() {
                 pancurses::Input::Character('n') if !ui.is_focus_active() => {
                     ui.prompt_name();
                 },
+                pancurses::Input::Character('s') if ui.is_focus_active() => {
+                    ui.stop_stopwatch().await;
+                }
                 _ => {}
             }
         }
